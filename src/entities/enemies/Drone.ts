@@ -1,0 +1,102 @@
+import { CONFIG } from '../../core/Config';
+import { normalize } from '../../core/MathUtil';
+import { Sfx } from '../../render/Audio';
+import { PlaceholderVisual } from '../../render/Visual';
+import { EnemyBase } from './EnemyBase';
+import type { WorldContext } from '../../scenes/WorldContext';
+
+const D = CONFIG.enemies.drone;
+
+type DroneMode = 'patrol' | 'charge' | 'return';
+
+/**
+ * Dron: patroluje poziomo wokół punktu spawnu po sinusoidzie. Okresowo:
+ *  - gracz pod nim → zrzuca ładunek (pocisk z grawitacją),
+ *  - w przeciwnym razie → szarżuje w stronę gracza i wraca na trasę.
+ */
+export class Drone extends EnemyBase {
+  visual = new PlaceholderVisual({ color: '#1abc9c', accent: '#fff', shape: 'diamond', faceMarker: false });
+  private mode: DroneMode = 'patrol';
+  private originX: number;
+  private originY: number;
+  private patrolT = 0;
+  private attackTimer = D.attackInterval;
+  private chargeTimer = 0;
+  private chargeDir = { x: 0, y: 0 };
+
+  constructor(x: number, y: number) {
+    super('drone', D.hp, D.contactDamage, D.score);
+    this.w = D.width;
+    this.h = D.height;
+    this.originX = x;
+    this.originY = y;
+    this.x = x;
+    this.y = y;
+    this.facing = -1;
+  }
+
+  update(dt: number, world: WorldContext): void {
+    const player = world.player;
+    switch (this.mode) {
+      case 'patrol': {
+        this.patrolT += dt;
+        const px = this.originX + Math.sin(this.patrolT * (D.patrolSpeed / D.patrolRange)) * D.patrolRange;
+        const py = this.originY + Math.sin(this.patrolT * D.waveFrequency * Math.PI * 2) * D.waveAmplitude;
+        this.facing = px < this.x ? -1 : 1;
+        this.x = px;
+        this.y = py;
+
+        this.attackTimer -= dt;
+        if (this.attackTimer <= 0 && world.camera.isVisible(this.x, this.y, this.w, this.h) && !player.isDead) {
+          this.attackTimer = D.attackInterval;
+          if (Math.abs(player.cx - this.cx) <= D.bombWindowX && player.cy > this.cy) {
+            this.dropBomb(world);
+          } else {
+            this.startCharge(world);
+          }
+        }
+        break;
+      }
+      case 'charge': {
+        this.chargeTimer -= dt;
+        this.x += this.chargeDir.x * D.chargeSpeed * dt;
+        this.y += this.chargeDir.y * D.chargeSpeed * dt;
+        if (this.chargeTimer <= 0) this.mode = 'return';
+        break;
+      }
+      case 'return': {
+        const tx = this.originX, ty = this.originY;
+        const d = normalize(tx - this.x, ty - this.y);
+        const dist = Math.hypot(tx - this.x, ty - this.y);
+        const step = D.chargeSpeed * 0.6 * dt;
+        if (dist <= step) { this.x = tx; this.y = ty; this.mode = 'patrol'; this.patrolT = 0; }
+        else { this.x += d.x * step; this.y += d.y * step; }
+        this.facing = d.x < 0 ? -1 : 1;
+        break;
+      }
+    }
+    this.postUpdate(dt, world);
+  }
+
+  private dropBomb(world: WorldContext): void {
+    Sfx.play('drone_bomb');
+    world.fireEnemyBullet(this.cx, this.bottom + 2, 0, 1, D.bombSpeed * 0.4, D.bombDamage, { gravity: 500, radius: 4, color: '#f39c12' });
+  }
+
+  private startCharge(world: WorldContext): void {
+    const p = world.player;
+    this.chargeDir = normalize(p.cx - this.cx, p.cy - this.cy);
+    this.chargeTimer = D.chargeTime;
+    this.mode = 'charge';
+    this.facing = this.chargeDir.x < 0 ? -1 : 1;
+  }
+
+  draw(ctx: CanvasRenderingContext2D): void {
+    const tint = this.mode === 'charge' ? '#ff7675' : undefined;
+    this.drawVisual(ctx, this.mode, { tint });
+    // "wirniki" – dwa migające punkty nad kadłubem
+    ctx.fillStyle = Math.floor(this.age * 30) % 2 === 0 ? '#fff' : '#7f8c8d';
+    ctx.fillRect(Math.round(this.x), Math.round(this.y) - 2, 3, 1);
+    ctx.fillRect(Math.round(this.x + this.w) - 3, Math.round(this.y) - 2, 3, 1);
+  }
+}

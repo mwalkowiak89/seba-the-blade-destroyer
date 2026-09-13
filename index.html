@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seba the Blade Destroyer — prototyp</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #0b0b10; height: 100%; overflow: hidden; }
+    body { display: flex; align-items: center; justify-content: center; font-family: monospace; color: #ccc; }
+    canvas { image-rendering: pixelated; image-rendering: crisp-edges; background: #000; outline: none; }
+    #help { position: fixed; left: 8px; bottom: 6px; font-size: 12px; opacity: .6; }
+  </style>
+</head>
+<body>
+  <canvas id="game" tabindex="0"></canvas>
+  <div id="help">Strzałki/WASD: ruch · Z / K / Spacja: skok · X / J: ogień · Dół+Skok: zeskok · R: restart</div>
+  <script src="dist/game.js"></script>
+</body>
+</html>
