@@ -1,6 +1,8 @@
 import { CONFIG } from './Config';
 import { Input } from './Input';
 import { GameScene } from '../scenes/GameScene';
+import { loadAllAssets } from '../assets/AssetLoader';
+import { HUD } from '../ui/HUD';
 
 /**
  * Pętla gry: stały krok symulacji (60 Hz) + render co klatkę, całkowite skalowanie canvasu.
@@ -8,7 +10,7 @@ import { GameScene } from '../scenes/GameScene';
 export class Game {
   private ctx: CanvasRenderingContext2D;
   private input: Input;
-  private scene: GameScene;
+  private scene: GameScene | null = null;
   private accumulator = 0;
   private lastTime = 0;
   private running = false;
@@ -21,7 +23,6 @@ export class Game {
     this.ctx = ctx;
     this.ctx.imageSmoothingEnabled = false;
     this.input = new Input(window);
-    this.scene = new GameScene(this.input);
     window.addEventListener('resize', () => this.fitToWindow());
     this.fitToWindow();
     canvas.focus();
@@ -33,8 +34,16 @@ export class Game {
     this.canvas.style.height = `${CONFIG.view.height * scale}px`;
   }
 
-  start(): void {
+  /** Ładuje zasoby (ekran ładowania), tworzy scenę i startuje pętlę. */
+  async start(): Promise<void> {
     if (this.running) return;
+    HUD.drawLoading(this.ctx, 0, 1);
+    try {
+      await loadAllAssets((d, t) => HUD.drawLoading(this.ctx, d, t));
+    } catch (e) {
+      console.warn('Nie udało się załadować części zasobów – gra użyje placeholderów.', e);
+    }
+    this.scene = new GameScene(this.input);
     this.running = true;
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.frame(t));
@@ -45,7 +54,7 @@ export class Game {
   }
 
   private frame(now: number): void {
-    if (!this.running) return;
+    if (!this.running || !this.scene) return;
     let dt = (now - this.lastTime) / 1000;
     this.lastTime = now;
     if (dt > 0.25) dt = 0.25; // po powrocie z zakładki w tle
@@ -57,6 +66,7 @@ export class Game {
       this.input.update();
       this.scene.update(step);
       if (this.scene.wantsRestart) this.restart();
+      if (!this.scene) return;
       this.accumulator -= step;
       steps++;
     }

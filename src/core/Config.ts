@@ -17,6 +17,14 @@ export const CONFIG = {
     maxFallSpeed: 460,
   },
 
+  vfx: {
+    /** Iskry z tarczy tnącej (cząstek/s). */
+    sawSparkRate: 22,
+    impactSparks: 6,
+    landingDust: 6,
+    shake: { playerHit: 3, enemyDeath: 1.5, bossPhase: 4, bossDeath: 7, sweepLand: 2 },
+  },
+
   camera: {
     /** Gracz utrzymywany w tej części ekranu (0..1) podczas biegu w prawo. */
     followFraction: 0.4,
@@ -25,12 +33,12 @@ export const CONFIG = {
   },
 
   player: {
-    width: 12,
-    standHeight: 28,
-    crouchHeight: 14,
+    width: 14,
+    standHeight: 42,
+    crouchHeight: 26,
     runSpeed: 105,
     /** Skok o stałej wysokości (bez zmiennej wysokości – jak w Contrze). */
-    jumpVelocity: -430,
+    jumpVelocity: -470,
     /** Liczba pełnych obrotów koziołka w trakcie jednego skoku. */
     somersaultTurns: 1,
     somersaultDuration: 0.66,
@@ -69,8 +77,8 @@ export const CONFIG = {
 
   enemies: {
     runner: {
-      width: 12,
-      height: 24,
+      width: 14,
+      height: 40,
       speed: 72,
       jumpVelocity: -340,
       hp: 20,
@@ -82,8 +90,8 @@ export const CONFIG = {
       obstacleLookahead: 10,
     },
     sniper: {
-      width: 14,
-      height: 24,
+      width: 22,
+      height: 22,
       hp: 30,
       fireInterval: 2.4,
       aimTime: 0.7,
@@ -94,8 +102,8 @@ export const CONFIG = {
       score: 200,
     },
     drone: {
-      width: 16,
-      height: 10,
+      width: 26,
+      height: 28,
       hp: 20,
       patrolSpeed: 55,
       patrolRange: 72,

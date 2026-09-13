@@ -6,6 +6,8 @@
  * Podmiana na grafikę docelową = przypisanie SpriteSheetVisual z tymi samymi nazwami klipów
  * (`anim`), bez zmian w PlayerController / EnemyBase / Boss.
  */
+import { Sheets, type SheetName } from '../assets/AssetLoader';
+
 export interface DrawParams {
   /** Lewy-górny róg hitboxa w przestrzeni świata. */
   x: number;
@@ -109,58 +111,36 @@ export class PlaceholderVisual implements Visual {
 /** Definicja klipu animacji klatkowej. */
 export interface AnimClip {
   /** Indeksy klatek w sprite sheecie (liczone rzędami od lewej do prawej). */
-  frames: number[];
+  frames: readonly number[];
   fps: number;
   loop?: boolean;
 }
 
 /**
- * Implementacja docelowa – sprite sheet o stałym rozmiarze klatki.
- * Gotowa do użycia, na razie nieużywana (brak grafik). Przykład:
- *
- *   const img = await Assets.loadImage('seba', 'assets/sprites/seba.png');
- *   player.visual = new SpriteSheetVisual(img, 32, 32, {
- *     idle: { frames: [0], fps: 1 }, run: { frames: [1,2,3,4], fps: 12 }, ...
- *   }, { offsetX: -10, offsetY: -4 });
+ * Wizual oparty o SpriteSheet z manifestu (odpowiednik AnimatedSprite2D).
+ * Nazwa `anim` = nazwa klipu; brak klipu → `fallback`.
+ * Kotwica z definicji sheetu: 'bottom' (stopy = dół hitboxa) lub 'center' (środek hitboxa).
  */
 export class SpriteSheetVisual implements Visual {
-  private cols: number;
-
   constructor(
-    private image: HTMLImageElement,
-    private frameW: number,
-    private frameH: number,
-    private clips: Record<string, AnimClip>,
-    private opts: { offsetX?: number; offsetY?: number; fallback?: string } = {},
-  ) {
-    this.cols = Math.max(1, Math.floor(image.width / frameW));
-  }
+    private sheetName: SheetName,
+    private opts: { fallback?: string; offsetX?: number; offsetY?: number; placeholder?: Visual } = {},
+  ) {}
 
   draw(ctx: CanvasRenderingContext2D, p: DrawParams): void {
-    const clip = this.clips[p.anim] ?? this.clips[this.opts.fallback ?? 'idle'];
-    if (!clip) return;
-    const n = clip.frames.length;
-    let idx = Math.floor(p.time * clip.fps);
-    idx = clip.loop === false ? Math.min(idx, n - 1) : idx % n;
-    const frame = clip.frames[idx];
-    const sx = (frame % this.cols) * this.frameW;
-    const sy = Math.floor(frame / this.cols) * this.frameH;
-
-    const cx = p.x + p.w / 2;
-    const cy = p.y + p.h / 2;
-    ctx.save();
-    if (p.alpha !== undefined) ctx.globalAlpha = p.alpha;
-    ctx.translate(Math.round(cx), Math.round(cy));
-    if (p.rotation) ctx.rotate(p.rotation);
-    ctx.scale(p.facing, 1);
-    const ox = (this.opts.offsetX ?? -this.frameW / 2);
-    const oy = (this.opts.offsetY ?? -this.frameH / 2);
-    ctx.drawImage(this.image, sx, sy, this.frameW, this.frameH, ox, oy, this.frameW, this.frameH);
-    if (p.flash) {
-      ctx.globalCompositeOperation = 'source-atop';
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(ox, oy, this.frameW, this.frameH);
+    const sheet = Sheets.tryGet(this.sheetName);
+    if (!sheet) { this.opts.placeholder?.draw(ctx, p); return; }
+    const def = sheet.def;
+    const frame = sheet.frameAt(p.anim, p.time, this.opts.fallback ?? 'idle');
+    const ax = def.anchorX ?? sheet.frameW / 2;
+    let x = p.x + p.w / 2 + (this.opts.offsetX ?? 0) * p.facing;
+    let y: number, ay: number;
+    if (def.anchor === 'center') { y = p.y + p.h / 2; ay = def.anchorY ?? sheet.frameH / 2; }
+    else { y = p.y + p.h; ay = sheet.frameH; }
+    y += this.opts.offsetY ?? 0;
+    if (p.rotation) { // obrót wokół środka hitboxa (koziołek)
+      y = p.y + p.h / 2; ay = sheet.frameH - p.h / 2;
     }
-    ctx.restore();
+    sheet.drawAnchored(ctx, frame, x, y, ax, ay, { flipX: p.facing < 0, rotation: p.rotation, alpha: p.alpha, flash: p.flash });
   }
 }

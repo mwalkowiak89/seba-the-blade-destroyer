@@ -1,5 +1,5 @@
 import { CONFIG } from '../../core/Config';
-import { PlaceholderVisual } from '../../render/Visual';
+import { PlaceholderVisual, SpriteSheetVisual } from '../../render/Visual';
 import { moveAndCollide } from '../../world/Physics';
 import { Tile } from '../../world/Level';
 import { EnemyBase } from './EnemyBase';
@@ -12,7 +12,7 @@ const R = CONFIG.enemies.runner;
  * przeskakuje niskie przeszkody (1-2 kafle), spada z krawędzi platform.
  */
 export class Runner extends EnemyBase {
-  visual = new PlaceholderVisual({ color: '#e0563c', accent: '#fff', outline: '#7a2a1a' });
+  visual = new SpriteSheetVisual('runner', { fallback: 'run', placeholder: new PlaceholderVisual({ color: '#e0563c', accent: '#fff', outline: '#7a2a1a' }) });
   private anim = 'run';
 
   constructor(x: number, y: number) {
@@ -55,11 +55,6 @@ export class Runner extends EnemyBase {
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
-    // "nogi" – prosty placeholder animacji biegu: przesunięcie w pionie
-    const bob = this.anim === 'run' ? Math.round(Math.sin(this.age * 22) * 1) : 0;
-    ctx.save();
-    ctx.translate(0, bob);
     this.drawVisual(ctx, this.anim);
-    ctx.restore();
   }
 }

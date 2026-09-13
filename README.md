@@ -35,11 +35,29 @@ Chrome zgłasza pad dopiero po pierwszym naciśnięciu dowolnego przycisku.
 Celowanie 8-kierunkowe wg reguł Contry: stojąc – prosto lub w górę; w biegu – prosto,
 skos góra/dół; w kuckach – prosto; w powietrzu – dowolny z 8 kierunków.
 
+## Zasoby i pipeline
+
+Grafika: paczka **Warped City** (ansimuz, CC0) + czcionki **Kenney** (CC0) – szczegóły w `assets/CREDITS.md`.
+Surowe pliki leżą w `assets/raw/`, a `npm run assets` (`tools/build-assets.mjs`) generuje z nich:
+
+- `assets/sprites/player/seba.png` (palette swap → Seba), `makita.png` (3 orientacje × 2 klatki tarczy),
+- `assets/sprites/enemies/{runner,drone,turret}.png`, `assets/sprites/fx/{shot,shot-hit,explosion,muzzle,saw}.png`,
+- `assets/tilesets/industrial.png` (płyty z nitami, kraty one-way, słupy, rury – autotiling po sąsiadach w `TileRenderer`),
+- `assets/backgrounds/` (4 warstwy parallax: 0.1 / 0.25 / 0.4 / 0.7),
+- `src/assets/manifest.generated.ts` – rozmiary klatek, klipy (nazwa → indeksy + fps), kotwice, punkty dłoni/wylotu broni.
+
+**Podmiana grafiki 1:1**: podmień PNG w `assets/raw/...` (te same nazwy i liczba klatek) i odpal `npm run assets`.
+Nazwy klipów = nazwy stanów FSM (`idle, run, run_shoot, shoot, crouch, jump, spin, hurt`) / trybów wrogów.
+
+Pixel-perfect: wirtualna rozdzielczość 320×240, skalowanie całkowite z letterboxem (odpowiednik `viewport` + `keep`),
+`image-rendering: pixelated` + `imageSmoothingEnabled = false` (Nearest), pozycje kamery i sprite'ów zaokrąglane do pełnych pikseli.
+
 ## Architektura (`src/`)
 
 ```
 core/      Config (WSZYSTKIE parametry balansu), Game (pętla 60 Hz), Input, Camera, Pool, EventBus
-render/    Visual (PlaceholderVisual / SpriteSheetVisual), Particles, Assets, Audio (stub SFX)
+render/    Visual (PlaceholderVisual / SpriteSheetVisual), Parallax, TileRenderer, Fx (animacje jednorazowe), Particles, Audio (stub SFX)
+assets/    AssetLoader (preload sheetów/obrazów/czcionki), SpriteSheet (kotwice, flash), manifest.generated.ts
 world/     Level (tilemapa ASCII 16px), Physics (AABB vs grid + one-way), TestLevel (dane)
 entities/
   Entity, HealthComponent
@@ -51,19 +69,10 @@ scenes/    GameScene (orkiestracja, spawny, kolizje, arena), WorldContext (inter
 ui/        HUD
 ```
 
-### Podmiana placeholderów na grafikę
-Każda encja rysuje się przez `visual.draw(ctx, { anim, time, facing, aim, ... })`.
-Placeholder = `PlaceholderVisual`. Docelowo:
-
-```ts
-const img = await Assets.loadImage('seba', 'assets/sprites/seba.png');
-player.visual = new SpriteSheetVisual(img, 32, 32, {
-  idle: { frames: [0], fps: 1 }, run: { frames: [1, 2, 3, 4], fps: 12 },
-  crouch: { frames: [5], fps: 1 }, jump: { frames: [6, 7, 8, 9], fps: 12 }, fall: { frames: [6], fps: 1 },
-  hurt: { frames: [10], fps: 1 }, dead: { frames: [11], fps: 1 },
-});
-```
-Nazwy klipów = nazwy stanów FSM (`PlayerStateName`) / tryby wrogów / `phase1..3` bossa.
+### Wizuale
+Każda encja rysuje się przez `visual.draw(ctx, { anim, time, facing, aim, ... })`. `SpriteSheetVisual('nazwa')`
+rozwiązuje sheet z manifestu leniwie – gdy zasoby nie są załadowane (headless test), rysuje `PlaceholderVisual`.
+Broń gracza to osobna nakładka (`makita`) obracana do 8 kierunków przez 3 orientacje bazowe + odbicia X/Y.
 Dźwięk: `Sfx.register('shoot', 'assets/sfx/makita.wav')` — wywołania `Sfx.play(...)` są już w kodzie.
 
 ### Boss — dodawanie ataków

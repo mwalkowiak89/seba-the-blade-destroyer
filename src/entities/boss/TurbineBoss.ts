@@ -37,6 +37,7 @@ export class TurbineBoss extends EnemyBase {
   private prevY = 0;
   /** Ostatnie przejście fazy – `update` odczytuje je i emituje event `boss:phase`. */
   lastPhaseChange: { from: number; to: number } | null = null;
+  private pendingShake = 0;
 
   constructor(public readonly arenaX: number, public readonly floorY: number) {
     super('boss', B.hp, B.contactDamage, B.score);
@@ -138,6 +139,7 @@ export class TurbineBoss extends EnemyBase {
     if (from >= 0) {
       Sfx.play('boss_phase');
       this.hitFlash = 0.25;
+      this.pendingShake = CONFIG.vfx.shake.bossPhase;
     }
     this.lastPhaseChange = { from, to };
   }
@@ -150,7 +152,9 @@ export class TurbineBoss extends EnemyBase {
   }
 
   protected override deathEffect(world: WorldContext): void {
+    world.camera.shake(CONFIG.vfx.shake.bossDeath, 0.9);
     for (let i = 0; i < 6; i++) {
+      world.fx.spawn('explosion', this.x + Math.random() * this.w, this.y + Math.random() * this.h);
       world.particles.emit({
         x: this.x + Math.random() * this.w, y: this.y + Math.random() * this.h, count: 20,
         color: ['#ff9f43', '#ffdd59', '#ffffff', '#e74c3c', '#2d3436'],
@@ -187,41 +191,68 @@ export class TurbineBoss extends EnemyBase {
       world.events.emit('boss:phase', this.lastPhaseChange);
       this.lastPhaseChange = null;
     }
+    if (this.pendingShake > 0) { world.camera.shake(this.pendingShake, 0.4); this.pendingShake = 0; }
 
     this.facing = world.player.cx < this.cx ? -1 : 1;
     this.postUpdate(dt, world);
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
-    const flashTint = this.telegraphing && Math.floor(this.age * 20) % 2 === 0 ? '#ffffff' : undefined;
-    ctx.save();
-    ctx.translate(Math.round(this.shakeOffset), 0);
-    this.drawVisual(ctx, `phase${this.phaseIndex + 1}`, { tint: flashTint ?? this.tint });
+    const flash = this.hitFlash > 0 || (this.telegraphing && Math.floor(this.age * 20) % 2 === 0);
+    const pal = BOSS_PALETTES[Math.max(0, Math.min(2, this.phaseIndex))];
+    const K = '#050912';
+    const x = Math.round(this.x) + Math.round(this.shakeOffset), y = Math.round(this.y), w = this.w, h = this.h;
+    const vertical = w < h;
 
-    // detale placeholdera: piasta + pasy skrzydła
-    const cx = Math.round(this.cx), cy = Math.round(this.cy);
-    ctx.fillStyle = '#2c3e50';
-    ctx.beginPath();
-    ctx.arc(cx, cy, 6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = flashTint ?? '#ecf0f1';
-    ctx.beginPath();
-    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    if (this.w < this.h) {
-      for (let y = this.y + 6; y < this.bottom - 6; y += 12) ctx.fillRect(Math.round(this.x + 3), Math.round(y), this.w - 6, 2);
-    } else {
-      for (let x = this.x + 6; x < this.x + this.w - 6; x += 12) ctx.fillRect(Math.round(x), Math.round(this.y + 3), 2, this.h - 6);
-    }
-    // smuga ruchu przy szarży
+    ctx.save();
+    // smuga ruchu przy szarży / zamachu
     const speed = Math.hypot(this.x - this.prevX, this.y - this.prevY);
     if (speed > 3) {
       ctx.globalAlpha = 0.3;
-      ctx.fillStyle = this.tint;
-      ctx.fillRect(Math.round(this.prevX), Math.round(this.prevY), this.w, this.h);
+      ctx.fillStyle = pal.m;
+      ctx.fillRect(Math.round(this.prevX), Math.round(this.prevY), w, h);
       ctx.globalAlpha = 1;
+    }
+    // korpus: obrys, wypełnienie, krawędź światła i cienia
+    ctx.fillStyle = K; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = flash ? '#ffffff' : pal.m; ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
+    if (!flash) {
+      ctx.fillStyle = pal.l; ctx.fillRect(x + 1, y + 1, w - 2, 1); ctx.fillRect(x + 1, y + 1, 1, h - 2);
+      ctx.fillStyle = pal.d; ctx.fillRect(x + 1, y + h - 2, w - 2, 1); ctx.fillRect(x + w - 2, y + 1, 1, h - 2);
+      // płyty pancerne wzdłuż dłuższej osi + nity
+      ctx.fillStyle = K;
+      const len = vertical ? h : w;
+      for (let k = 10; k < len - 6; k += 12) {
+        if (vertical) { ctx.fillRect(x + 2, y + k, w - 4, 1); ctx.fillStyle = pal.l; ctx.fillRect(x + 4, y + k + 3, 1, 1); ctx.fillRect(x + w - 5, y + k + 3, 1, 1); ctx.fillStyle = K; }
+        else { ctx.fillRect(x + k, y + 2, 1, h - 4); ctx.fillStyle = pal.l; ctx.fillRect(x + k + 3, y + 3, 1, 1); ctx.fillStyle = K; }
+      }
+      // ostrza na krawędzi natarcia (ząbki)
+      ctx.fillStyle = pal.l;
+      for (let k = 4; k < len - 4; k += 6) {
+        if (vertical) ctx.fillRect(this.facing < 0 ? x - 1 : x + w, y + k, 1, 2);
+        else ctx.fillRect(x + k, y + h, 2, 1);
+      }
+    }
+    // piasta + oko (czerwone i pulsujące w Enrage)
+    const cx = Math.round(this.cx) + Math.round(this.shakeOffset), cy = Math.round(this.cy);
+    ctx.fillStyle = K; ctx.fillRect(cx - 5, cy - 5, 10, 10);
+    ctx.fillStyle = pal.d; ctx.fillRect(cx - 4, cy - 4, 8, 8);
+    ctx.fillStyle = this.phaseIndex >= 2 ? (Math.floor(this.age * 6) % 2 ? '#ff2a2a' : '#ff8a80') : pal.l;
+    ctx.fillRect(cx - 2, cy - 2, 4, 4);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(cx - 1, cy - 1, 1, 1);
+    // dym z korpusu w Enrage – emisja w BossPhases; tutaj lekka poświata
+    if (this.phaseIndex >= 2 && !flash) {
+      ctx.globalAlpha = 0.25 + 0.15 * Math.sin(this.age * 8);
+      ctx.fillStyle = '#ff2a2a';
+      ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
     }
     ctx.restore();
   }
 }
+
+/** Paleta korpusu per faza: l – światło, m – wypełnienie, d – cień. */
+const BOSS_PALETTES = [
+  { l: '#c3c8d1', m: '#7d8794', d: '#3f4753' },
+  { l: '#f5c08a', m: '#d9782a', d: '#7a3b0f' },
+  { l: '#ff9a90', m: '#c8302a', d: '#5e1310' },
+];

@@ -14,6 +14,11 @@ export class Camera {
   /** Maksymalne x (szerokość poziomu - szerokość ekranu). */
   maxX = Infinity;
   locked = false;
+  private shakeTime = 0;
+  private shakeDuration = 0;
+  private shakeIntensity = 0;
+  shakeX = 0;
+  shakeY = 0;
 
   get right(): number { return this.x + this.width; }
 
@@ -29,6 +34,24 @@ export class Camera {
     if (this.x > this.maxX) this.x = this.maxX;
   }
 
+  /** Krótkie drżenie ekranu (px, s). Kolejne wywołanie nadpisuje tylko, gdy mocniejsze. */
+  shake(intensity: number, duration: number): void {
+    if (intensity < this.shakeIntensity && this.shakeTime > 0) return;
+    this.shakeIntensity = intensity;
+    this.shakeDuration = this.shakeTime = duration;
+  }
+
+  update(dt: number): void {
+    if (this.shakeTime > 0) {
+      this.shakeTime -= dt;
+      const k = this.shakeIntensity * (this.shakeTime / this.shakeDuration);
+      this.shakeX = Math.round((Math.random() * 2 - 1) * k);
+      this.shakeY = Math.round((Math.random() * 2 - 1) * k);
+    } else {
+      this.shakeX = this.shakeY = 0;
+    }
+  }
+
   lock(x: number): void {
     this.x = x;
     this.locked = true;
@@ -40,6 +63,6 @@ export class Camera {
   }
 
   applyTransform(ctx: CanvasRenderingContext2D): void {
-    ctx.translate(-Math.round(this.x), -Math.round(this.y));
+    ctx.translate(-Math.round(this.x) + this.shakeX, -Math.round(this.y) + this.shakeY);
   }
 }

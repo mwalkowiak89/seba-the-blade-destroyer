@@ -9,7 +9,7 @@ function boot(): void {
   const canvas = document.getElementById('game') as HTMLCanvasElement | null;
   if (!canvas) throw new Error('Brak elementu <canvas id="game">');
   const game = new Game(canvas);
-  game.start();
+  void game.start();
   // dostęp z konsoli do debugowania
   (window as unknown as { game: Game }).game = game;
 }

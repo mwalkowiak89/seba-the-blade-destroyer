@@ -1,7 +1,7 @@
 import { CONFIG } from '../../core/Config';
 import { normalize } from '../../core/MathUtil';
 import { Sfx } from '../../render/Audio';
-import { PlaceholderVisual } from '../../render/Visual';
+import { PlaceholderVisual, SpriteSheetVisual } from '../../render/Visual';
 import { EnemyBase } from './EnemyBase';
 import type { WorldContext } from '../../scenes/WorldContext';
 
@@ -14,7 +14,8 @@ type SniperMode = 'idle' | 'aim' | 'cooldown';
  * pojedynczym pociskiem w aktualną pozycję gracza → cooldown.
  */
 export class Sniper extends EnemyBase {
-  visual = new PlaceholderVisual({ color: '#8e44ad', accent: '#f1c40f', barrel: true, barrelLength: 12, outline: '#4a1f5c' });
+  visual = new SpriteSheetVisual('turret', { placeholder: new PlaceholderVisual({ color: '#8e44ad', accent: '#f1c40f', barrel: true, barrelLength: 12, outline: '#4a1f5c' }) });
+  private modeTime = 0;
   private mode: SniperMode = 'cooldown';
   private timer = S.fireInterval * 0.5;
   private aimDir = { x: -1, y: 0 };
@@ -37,10 +38,12 @@ export class Sniper extends EnemyBase {
     const inRange = Math.hypot(dx, dy) <= S.range && world.camera.isVisible(this.x, this.y, this.w, this.h);
 
     this.timer -= dt;
+    this.modeTime += dt;
     switch (this.mode) {
       case 'cooldown':
         if (this.timer <= 0 && inRange) {
           this.mode = 'aim';
+          this.modeTime = 0;
           this.timer = S.aimTime;
           Sfx.play('sniper_aim');
         }
@@ -53,6 +56,7 @@ export class Sniper extends EnemyBase {
             world.fireEnemyBullet(this.cx + this.aimDir.x * 8, this.cy + this.aimDir.y * 8, this.aimDir.x, this.aimDir.y, S.bulletSpeed, S.bulletDamage);
           }
           this.mode = 'cooldown';
+          this.modeTime = 0;
           this.timer = S.fireInterval;
         }
         break;
@@ -64,8 +68,20 @@ export class Sniper extends EnemyBase {
 
   draw(ctx: CanvasRenderingContext2D): void {
     const aiming = this.mode === 'aim';
-    // telegraf: podczas celowania miga kolor
-    const tint = aiming && Math.floor(this.age * 16) % 2 === 0 ? '#c56cf0' : undefined;
-    this.drawVisual(ctx, aiming ? 'aim' : 'idle', { aim: aiming ? this.aimDir : { x: this.facing, y: 0 }, tint });
+    // telegraf: celownik laserowy w stronę gracza (kropkowana linia, narasta)
+    if (aiming) {
+      const len = 40 + (1 - this.timer / S.aimTime) * 80;
+      ctx.save();
+      ctx.globalAlpha = 0.35 + 0.35 * Math.abs(Math.sin(this.age * 20));
+      ctx.setLineDash([2, 3]);
+      ctx.strokeStyle = '#ff3b3b';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(Math.round(this.cx) + 0.5, Math.round(this.cy) + 0.5);
+      ctx.lineTo(Math.round(this.cx + this.aimDir.x * len) + 0.5, Math.round(this.cy + this.aimDir.y * len) + 0.5);
+      ctx.stroke();
+      ctx.restore();
+    }
+    this.visual.draw(ctx, { x: this.x, y: this.y, w: this.w, h: this.h, facing: this.facing, anim: this.mode, time: this.modeTime, flash: this.hitFlash > 0, aim: aiming ? this.aimDir : { x: this.facing, y: 0 } });
   }
 }

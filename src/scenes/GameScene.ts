@@ -5,6 +5,11 @@ import type { Input } from '../core/Input';
 import { normalize } from '../core/MathUtil';
 import { Sfx } from '../render/Audio';
 import { ParticleSystem } from '../render/Particles';
+import { FxSystem } from '../render/Fx';
+import { Parallax } from '../render/Parallax';
+import { TileRenderer } from '../render/TileRenderer';
+import { Images } from '../assets/AssetLoader';
+import { impactSparks } from '../entities/weapons/Bullet';
 import { Level, Tile, type Marker } from '../world/Level';
 import { TEST_LEVEL } from '../world/TestLevel';
 import { BulletPool } from '../entities/weapons/Bullet';
@@ -32,7 +37,10 @@ export class GameScene implements WorldContext {
   readonly playerBullets = new BulletPool(CONFIG.bullets.playerPoolSize);
   readonly enemyBullets = new BulletPool(CONFIG.bullets.enemyPoolSize);
   readonly particles = new ParticleSystem();
+  readonly fx = new FxSystem();
   readonly events = new EventBus<GameEvents>();
+  private parallax: Parallax | null = null;
+  private tiles: TileRenderer | null = null;
   readonly hud = new HUD();
   time = 0;
   score = 0;
@@ -52,12 +60,28 @@ export class GameScene implements WorldContext {
     this.camera.maxX = this.level.widthPx - this.camera.width;
     this.arenaX = this.level.findMarker('bossArena')?.x ?? this.camera.maxX;
     this.pendingMarkers = this.level.markers.filter((m) => m.type === 'sniper' || m.type === 'drone' || m.type === 'runnerSpawner');
+    this.setupRendering();
 
     this.events.on('boss:phase', ({ from, to }) => {
       if (from >= 0) this.hud.showBanner(`FAZA ${to + 1}${to === 2 ? ' – ENRAGE!' : ''}`);
     });
     this.events.on('boss:died', () => { this.state = 'victory'; this.endTimer = 0; Sfx.play('victory'); });
     this.events.on('player:died', () => { this.state = 'gameover'; this.endTimer = 0; });
+  }
+
+  /** Warstwy tła i tileset – tylko gdy zasoby są załadowane (headless test rysuje placeholdery). */
+  private setupRendering(): void {
+    const sky = Images.tryGet('skyline'), far = Images.tryGet('buildingsFar'), near = Images.tryGet('buildingsNear'), scaffold = Images.tryGet('scaffold');
+    if (sky && far && near && scaffold) {
+      const H = CONFIG.view.height;
+      this.parallax = new Parallax([
+        { image: sky, scroll: 0.1, y: 0 },                      // niebo + daleka sylwetka miasta
+        { image: far, scroll: 0.25, y: H - 32 - far.height },   // dalekie budynki
+        { image: near, scroll: 0.4, y: H - 32 - near.height, alpha: 0.8 },  // ciężka infrastruktura
+        { image: scaffold, scroll: 0.7, y: 0, alpha: 0.6 },                 // rusztowania, siatka, kable
+      ]);
+    }
+    if (Images.tryGet('tileset')) this.tiles = new TileRenderer(this.level);
   }
 
   // ---- WorldContext ------------------------------------------------------
@@ -81,9 +105,11 @@ export class GameScene implements WorldContext {
     this.time += dt;
     this.hud.update(dt);
 
+    this.camera.update(dt);
     if (this.state !== 'playing') {
       this.endTimer += dt;
       this.particles.update(dt);
+      this.fx.update(dt);
       if (this.state === 'gameover') this.enemyBullets.update(dt, this);
       return;
     }
@@ -99,6 +125,7 @@ export class GameScene implements WorldContext {
     this.playerBullets.update(dt, this);
     this.enemyBullets.update(dt, this);
     this.particles.update(dt);
+    this.fx.update(dt);
 
     this.resolveCollisions();
     this.enemies = this.enemies.filter((e) => e.alive);
@@ -116,8 +143,9 @@ export class GameScene implements WorldContext {
       this.boss = new TurbineBoss(this.arenaX, floorY);
       this.events.emit('boss:spawned', { name: CONFIG.boss.name });
       this.hud.showBanner(CONFIG.boss.name, 2.2);
-      // wrogowie z poprzedniej sekcji nie wchodzą do areny
-      this.enemies = this.enemies.filter((e) => e.x > this.arenaX);
+      // wrogowie z poprzedniej sekcji nie wchodzą do areny (biegacze spawnują się za prawą krawędzią,
+      // czyli już w arenie – usuwamy ich wszystkich)
+      this.enemies = this.enemies.filter((e) => e.kind !== 'runner' && e.x > this.arenaX);
     }
   }
 
@@ -166,18 +194,14 @@ export class GameScene implements WorldContext {
       for (const e of this.enemies) {
         if (e.alive && e.overlapsCircle(b.x, b.y, b.radius)) {
           e.takeHit(b.damage, this);
-          this.particles.emit({ x: b.x, y: b.y, count: 3, color: '#fff', speed: [20, 60], life: [0.08, 0.16] });
+          impactSparks(this, b.x, b.y, b.vx, b.vy);
           b.active = false;
           return;
         }
       }
       if (this.boss && this.boss.alive && this.boss.overlapsCircle(b.x, b.y, b.radius)) {
-        if (this.boss.vulnerable) {
-          this.boss.takeHit(b.damage, this);
-          this.particles.emit({ x: b.x, y: b.y, count: 3, color: '#fff', speed: [20, 60], life: [0.08, 0.16] });
-        } else {
-          this.particles.emit({ x: b.x, y: b.y, count: 2, color: '#7f8c8d', speed: [10, 30], life: [0.1, 0.2] });
-        }
+        if (this.boss.vulnerable) this.boss.takeHit(b.damage, this);
+        impactSparks(this, b.x, b.y, b.vx, b.vy);
         b.active = false;
       }
     });
@@ -199,24 +223,30 @@ export class GameScene implements WorldContext {
   // ---- Render ------------------------------------------------------------
   draw(ctx: CanvasRenderingContext2D): void {
     const W = CONFIG.view.width, H = CONFIG.view.height;
-    // tło – gradient + "wieże" w oddali (parallax placeholder)
-    ctx.fillStyle = '#141826';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#1e2438';
-    const par = (this.camera.x * 0.3) % 64;
-    for (let x = -par; x < W + 64; x += 64) {
-      ctx.fillRect(Math.round(x), 120, 20, 90);
-      ctx.fillRect(Math.round(x) + 34, 150, 12, 60);
+    if (this.parallax) {
+      this.parallax.draw(ctx, this.camera.x);
+      // lekkie przyciemnienie planu gry – kontrast postaci względem tła
+      ctx.fillStyle = 'rgba(5,9,18,0.28)';
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      ctx.fillStyle = '#141826';
+      ctx.fillRect(0, 0, W, H);
     }
 
     ctx.save();
     this.camera.applyTransform(ctx);
-    this.level.draw(ctx, this.camera.x, this.camera.width);
+    if (this.tiles) {
+      this.tiles.drawBackground(ctx, this.camera.x, this.camera.width);
+      this.tiles.drawTiles(ctx, this.camera.x, this.camera.width);
+    } else {
+      this.level.draw(ctx, this.camera.x, this.camera.width);
+    }
     for (const e of this.enemies) e.draw(ctx);
     this.boss?.draw(ctx);
     this.player.draw(ctx);
     this.playerBullets.draw(ctx);
     this.enemyBullets.draw(ctx);
+    this.fx.draw(ctx);
     this.particles.draw(ctx);
     ctx.restore();
 

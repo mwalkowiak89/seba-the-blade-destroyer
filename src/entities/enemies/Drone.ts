@@ -1,7 +1,7 @@
 import { CONFIG } from '../../core/Config';
 import { normalize } from '../../core/MathUtil';
 import { Sfx } from '../../render/Audio';
-import { PlaceholderVisual } from '../../render/Visual';
+import { PlaceholderVisual, SpriteSheetVisual } from '../../render/Visual';
 import { EnemyBase } from './EnemyBase';
 import type { WorldContext } from '../../scenes/WorldContext';
 
@@ -15,7 +15,7 @@ type DroneMode = 'patrol' | 'charge' | 'return';
  *  - w przeciwnym razie → szarżuje w stronę gracza i wraca na trasę.
  */
 export class Drone extends EnemyBase {
-  visual = new PlaceholderVisual({ color: '#1abc9c', accent: '#fff', shape: 'diamond', faceMarker: false });
+  visual = new SpriteSheetVisual('drone', { fallback: 'patrol', placeholder: new PlaceholderVisual({ color: '#1abc9c', accent: '#fff', shape: 'diamond', faceMarker: false }) });
   private mode: DroneMode = 'patrol';
   private originX: number;
   private originY: number;
@@ -44,7 +44,7 @@ export class Drone extends EnemyBase {
         const py = this.originY + Math.sin(this.patrolT * D.waveFrequency * Math.PI * 2) * D.waveAmplitude;
         this.facing = px < this.x ? -1 : 1;
         this.x = px;
-        this.y = py;
+        this.y = py + Math.sin(this.age * 9) * 1.5; // delikatny bobbing lewitacji
 
         this.attackTimer -= dt;
         if (this.attackTimer <= 0 && world.camera.isVisible(this.x, this.y, this.w, this.h) && !player.isDead) {
@@ -92,11 +92,14 @@ export class Drone extends EnemyBase {
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
-    const tint = this.mode === 'charge' ? '#ff7675' : undefined;
-    this.drawVisual(ctx, this.mode, { tint });
-    // "wirniki" – dwa migające punkty nad kadłubem
-    ctx.fillStyle = Math.floor(this.age * 30) % 2 === 0 ? '#fff' : '#7f8c8d';
-    ctx.fillRect(Math.round(this.x), Math.round(this.y) - 2, 3, 1);
-    ctx.fillRect(Math.round(this.x + this.w) - 3, Math.round(this.y) - 2, 3, 1);
+    // poświata silnika przy szarży
+    if (this.mode === 'charge') {
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = '#ff7a1a';
+      ctx.fillRect(Math.round(this.cx) - 2, Math.round(this.bottom), 4, 3);
+      ctx.restore();
+    }
+    this.drawVisual(ctx, this.mode, { tint: this.mode === 'charge' ? '#ff7675' : undefined });
   }
 }

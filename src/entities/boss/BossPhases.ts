@@ -79,7 +79,11 @@ export class SweepAttack implements AttackPattern<TurbineBoss> {
         }
         return false;
       case 'descend':
-        if (boss.moveTowards(boss.x, floorTopY, this.speed * 1.2, dt)) this.stage = 'sweepLeft';
+        if (boss.moveTowards(boss.x, floorTopY, this.speed * 1.2, dt)) {
+          this.stage = 'sweepLeft';
+          world.camera.shake(CONFIG.vfx.shake.sweepLand, 0.2);
+          world.particles.emit({ x: boss.cx, y: boss.bottom, count: 12, color: ['#8a94a3', '#c3c8d1', '#ffb300'], speed: [30, 110], life: [0.2, 0.5], gravity: 300, angle: [-Math.PI, 0], spreadX: boss.w / 2 });
+        }
         return false;
       case 'sweepLeft':
         if (boss.moveTowards(boss.arenaX + 4, floorTopY, this.speed, dt)) this.stage = 'sweepRight';

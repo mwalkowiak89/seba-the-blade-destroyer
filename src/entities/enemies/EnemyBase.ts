@@ -1,3 +1,4 @@
+import { CONFIG } from '../../core/Config';
 import { Sfx } from '../../render/Audio';
 import { Entity } from '../Entity';
 import { HealthComponent } from '../HealthComponent';
@@ -44,9 +45,11 @@ export abstract class EnemyBase extends Entity {
   }
 
   protected deathEffect(world: WorldContext): void {
+    world.fx.spawn('explosion', this.cx, this.cy);
+    world.camera.shake(CONFIG.vfx.shake.enemyDeath, 0.15);
     world.particles.emit({
-      x: this.cx, y: this.cy, count: 14, color: ['#ff9f43', '#ffdd59', '#ffffff', '#666'],
-      speed: [40, 140], life: [0.25, 0.6], size: [1, 4], gravity: 300,
+      x: this.cx, y: this.cy, count: 14, color: ['#ff9f43', '#ffdd59', '#ffffff', '#8a94a3'],
+      speed: [40, 160], life: [0.25, 0.7], size: [1, 3], gravity: 320,
     });
   }
 
