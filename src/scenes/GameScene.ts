@@ -221,10 +221,11 @@ export class GameScene implements WorldContext {
     ctx.restore();
 
     this.hud.draw(ctx, this.player, this.score, this.boss, this.time);
-    if (this.time < 6) this.hud.drawHint(ctx, Math.min(1, 6 - this.time));
+    if (this.time < 6) this.hud.drawHint(ctx, Math.min(1, 6 - this.time), this.input.gamepadConnected);
 
-    if (this.state === 'gameover') this.hud.drawOverlay(ctx, 'GAME OVER', 'R – jeszcze raz', '#e74c3c');
-    if (this.state === 'victory') this.hud.drawOverlay(ctx, 'ETAP UKOŃCZONY', `SCORE ${this.score}   ·   R – jeszcze raz`, '#2ecc71');
+    const again = this.input.gamepadConnected ? 'START – jeszcze raz' : 'R – jeszcze raz';
+    if (this.state === 'gameover') this.hud.drawOverlay(ctx, 'GAME OVER', again, '#e74c3c');
+    if (this.state === 'victory') this.hud.drawOverlay(ctx, 'ETAP UKOŃCZONY', `SCORE ${this.score}   ·   ${again}`, '#2ecc71');
   }
 
   get wantsRestart(): boolean {

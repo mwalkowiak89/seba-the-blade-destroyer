@@ -28,6 +28,10 @@ npm test             # headless smoke test: bot przechodzi poziom i pokonuje bos
 | Zeskok przez platformę | Dół + Skok |
 | Restart | R / Enter |
 
+**Gamepad** (standard mapping, np. Xbox / Steam Deck): D-pad lub lewa gałka – ruch/celowanie,
+**A** – skok, **B / X / RT** – ogień, **Start** – restart. Mapowanie w `GAMEPAD_BINDINGS` (`src/core/Input.ts`).
+Chrome zgłasza pad dopiero po pierwszym naciśnięciu dowolnego przycisku.
+
 Celowanie 8-kierunkowe wg reguł Contry: stojąc – prosto lub w górę; w biegu – prosto,
 skos góra/dół; w kuckach – prosto; w powietrzu – dowolny z 8 kierunków.
 

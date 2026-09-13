@@ -82,7 +82,7 @@ export class HUD {
     ctx.restore();
   }
 
-  drawHint(ctx: CanvasRenderingContext2D, alpha: number): void {
+  drawHint(ctx: CanvasRenderingContext2D, alpha: number, gamepad = false): void {
     const W = CONFIG.view.width, H = CONFIG.view.height;
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -90,7 +90,12 @@ export class HUD {
     ctx.textBaseline = 'middle';
     ctx.font = '8px monospace';
     ctx.fillStyle = '#fff';
-    ctx.fillText('STRZAŁKI: ruch/celowanie   Z: skok   X: ogień   DÓŁ+Z: zeskok', W / 2, H - 18);
+    ctx.fillText(
+      gamepad
+        ? 'D-PAD/GAŁKA: ruch/celowanie   A: skok   B/X/RT: ogień   DÓŁ+A: zeskok'
+        : 'STRZAŁKI: ruch/celowanie   Z: skok   X: ogień   DÓŁ+Z: zeskok',
+      W / 2, H - 18,
+    );
     ctx.restore();
   }
 }

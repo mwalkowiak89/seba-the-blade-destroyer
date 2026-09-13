@@ -159,12 +159,25 @@
     fire: ["KeyX", "KeyJ"],
     restart: ["KeyR", "Enter"]
   };
+  var GAMEPAD_BINDINGS = {
+    left: [14],
+    right: [15],
+    up: [12],
+    down: [13],
+    jump: [0],
+    fire: [1, 2, 7],
+    restart: [9]
+  };
+  var GAMEPAD_DEADZONE = 0.45;
   var Input = class {
     constructor(target = window) {
       this.down = /* @__PURE__ */ new Set();
       this.pressedThisFrame = /* @__PURE__ */ new Set();
       this.prevActions = /* @__PURE__ */ new Set();
       this.curActions = /* @__PURE__ */ new Set();
+      /** Czy w tym kroku którakolwiek akcja pochodzi z pada (do podpowiedzi w UI). */
+      this.gamepadActive = false;
+      this.gamepadConnected = false;
       target.addEventListener("keydown", (e) => {
         const ev = e;
         if (this.isBound(ev.code)) ev.preventDefault();
@@ -173,9 +186,37 @@
       });
       target.addEventListener("keyup", (e) => this.down.delete(e.code));
       window.addEventListener("blur", () => this.down.clear());
+      window.addEventListener("gamepadconnected", () => {
+        this.gamepadConnected = true;
+      });
+      window.addEventListener("gamepaddisconnected", () => {
+        this.gamepadConnected = this.firstGamepad() !== null;
+      });
     }
     isBound(code) {
       return Object.values(KEY_BINDINGS).some((codes) => codes.includes(code));
+    }
+    /** Pierwszy podłączony pad (Chrome wymaga wcześniejszego naciśnięcia przycisku). */
+    firstGamepad() {
+      if (typeof navigator === "undefined" || typeof navigator.getGamepads !== "function") return null;
+      for (const gp of navigator.getGamepads()) if (gp && gp.connected) return gp;
+      return null;
+    }
+    readGamepad(into) {
+      const gp = this.firstGamepad();
+      this.gamepadActive = false;
+      if (!gp) return;
+      this.gamepadConnected = true;
+      for (const action of Object.keys(GAMEPAD_BINDINGS)) {
+        if (GAMEPAD_BINDINGS[action].some((i) => gp.buttons[i]?.pressed)) into.add(action);
+      }
+      const ax = gp.axes[0] ?? 0;
+      const ay = gp.axes[1] ?? 0;
+      if (ax < -GAMEPAD_DEADZONE) into.add("left");
+      if (ax > GAMEPAD_DEADZONE) into.add("right");
+      if (ay < -GAMEPAD_DEADZONE) into.add("up");
+      if (ay > GAMEPAD_DEADZONE) into.add("down");
+      this.gamepadActive = into.size > 0;
     }
     /** Wywoływać raz na krok symulacji – zamraża stan akcji na ten krok. */
     update() {
@@ -187,6 +228,7 @@
         }
       }
       this.pressedThisFrame.clear();
+      this.readGamepad(this.curActions);
     }
     held(action) {
       return this.curActions.has(action);
@@ -2091,7 +2133,7 @@
       ctx.fillText(subtitle, W / 2, H / 2 + 10);
       ctx.restore();
     }
-    drawHint(ctx, alpha) {
+    drawHint(ctx, alpha, gamepad = false) {
       const W = CONFIG.view.width, H = CONFIG.view.height;
       ctx.save();
       ctx.globalAlpha = alpha;
@@ -2099,7 +2141,11 @@
       ctx.textBaseline = "middle";
       ctx.font = "8px monospace";
       ctx.fillStyle = "#fff";
-      ctx.fillText("STRZA\u0141KI: ruch/celowanie   Z: skok   X: ogie\u0144   D\xD3\u0141+Z: zeskok", W / 2, H - 18);
+      ctx.fillText(
+        gamepad ? "D-PAD/GA\u0141KA: ruch/celowanie   A: skok   B/X/RT: ogie\u0144   D\xD3\u0141+A: zeskok" : "STRZA\u0141KI: ruch/celowanie   Z: skok   X: ogie\u0144   D\xD3\u0141+Z: zeskok",
+        W / 2,
+        H - 18
+      );
       ctx.restore();
     }
   };
@@ -2295,9 +2341,10 @@
       this.particles.draw(ctx);
       ctx.restore();
       this.hud.draw(ctx, this.player, this.score, this.boss, this.time);
-      if (this.time < 6) this.hud.drawHint(ctx, Math.min(1, 6 - this.time));
-      if (this.state === "gameover") this.hud.drawOverlay(ctx, "GAME OVER", "R \u2013 jeszcze raz", "#e74c3c");
-      if (this.state === "victory") this.hud.drawOverlay(ctx, "ETAP UKO\u0143CZONY", `SCORE ${this.score}   \xB7   R \u2013 jeszcze raz`, "#2ecc71");
+      if (this.time < 6) this.hud.drawHint(ctx, Math.min(1, 6 - this.time), this.input.gamepadConnected);
+      const again = this.input.gamepadConnected ? "START \u2013 jeszcze raz" : "R \u2013 jeszcze raz";
+      if (this.state === "gameover") this.hud.drawOverlay(ctx, "GAME OVER", again, "#e74c3c");
+      if (this.state === "victory") this.hud.drawOverlay(ctx, "ETAP UKO\u0143CZONY", `SCORE ${this.score}   \xB7   ${again}`, "#2ecc71");
     }
     get wantsRestart() {
       return this.state !== "playing" && this.endTimer > 0.6 && this.input.justPressed("restart");
