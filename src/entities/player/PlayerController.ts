@@ -226,13 +226,13 @@ export class PlayerController extends Entity {
   // ---- Render ------------------------------------------------------------
   private animName(): string {
     switch (this.state.name) {
-      case 'idle': return this.isFiring ? 'shoot' : 'idle';
+      case 'idle': return this.isFiring ? (this.aim.y < -0.5 ? 'shoot_up' : 'shoot') : 'idle';
       case 'run': return this.isFiring ? 'run_shoot' : 'run';
       case 'crouch': return 'crouch';
       case 'jump': return 'spin';
       case 'fall': return 'jump';
-      case 'hurt':
-      case 'dead': return 'hurt';
+      case 'hurt': return 'hurt';
+      case 'dead': return 'dead';
     }
   }
 

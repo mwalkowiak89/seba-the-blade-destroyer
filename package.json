@@ -9,12 +9,14 @@
     "watch": "esbuild src/main.ts --bundle --format=iife --target=es2020 --outfile=dist/game.js --sourcemap --watch --servedir=.",
     "serve": "esbuild src/main.ts --bundle --format=iife --target=es2020 --outfile=dist/game.js --sourcemap --servedir=.",
     "assets": "node tools/build-assets.mjs",
+    "assets:seba": "node tools/extract-seba.mjs",
     "typecheck": "tsc --noEmit",
     "test": "esbuild test/smoke.ts --bundle --platform=node --target=es2020 --outfile=dist/smoke.test.cjs --log-level=error && node dist/smoke.test.cjs"
   },
   "devDependencies": {
     "@types/pngjs": "^6.0.5",
     "esbuild": "^0.24.0",
+    "jpeg-js": "^0.4.4",
     "pngjs": "^7.0.0",
     "typescript": "^5.6.0"
   }

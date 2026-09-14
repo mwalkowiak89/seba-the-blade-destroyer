@@ -42,7 +42,8 @@ Grafika: paczka **Warped City** (ansimuz, CC0) na postać/wrogów/VFX + czcionki
 proceduralnie (plac budowy farmy wiatrowej o świcie) – szczegóły w `assets/CREDITS.md`.
 Surowe pliki leżą w `assets/raw/`, a `npm run assets` (`tools/build-assets.mjs`) generuje z nich:
 
-- `assets/sprites/player/seba.png` (palette swap → Seba), `makita.png` (3 orientacje × 2 klatki tarczy),
+- `assets/sprites/player/seba.png` – z wygenerowanego sheetu `assets/raw/seba-ai/source.jpeg` przez `tools/extract-seba.mjs`
+  (chroma-key, cięcie klatek, downscale + paleta); `makita.png` (3 orientacje × 2 klatki tarczy),
 - `assets/sprites/enemies/{runner,drone,turret}.png`, `assets/sprites/fx/{shot,shot-hit,explosion,muzzle,saw}.png`,
 - `assets/tilesets/industrial.png` (płyty z nitami, kraty one-way, słupy, rury – autotiling po sąsiadach w `TileRenderer`),
 - `assets/backgrounds/` (3 warstwy parallax generowane w `tools/site-backgrounds.mjs`: niebo o świcie z farmą wiatrową 0.1,

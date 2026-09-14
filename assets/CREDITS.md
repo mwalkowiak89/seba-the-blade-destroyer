@@ -8,9 +8,16 @@ ale kredytujemy z wdzięczności.
 | **Warped City** (postać, dron, wieżyczka, pociski, eksplozja) | ansimuz — https://ansimuz.itch.io/warped-city | CC0 | `assets/raw/warped-city/` → pipeline → `assets/sprites`, `assets/backgrounds` |
 | **Kenney Fonts** (Kenney Pixel, Kenney Mini) | Kenney — https://kenney.nl/assets/kenney-fonts | CC0 | `assets/fonts/` (HUD) |
 
+## Seba – docelowy sprite (assets/raw/seba-ai/source.jpeg)
+
+Wygenerowany sheet postaci (dostarczony przez autora projektu, green screen). `tools/extract-seba.mjs` wycina klatki
+(chroma-key, segmentacja po lukach kolumn, usunięcie błysków i plamek), skaluje do ~48 px z kwantyzacją do wspólnej
+palety i pakuje w `assets/sprites/player/seba.png`; portret HUD to twarz z tego samego sheetu. Klipy: idle, run,
+run_shoot, shoot, shoot_up, crouch (klęk), jump, spin (koziołek), hurt, dead.
+
 ## Modyfikacje (tools/build-assets.mjs)
 
-- **Seba** = postać z Warped City przerobiona proceduralnie na technika turbin wiatrowych (`paintHelmet` + `SEBA_PALETTE`
+- **Seba (fallback, gdy brak seba-ai)** = postać z Warped City przerobiona proceduralnie na technika turbin wiatrowych (`paintHelmet` + `SEBA_PALETTE`
   w pipeline): fryzura → biały kask wspinaczkowy z czołówką, kurtka → hi-vis limonka z pasami odblaskowymi,
   uda → długie ciemne spodnie robocze, buty czarne, detal → pomarańczowy karabińczyk uprzęży. Twarz pozostaje widoczna.
 - **Tła parallax** (niebo o świcie, farma wiatrowa, żurawie gąsienicowe, stawiana turbina, sekcje wieży, kontenery, łopata

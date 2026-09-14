@@ -998,12 +998,12 @@
 
   // src/assets/manifest.generated.ts
   var MANIFEST = {
-    "version": "mu0y19f9",
+    "version": "mu0z40il",
     "sheets": {
       "seba": {
         "file": "assets/sprites/player/seba.png",
-        "frameW": 57,
-        "frameH": 53,
+        "frameW": 54,
+        "frameH": 49,
         "cols": 8,
         "clips": {
           "idle": {
@@ -1011,94 +1011,112 @@
               0,
               1,
               2,
-              3
+              3,
+              4,
+              5
             ],
             "fps": 6,
             "loop": true
           },
           "run": {
             "frames": [
-              4,
-              5,
               6,
               7,
               8,
               9,
               10,
-              11
+              11,
+              12,
+              13,
+              14
             ],
             "fps": 14,
             "loop": true
           },
           "run_shoot": {
             "frames": [
-              12,
-              13,
-              14,
               15,
               16,
               17,
               18,
-              19
+              19,
+              20,
+              21,
+              22,
+              23
             ],
             "fps": 14,
             "loop": true
           },
           "shoot": {
             "frames": [
-              20
+              24,
+              25,
+              26,
+              27
             ],
-            "fps": 1,
+            "fps": 10,
+            "loop": true
+          },
+          "shoot_up": {
+            "frames": [
+              28,
+              29
+            ],
+            "fps": 8,
             "loop": true
           },
           "crouch": {
             "frames": [
-              21
+              30,
+              31,
+              32
             ],
-            "fps": 1,
-            "loop": true
-          },
-          "hurt": {
-            "frames": [
-              22
-            ],
-            "fps": 1,
+            "fps": 8,
             "loop": true
           },
           "jump": {
             "frames": [
-              23,
-              24,
-              25,
-              26
+              33
             ],
-            "fps": 8,
+            "fps": 1,
             "loop": false
           },
           "spin": {
             "frames": [
-              27,
-              28,
-              29,
-              30,
-              31,
-              32,
-              33
+              34,
+              35,
+              36,
+              37
             ],
-            "fps": 14,
+            "fps": 12,
+            "loop": true
+          },
+          "hurt": {
+            "frames": [
+              38
+            ],
+            "fps": 1,
+            "loop": true
+          },
+          "dead": {
+            "frames": [
+              39
+            ],
+            "fps": 1,
             "loop": true
           }
         },
         "anchor": "bottom",
-        "anchorX": 31,
+        "anchorX": 27,
         "pivots": {
           "stand": {
-            "x": 10,
-            "y": -40
+            "x": 5,
+            "y": -27
           },
           "crouch": {
-            "x": 6,
-            "y": -23
+            "x": 9,
+            "y": -22
           }
         }
       },
@@ -1421,7 +1439,8 @@
       "columnTop": 11,
       "pipe": 12,
       "pipeTop": 13
-    }
+    },
+    "sebaSource": "seba-ai"
   };
 
   // src/render/Assets.ts
@@ -2732,7 +2751,7 @@
     animName() {
       switch (this.state.name) {
         case "idle":
-          return this.isFiring ? "shoot" : "idle";
+          return this.isFiring ? this.aim.y < -0.5 ? "shoot_up" : "shoot" : "idle";
         case "run":
           return this.isFiring ? "run_shoot" : "run";
         case "crouch":
@@ -2742,8 +2761,9 @@
         case "fall":
           return "jump";
         case "hurt":
-        case "dead":
           return "hurt";
+        case "dead":
+          return "dead";
       }
     }
     draw(ctx) {

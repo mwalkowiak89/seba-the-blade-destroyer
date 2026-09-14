@@ -11,6 +11,12 @@ import { px, rect, hline, vline, line, circle, recolor, flipX, rotate45, rotate9
 import { drawSky, drawSiteMid, drawSiteNear } from './site-backgrounds.mjs';
 
 const RAW = 'assets/raw/warped-city';
+
+// Ekstrakcja klatek Seby z wygenerowanego sheetu (green screen) – jeśli źródło istnieje.
+if (fs.existsSync('assets/raw/seba-ai/source.jpeg')) {
+  const { execFileSync } = await import('node:child_process');
+  execFileSync(process.execPath, ['tools/extract-seba.mjs'], { stdio: 'inherit' });
+}
 const manifest = { version: Date.now().toString(36), sheets: {}, images: {}, tiles: {} };
 
 const frames = (dir, prefix, n) => Array.from({ length: n }, (_, i) => load(`${RAW}/${dir}/${prefix}-${i + 1}.png`));
@@ -134,12 +140,20 @@ const RUNNER_PALETTE = {
     list.push(...imgs.map((im) => paintHelmet(crop(im, u))));
   }
   const anchorX = 38 - u.x0; // środek postaci w klatce (idle: 28..48)
-  const seba = pack(list.map((im) => recolor({ ...im, data: Buffer.from(im.data) }, SEBA_PALETTE)), 8);
-  emitSheet('seba', 'assets/sprites/player/seba.png', seba, clips, {
-    anchor: 'bottom', anchorX,
-    // punkt dłoni (względem kotwicy: środek-stopy) dla nakładki broni
-    pivots: { stand: { x: 48 - 38, y: 27 - 67 }, crouch: { x: 44 - 38, y: 44 - 67 } },
-  });
+  // Seba: docelowy sheet z wygenerowanej grafiki (tools/extract-seba.mjs) ma pierwszeństwo;
+  // przerobiona postać z Warped City zostaje jako fallback.
+  const AI_SHEET = 'assets/raw/seba-ai/seba.sheet.json';
+  if (fs.existsSync(AI_SHEET)) {
+    manifest.sheets.seba = JSON.parse(fs.readFileSync(AI_SHEET, 'utf8'));
+    manifest.sebaSource = 'seba-ai';
+  } else {
+    const seba = pack(list.map((im) => recolor({ ...im, data: Buffer.from(im.data) }, SEBA_PALETTE)), 8);
+    emitSheet('seba', 'assets/sprites/player/seba.png', seba, clips, {
+      anchor: 'bottom', anchorX,
+      // punkt dłoni (względem kotwicy: środek-stopy) dla nakładki broni
+      pivots: { stand: { x: 48 - 38, y: 27 - 67 }, crouch: { x: 44 - 38, y: 44 - 67 } },
+    });
+  }
 
   // Biegacz – blaszak: te same klatki biegu w palecie metalu
   const runnerList = [...clipsSrc.run, ...clipsSrc.hurt].map((im) => recolor(paintHelmet(crop(im, u)), RUNNER_PALETTE));
@@ -290,9 +304,11 @@ const RUNNER_PALETTE = {
 }
 
 // ---------------------------------------------------------------------------
-// Portret Seby (HUD) 20x20 – kask + gogle ochronne
+// Portret Seby (HUD) 20x20 – z ekstraktora (twarz ze sheetu) albo rysowany
 // ---------------------------------------------------------------------------
-{
+if (manifest.sebaSource === 'seba-ai') {
+  manifest.images.portrait = { file: 'assets/sprites/ui/portrait.png', w: 20, h: 20 };
+} else {
   const im = create(20, 20);
   rect(im, 4, 1, 12, 7, '#eef1f5'); rect(im, 3, 3, 14, 5, '#eef1f5'); hline(im, 5, 1, 10, '#ffffff'); // kask
   hline(im, 3, 8, 14, '#b9c0c9'); // rant kasku
