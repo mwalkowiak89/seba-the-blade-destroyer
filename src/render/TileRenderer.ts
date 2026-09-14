@@ -1,7 +1,7 @@
 import { MANIFEST } from '../assets/manifest.generated';
 import { Images } from '../assets/AssetLoader';
 import { CONFIG } from '../core/Config';
-import { Level, Tile } from '../world/Level';
+import { Level, Skin, Tile } from '../world/Level';
 
 type TileName = keyof typeof MANIFEST.tiles;
 
@@ -62,13 +62,14 @@ export class TileRenderer {
     g.drawImage(this.image, sx, sy, this.ts, this.ts, col * this.ts, row * this.ts, this.ts, this.ts);
   }
 
-  /** Typ platformy dla runu one-way: pod snajperem kontener, dalej naprzemiennie łopata / sekcja wieży. */
-  private platformKind(c0: number, c1: number, r: number, runIndex: number): 'container' | 'blade' | 'tower' {
+  /** Typ platformy dla runu one-way: skin L = wielka łopata, pod snajperem kontener, dalej naprzemiennie łopata / sekcja wieży. */
+  private platformKind(c0: number, c1: number, r: number, runIndex: number): 'container' | 'blade' | 'tower' | 'bigBlade' {
+    if (this.level.skinAt(c0, r) === Skin.BigBlade) return 'bigBlade';
     for (const m of this.level.markers) if (m.type === 'sniper' && m.row + 1 === r && m.col >= c0 && m.col <= c1) return 'container';
     return runIndex % 2 === 0 ? 'blade' : 'tower';
   }
 
-  private forEachRun(fn: (c0: number, c1: number, r: number, kind: 'container' | 'blade' | 'tower') => void): void {
+  private forEachRun(fn: (c0: number, c1: number, r: number, kind: 'container' | 'blade' | 'tower' | 'bigBlade') => void): void {
     const L = this.level;
     let runIndex = 0;
     for (let r = 0; r < L.rows; r++) for (let c = 0; c < L.cols; c++) {
@@ -85,6 +86,17 @@ export class TileRenderer {
     // podpory pod platformami: kozły (łopata) / kołyski (sekcja wieży) w kaflu poniżej końców, dalej słupy w dół
     this.forEachRun((c0, c1, r, kind) => {
       if (kind === 'container') return;
+      if (kind === 'bigBlade') {
+        // duże kozły pod 1/4 i 3/4 długości, od rzędu pod spodem łopaty do ziemi
+        for (const c of new Set([c0 + Math.floor((c1 - c0) / 4), c1 - Math.floor((c1 - c0) / 4)])) {
+          for (let k = 2; k <= 10 && r + k < L.rows; k++) {
+            if (L.tileAt(c, r + k) !== Tile.Empty) break;
+            const last = r + k + 1 >= L.rows || L.tileAt(c, r + k + 1) !== Tile.Empty;
+            this.decos.push({ col: c, row: r + k, tile: last ? 'trestleBigFoot' : 'trestleBig' });
+          }
+        }
+        return;
+      }
       const ends = c1 - c0 >= 2 ? [c0 + 1, c1 - 1] : [c0, c1];
       for (const c of new Set(ends)) {
         for (let k = 1; k <= 8 && r + k < L.rows; k++) {
@@ -111,8 +123,16 @@ export class TileRenderer {
 
   private drawTiles(g: CanvasRenderingContext2D): void {
     const L = this.level;
+    const isCont = (c: number, r: number) => L.tileAt(c, r) === Tile.Solid && L.skinAt(c, r) === Skin.Container;
     for (let r = 0; r < L.rows; r++) for (let c = 0; c < L.cols; c++) {
       if (L.tileAt(c, r) !== Tile.Solid) continue;
+      if (isCont(c, r)) {
+        // blok kontenerów: dach na górnym rzędzie, ściany boczne na krańcach
+        const l = !isCont(c - 1, r), rr = !isCont(c + 1, r), top = !isCont(c, r - 1);
+        const t: TileName = top ? (l && rr ? 'contLR' : l ? 'contL' : rr ? 'contR' : 'contM') : (l && rr ? 'contBLR' : l ? 'contBL' : rr ? 'contBR' : 'contBM');
+        this.blit(g, t, c, r);
+        continue;
+      }
       this.blit(g, ((c * 31 + r * 17) % 5 === 0) ? 'plateB' : 'plate', c, r);
       if (L.tileAt(c, r - 1) !== Tile.Solid) this.blit(g, 'edgeTop', c, r);
       if (L.tileAt(c, r + 1) !== Tile.Solid && r + 1 < L.rows) this.blit(g, 'edgeBottom', c, r);
@@ -126,6 +146,11 @@ export class TileRenderer {
       for (let c = c0; c <= c1; c++) {
         const first = c === c0, last = c === c1;
         let t: TileName;
+        if (kind === 'bigBlade') {
+          this.blit(g, first ? 'bigRootT' : last ? 'bigTipT' : 'bigMidT', c, r);
+          if (r + 1 < this.level.rows && this.level.tileAt(c, r + 1) === Tile.Empty) this.blit(g, first ? 'bigRootB' : last ? 'bigTipB' : 'bigMidB', c, r + 1);
+          continue;
+        }
         if (kind === 'blade') t = first ? 'bladeRoot' : last ? 'bladeTip' : 'bladeMid';
         else if (kind === 'tower') t = first && last ? 'towerM' : first ? 'towerL' : last ? 'towerR' : 'towerM';
         else t = first && last ? 'contLR' : first ? 'contL' : last ? 'contR' : 'contM';

@@ -1,11 +1,11 @@
 /* WYGENEROWANE przez tools/build-assets.mjs – nie edytuj ręcznie. */
 export const MANIFEST = {
-  "version": "mu142ex6",
+  "version": "mu150yui",
   "sheets": {
     "seba": {
       "file": "assets/sprites/player/seba.png",
-      "frameW": 70,
-      "frameH": 49,
+      "frameW": 72,
+      "frameH": 51,
       "cols": 8,
       "clips": {
         "idle": {
@@ -110,7 +110,7 @@ export const MANIFEST = {
         }
       },
       "anchor": "bottom",
-      "anchorX": 35,
+      "anchorX": 36,
       "density": 1,
       "pivots": {
         "stand": {
@@ -659,13 +659,13 @@ export const MANIFEST = {
     },
     "hudPlayer": {
       "file": "assets/sprites/ui/panel-player.png",
-      "w": 104,
-      "h": 30
+      "w": 98,
+      "h": 28
     },
     "hudScore": {
       "file": "assets/sprites/ui/panel-score.png",
-      "w": 64,
-      "h": 30
+      "w": 60,
+      "h": 28
     },
     "hudBoss": {
       "file": "assets/sprites/ui/panel-boss.png",
@@ -715,7 +715,19 @@ export const MANIFEST = {
     "contL": 18,
     "contM": 19,
     "contR": 20,
-    "contLR": 21
+    "contLR": 21,
+    "contBL": 22,
+    "contBM": 23,
+    "contBR": 24,
+    "contBLR": 25,
+    "bigRootT": 26,
+    "bigRootB": 27,
+    "bigMidT": 28,
+    "bigMidB": 29,
+    "bigTipT": 30,
+    "bigTipB": 31,
+    "trestleBig": 32,
+    "trestleBigFoot": 33
   },
   "sebaSource": "seba-ai"
 } as const;

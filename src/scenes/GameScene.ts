@@ -61,6 +61,9 @@ export class GameScene implements WorldContext {
   private debug = false;
   private hitStopTimer = 0;
   arenaFloorY = 0;
+  /** Podpowiedź sterowania: znika (fade) po 4 s lub po pierwszym klawiszu. */
+  private hintAlpha = 1;
+  private hintDismissed = false;
 
   constructor(private input: Input) {
     const start = this.level.findMarker('player') ?? { x: 32, y: 160 };
@@ -148,6 +151,8 @@ export class GameScene implements WorldContext {
     this.hud.update(dt);
 
     this.camera.update(dt);
+    if (!this.hintDismissed && (this.time > 4 || (['left', 'right', 'up', 'down', 'jump', 'fire'] as const).some((a) => this.input.held(a)))) this.hintDismissed = true;
+    if (this.hintDismissed && this.hintAlpha > 0) this.hintAlpha = Math.max(0, this.hintAlpha - dt * 2);
     if (this.input.justPressed('mute')) { AudioEngine.toggleMute(); Sfx.play('ui'); }
     if (this.input.justPressed('debug')) this.debug = !this.debug;
     // hit-stop: świat zamiera, żyją tylko kamera, cząstki i FX
@@ -321,7 +326,7 @@ export class GameScene implements WorldContext {
     }
     this.hud.draw(ctx, this.player, this.score, this.boss, this.time);
     this.hud.drawAudioState(ctx, AudioEngine.muted, AudioEngine.running || !AudioEngine.available);
-    if (this.time < 6) this.hud.drawHint(ctx, Math.min(1, 6 - this.time), this.input.gamepadConnected);
+    if (this.hintAlpha > 0) this.hud.drawHint(ctx, this.hintAlpha, this.input.gamepadConnected);
 
     if (this.debug) {
       let pb = 0, eb = 0; this.playerBullets.forEachActive(() => pb++); this.enemyBullets.forEachActive(() => eb++);

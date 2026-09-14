@@ -1,6 +1,8 @@
 import { CONFIG } from '../core/Config';
 
 export enum Tile { Empty = 0, Solid = 1, OneWay = 2 }
+/** Wygląd kafla (kolizja wg Tile): płyta, kontener (blok), wielka łopata (platforma 2-rzędowa). */
+export enum Skin { Plate = 0, Container = 1, BigBlade = 2 }
 
 export type MarkerType = 'player' | 'sniper' | 'drone' | 'runnerSpawner' | 'bossArena' | 'boss';
 
@@ -14,7 +16,8 @@ export interface Marker {
 }
 
 /** Legenda znaków tilemapy ASCII. */
-const TILE_CHARS: Record<string, Tile> = { '#': Tile.Solid, '=': Tile.OneWay };
+const TILE_CHARS: Record<string, Tile> = { '#': Tile.Solid, '=': Tile.OneWay, C: Tile.Solid, L: Tile.OneWay };
+const SKIN_CHARS: Record<string, Skin> = { C: Skin.Container, L: Skin.BigBlade };
 const MARKER_CHARS: Record<string, MarkerType> = {
   P: 'player', S: 'sniper', D: 'drone', R: 'runnerSpawner', B: 'bossArena', X: 'boss',
 };
@@ -31,6 +34,7 @@ export class Level {
   readonly heightPx: number;
   readonly markers: Marker[] = [];
   private tiles: Uint8Array;
+  private skins: Uint8Array;
 
   /**
    * @param screens tablica "ekranów" – każdy to 15 wierszy po 20 znaków; sklejane poziomo.
@@ -42,6 +46,7 @@ export class Level {
     this.widthPx = this.cols * this.tileSize;
     this.heightPx = this.rows * this.tileSize;
     this.tiles = new Uint8Array(this.cols * this.rows);
+    this.skins = new Uint8Array(this.cols * this.rows);
 
     screens.forEach((screen, si) => {
       if (screen.length !== this.rows) throw new Error(`Ekran ${si}: oczekiwano ${this.rows} wierszy, jest ${screen.length}`);
@@ -52,6 +57,8 @@ export class Level {
           const col = si * screenCols + c;
           const tile = TILE_CHARS[ch];
           if (tile !== undefined) this.tiles[r * this.cols + col] = tile;
+          const skin = SKIN_CHARS[ch];
+          if (skin !== undefined) this.skins[r * this.cols + col] = skin;
           const marker = MARKER_CHARS[ch];
           if (marker) this.markers.push({ type: marker, col, row: r, x: col * this.tileSize, y: r * this.tileSize });
         }
@@ -63,6 +70,11 @@ export class Level {
     if (col < 0 || col >= this.cols) return Tile.Solid; // ściany na krańcach poziomu
     if (row < 0 || row >= this.rows) return Tile.Empty;  // góra/dół otwarte (szczeliny = śmierć)
     return this.tiles[row * this.cols + col] as Tile;
+  }
+
+  skinAt(col: number, row: number): Skin {
+    if (col < 0 || col >= this.cols || row < 0 || row >= this.rows) return Skin.Plate;
+    return this.skins[row * this.cols + col] as Skin;
   }
 
   isSolidAtPx(px: number, py: number): boolean {

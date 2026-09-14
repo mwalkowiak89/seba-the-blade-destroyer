@@ -27,11 +27,15 @@ export function drawSky(W = 384, H = 216, horizon = SKY_HORIZON) {
   // słońce nisko nad horyzontem + odblask
   circle(im, 300, 136, 16, '#fbd27a', true); circle(im, 300, 136, 12, '#ffe39a', true); circle(im, 300, 136, 7, '#fff6d0', true);
   for (let y = 126; y < horizon; y += 3) hline(im, 250, y, 100, y % 6 === 0 ? '#fbd27a' : '#f9c98a');
-  // odległa wieża turbiny (warstwa 0.1, przygaszona, ~34 px u podstawy) – poza centrum kadru
-  for (let y = 18; y < horizon; y++) { const t = (y - 18) / (horizon - 18); const w = Math.round(18 + 16 * t); const x0 = 96 - Math.floor(w / 2);
-    rect(im, x0, y, w, 1, '#c9b7ad'); rect(im, x0, y, Math.round(w * 0.25), 1, '#d9cbc2'); rect(im, x0 + w - Math.round(w * 0.3), y, Math.round(w * 0.3), 1, '#b3a29b'); }
-  rect(im, 84, 8, 26, 11, '#cdbcb3'); rect(im, 84, 8, 26, 2, '#dccfc7'); hline(im, 84, 18, 26, '#a3948d');
-  for (let k = 0; k < 3; k++) { const a = -Math.PI / 2 + 0.6 + (k * 2 * Math.PI) / 3; line(im, 100, 13, Math.round(100 + Math.cos(a) * 60), Math.round(13 + Math.sin(a) * 60), '#d9cbc2'); }
+  // odległa wieża turbiny (~30 px u podstawy) – niski kontrast: kolor = mieszanka tła nieba w danym wierszu z szarością (tint otoczenia)
+  const skyAt = (y) => { const i = (y * W) * 4; return [im.data[i], im.data[i + 1], im.data[i + 2]]; };
+  const mix = (a, b, t) => '#' + a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join('');
+  for (let y = 18; y < horizon; y++) {
+    const t = (y - 18) / (horizon - 18); const w = Math.round(16 + 14 * t); const x0 = 96 - Math.floor(w / 2); const sky = skyAt(y);
+    rect(im, x0, y, w, 1, mix(sky, [150, 140, 150], 0.35)); rect(im, x0, y, Math.round(w * 0.3), 1, mix(sky, [200, 190, 195], 0.35)); rect(im, x0 + w - Math.round(w * 0.3), y, Math.round(w * 0.3), 1, mix(sky, [110, 100, 120], 0.35));
+  }
+  { const sky = skyAt(10); rect(im, 86, 9, 22, 9, mix(sky, [170, 160, 170], 0.4)); hline(im, 86, 17, 22, mix(sky, [110, 100, 120], 0.4));
+    for (let k = 0; k < 3; k++) { const a = -Math.PI / 2 + 0.6 + (k * 2 * Math.PI) / 3; line(im, 98, 13, Math.round(98 + Math.cos(a) * 52), Math.round(13 + Math.sin(a) * 52), mix(skyAt(40), [200, 195, 200], 0.45)); } }
   // chmury (płaskie, różowawe od dołu)
   const cloud = (x, y, w) => {
     rect(im, x + 3, y, w - 6, 3, '#f6d6c6'); rect(im, x, y + 2, w, 3, '#f6d6c6'); rect(im, x + 6, y - 2, w - 14, 2, '#fbe4d6');
@@ -148,7 +152,7 @@ export function drawSiteMid(W = 576, H = 150) {
 function container(im, x, y, w, h, color, dark, light) {
   rect(im, x, y, w, h, color);
   for (let i = 2; i < w - 2; i += 3) vline(im, x + i, y + 1, h - 2, dark);      // blacha falista
-  rect(im, x, y, w, 1, light); rect(im, x, y + h - 1, w, 1, K); vline(im, x, y, h, K); vline(im, x + w - 1, y, h, K);
+  rect(im, x, y, w, 1, '#ffe0b0'); rect(im, x, y + 1, w, 1, light); rect(im, x, y + h - 1, w, 1, K); vline(im, x, y, h, K); vline(im, x + w - 1, y, h, '#ffd9a8'); // słońce z prawej/góry
   rect(im, x + w - 7, y + 2, 5, h - 4, color); vline(im, x + w - 5, y + 2, h - 4, dark); px(im, x + w - 4, y + Math.floor(h / 2), '#ffe36b'); // drzwi + zamek
   rect(im, x + 3, y + 3, 8, 3, light); // logo/numer
 }
@@ -181,8 +185,7 @@ export function drawSiteNear(W = 768, H = 72) {
   container(im, 660, g - 22, 56, 22, '#e67e22', '#9c4f0c', '#f5b041'); container(im, 716, g - 22, 52, 22, '#2e86c1', '#1f5f8a', '#5dade2');
   // łopata na kozłach montażowych (żółte A-frame)
   const trestle = (tx) => { for (let k = 0; k < 14; k++) { const sp = Math.round(k * 0.45); px(im, tx - sp, g - 14 + k, '#f2c230'); px(im, tx + sp, g - 14 + k, '#f2c230'); px(im, tx - sp - 1, g - 14 + k, K); px(im, tx + sp + 1, g - 14 + k, K); } hline(im, tx - 3, g - 6, 7, '#f2c230'); rect(im, tx - 8, g - 1, 17, 1, K); rect(im, tx - 3, g - 17, 7, 3, '#2b2f36'); };
-  trestle(160); trestle(268);
-  blade(im, 140, g - 22, 190, 1);
+  // (łopata przeniesiona na plan grywalny – kafle bigBlade)
   // barierki czerwono-białe
   const barrier = (x) => { rect(im, x, g - 9, 2, 9, '#c0392b'); rect(im, x + 26, g - 9, 2, 9, '#c0392b'); for (let i = 0; i < 28; i += 4) rect(im, x + i, g - 8, 4, 3, Math.floor(i / 4) % 2 ? '#ffffff' : '#e03b2c'); hline(im, x, g - 9, 28, K); };
   barrier(330); barrier(600);

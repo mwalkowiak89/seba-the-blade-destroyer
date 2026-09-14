@@ -290,10 +290,10 @@ const RUNNER_PALETTE = {
   manifest.tiles.plate = tile((im) => { plateBase(im); rivet(im, 2, 2); rivet(im, T - 4, 2); rivet(im, 2, T - 4); rivet(im, T - 4, T - 4); });
   manifest.tiles.plateB = tile((im) => { plateBase(im); rivet(im, 2, 2); rivet(im, T - 4, T - 4);
     rect(im, 5, 6, 7, 5, C.P0); hline(im, 5, 6, 7, C.K); hline(im, 5, 8, 7, C.K); hline(im, 5, 10, 7, C.K); vline(im, T - 4, 3, 5, C.RUST); px(im, T - 4, 8, C.RUST2); });
-  manifest.tiles.edgeTop = tile((im) => { hline(im, 0, 0, T, C.R); hline(im, 0, 1, T, C.P3); hline(im, 0, 2, T, C.K); for (let x = 1; x < T; x += 4) px(im, x, 0, C.HI); });
+  manifest.tiles.edgeTop = tile((im) => { hline(im, 0, 0, T, '#e8cfa8'); hline(im, 0, 1, T, C.P3); hline(im, 0, 2, T, C.K); for (let x = 1; x < T; x += 4) px(im, x, 0, '#fff0d0'); });
   manifest.tiles.edgeBottom = tile((im) => { hline(im, 0, T - 1, T, C.K); hline(im, 0, T - 2, T, C.P0); });
   manifest.tiles.edgeLeft = tile((im) => { vline(im, 0, 0, T, C.HI); vline(im, 1, 0, T, C.K); });
-  manifest.tiles.edgeRight = tile((im) => { vline(im, T - 1, 0, T, C.P0); vline(im, T - 2, 0, T, C.K); });
+  manifest.tiles.edgeRight = tile((im) => { vline(im, T - 1, 0, T, '#b9a48a'); vline(im, T - 2, 0, T, C.K); });
   // słup wsporczy, rura (plan drugi)
   manifest.tiles.column = tile((im) => { rect(im, 5, 0, 6, T, C.P0); vline(im, 5, 0, T, C.P3); vline(im, 10, 0, T, C.K); for (let y = 3; y < T; y += 6) rivet(im, 7, y); });
   manifest.tiles.columnTop = tile((im) => { rect(im, 3, 0, 10, 3, C.P2); hline(im, 3, 0, 10, C.HI); hline(im, 3, 2, 10, C.K); rect(im, 5, 3, 6, T - 3, C.P0); vline(im, 5, 3, T - 3, C.P3); vline(im, 10, 3, T - 3, C.K); });
@@ -312,16 +312,41 @@ const RUNNER_PALETTE = {
   manifest.tiles.trestle = tile((im) => { for (let k = 0; k < 13; k++) { const sp = Math.round(k * 0.45); px(im, 8 - sp, k, C.YL); px(im, 8 + sp, k, C.YL); px(im, 8 - sp - 1, k, C.K); px(im, 8 + sp + 1, k, C.K); } hline(im, 5, 8, 7, C.YL); hline(im, 5, 9, 7, C.YD); rect(im, 1, 13, 15, 2, '#3a3f4a'); hline(im, 1, 15, 15, C.K); rect(im, 5, 0, 7, 2, '#2b2f36'); });
 
   // --- sekcja wieży leżąca: cylinder 14 px, kołnierze na końcach; kołyska w kaflu poniżej ---
-  const cyl = (im) => { rect(im, 0, 1, T, 14, '#c9cfd6'); rect(im, 0, 3, T, 4, '#f4f6f8'); rect(im, 0, 10, T, 3, '#9aa3ad'); rect(im, 0, 13, T, 2, '#6f7a86'); hline(im, 0, 0, T, C.K); hline(im, 0, 15, T, C.K); };
+  const cyl = (im) => { rect(im, 0, 1, T, 14, '#c9cfd6'); rect(im, 0, 3, T, 4, '#f4f6f8'); hline(im, 0, 2, T, '#fff0d0'); rect(im, 0, 10, T, 3, '#9aa3ad'); rect(im, 0, 13, T, 2, '#6f7a86'); hline(im, 0, 0, T, C.K); hline(im, 0, 15, T, C.K); };
   manifest.tiles.towerM = tile((im) => { cyl(im); px(im, 7, 4, '#ffffff'); px(im, 7, 11, '#5e6873'); });
   manifest.tiles.towerL = tile((im) => { cyl(im); rect(im, 0, 0, 4, 16, '#8a94a3'); vline(im, 0, 0, 16, C.K); vline(im, 2, 1, 14, '#b8c0ca'); px(im, 2, 3, C.K); px(im, 2, 8, C.K); px(im, 2, 12, C.K); });
   manifest.tiles.towerR = tile((im) => { cyl(im); rect(im, 12, 0, 4, 16, '#8a94a3'); vline(im, 15, 0, 16, C.K); vline(im, 13, 1, 14, '#b8c0ca'); px(im, 13, 3, C.K); px(im, 13, 8, C.K); px(im, 13, 12, C.K); });
   manifest.tiles.cradle = tile((im) => { rect(im, 2, 0, 12, 5, '#4a505c'); hline(im, 2, 1, 12, '#7d8792'); hline(im, 2, 4, 12, C.K); rect(im, 4, 5, 3, 11, '#3a3f4a'); rect(im, 9, 5, 3, 11, '#3a3f4a'); hline(im, 2, 15, 12, C.K); });
 
   // --- kontener techniczny (dach = platforma) ---
-  const cont = (im, l, r) => { rect(im, 0, 0, T, T, '#2e86c1'); for (let x = 2; x < T - 1; x += 3) vline(im, x, 2, T - 3, '#1f5f8a'); hline(im, 0, 0, T, '#5dade2'); hline(im, 0, T - 1, T, C.K); for (let x = 0; x < T; x += 4) rect(im, x, 1, 2, 1, C.YL);
-    if (l) { vline(im, 0, 0, T, C.K); vline(im, 1, 1, T - 2, '#5dade2'); } if (r) { vline(im, T - 1, 0, T, C.K); rect(im, T - 6, 3, 4, T - 5, '#2e86c1'); vline(im, T - 4, 3, T - 5, '#1f5f8a'); px(im, T - 3, 8, '#ffe36b'); } };
-  manifest.tiles.contL = tile((im) => cont(im, true, false)); manifest.tiles.contM = tile((im) => cont(im, false, false)); manifest.tiles.contR = tile((im) => cont(im, false, true)); manifest.tiles.contLR = tile((im) => cont(im, true, true));
+  // kontener techniczny: blacha falista, ciepłe podświetlenie od słońca (góra + prawa krawędź), drzwi po prawej
+  const cont = (im, l, r, top) => {
+    rect(im, 0, 0, T, T, '#2e86c1'); for (let x = 2; x < T - 1; x += 3) vline(im, x, top ? 2 : 0, top ? T - 2 : T, '#1f5f8a');
+    if (top) { hline(im, 0, 0, T, '#9ad7ff'); for (let x = 0; x < T; x += 4) rect(im, x, 1, 2, 1, C.YL); }
+    if (l) { vline(im, 0, 0, T, C.K); vline(im, 1, 0, T, '#1f5f8a'); }
+    if (r) { vline(im, T - 1, 0, T, '#8fd3ff'); vline(im, T - 2, 0, T, '#5dade2'); rect(im, T - 7, top ? 3 : 0, 4, top ? T - 3 : T, '#2e86c1'); vline(im, T - 5, top ? 3 : 0, top ? T - 3 : T, '#1f5f8a'); if (top) px(im, T - 4, 8, '#ffe36b'); }
+    else px(im, T - 1, 5, '#5dade2');
+  };
+  manifest.tiles.contL = tile((im) => cont(im, true, false, true)); manifest.tiles.contM = tile((im) => cont(im, false, false, true)); manifest.tiles.contR = tile((im) => cont(im, false, true, true)); manifest.tiles.contLR = tile((im) => cont(im, true, true, true));
+  manifest.tiles.contBL = tile((im) => cont(im, true, false, false)); manifest.tiles.contBM = tile((im) => cont(im, false, false, false)); manifest.tiles.contBR = tile((im) => cont(im, false, true, false)); manifest.tiles.contBLR = tile((im) => cont(im, true, true, false));
+
+  // --- WIELKA łopata (platforma 2-rzędowa, 32 px grubości u nasady): górny rząd = grzbiet, dolny = spód w cieniu ---
+  const bigBladeCol = (im, x, top, th, part) => { // part: 0 górny kafel, 1 dolny
+    for (let k = 0; k < th; k++) {
+      const y = top + k - part * T; if (y < 0 || y >= T) continue;
+      const u = k / th; px(im, x, y, u < 0.12 ? '#fff4e0' : u < 0.4 ? '#f1ede6' : u < 0.6 ? '#dfe3e8' : u < 0.78 ? '#b9c0c9' : u < 0.92 ? '#8f98a3' : '#5e6873');
+    }
+    const y0 = top - 1 - part * T, y1 = top + th - part * T; if (y0 >= 0 && y0 < T) px(im, x, y0, '#3a3f4a'); if (y1 >= 0 && y1 < T) px(im, x, y1, C.K);
+  };
+  const bigRoot = (part) => tile((im) => { for (let x = 0; x < T; x++) bigBladeCol(im, x, 1, 28, part); if (part === 0) { rect(im, 0, 0, 5, T, '#b9c0c9'); vline(im, 0, 0, T, C.K); px(im, 2, 4, C.K); px(im, 2, 11, C.K); } else { rect(im, 0, 0, 5, 14, '#9aa3ad'); vline(im, 0, 0, 14, C.K); px(im, 2, 3, C.K); px(im, 2, 9, C.K); } });
+  const bigMid = (part) => tile((im) => { for (let x = 0; x < T; x++) bigBladeCol(im, x, 1, 28, part); if (part === 0) vline(im, 8, 2, 13, '#dfe3e8'); });
+  const bigTip = (part) => tile((im) => { for (let x = 0; x < T; x++) { const t = x / T; bigBladeCol(im, x, 1 + Math.round(8 * t), Math.max(3, Math.round(28 * (1 - t * 0.85))), part); } });
+  manifest.tiles.bigRootT = bigRoot(0); manifest.tiles.bigRootB = bigRoot(1);
+  manifest.tiles.bigMidT = bigMid(0); manifest.tiles.bigMidB = bigMid(1);
+  manifest.tiles.bigTipT = bigTip(0); manifest.tiles.bigTipB = bigTip(1);
+  // duży kozioł (16 szer., pełna wysokość kafla) – powtarzany w dół
+  manifest.tiles.trestleBig = tile((im) => { for (let k = 0; k < T; k++) { const sp = 2 + Math.round(k * 0.3); px(im, 8 - sp, k, C.YL); px(im, 8 + sp, k, C.YL); px(im, 8 - sp - 1, k, C.K); px(im, 8 + sp + 1, k, C.K); px(im, 8 + sp - 1, k, '#ffe08a'); } hline(im, 4, 7, 9, C.YL); hline(im, 4, 8, 9, C.YD); });
+  manifest.tiles.trestleBigFoot = tile((im) => { for (let k = 0; k < 12; k++) { const sp = 2 + Math.round((k + 16) * 0.3); px(im, 8 - sp, k, C.YL); px(im, 8 + sp, k, C.YL); px(im, 8 - sp - 1, k, C.K); px(im, 8 + sp + 1, k, C.K); } rect(im, 0, 12, 16, 3, '#3a3f4a'); hline(im, 0, 15, 16, C.K); });
 
   const p = pack(tiles, 8);
   save(p.sheet, 'assets/tilesets/industrial.png');
@@ -400,9 +425,9 @@ const RUNNER_PALETTE = {
     return im;
   };
   // panel gracza: portret 20x20 w ramce 24x24 + bateria 10×(5+1) w wgłębieniu + miejsce na etykietę
-  const pp = panel(104, 30, [[3, 3, 24, 24], [30, 3, 70, 12]]);
+  const pp = panel(98, 28, [[2, 2, 24, 24], [28, 2, 68, 11]]);
   save(pp, 'assets/sprites/ui/panel-player.png'); manifest.images.hudPlayer = { file: 'assets/sprites/ui/panel-player.png', w: pp.width, h: pp.height };
-  const ps = panel(64, 30, [[4, 15, 56, 12]]);
+  const ps = panel(60, 28, [[3, 14, 54, 11]]);
   save(ps, 'assets/sprites/ui/panel-score.png'); manifest.images.hudScore = { file: 'assets/sprites/ui/panel-score.png', w: ps.width, h: ps.height };
   const pb = panel(128, 20, [[4, 4, 120, 8]]);
   save(pb, 'assets/sprites/ui/panel-boss.png'); manifest.images.hudBoss = { file: 'assets/sprites/ui/panel-boss.png', w: pb.width, h: pb.height };

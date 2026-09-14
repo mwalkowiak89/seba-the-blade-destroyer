@@ -1,7 +1,7 @@
 {
   "file": "assets/sprites/player/seba.png",
-  "frameW": 70,
-  "frameH": 49,
+  "frameW": 72,
+  "frameH": 51,
   "cols": 8,
   "clips": {
     "idle": {
@@ -106,7 +106,7 @@
     }
   },
   "anchor": "bottom",
-  "anchorX": 35,
+  "anchorX": 36,
   "density": 1,
   "pivots": {
     "stand": {

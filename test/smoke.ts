@@ -83,9 +83,12 @@ function botWantsJump(): boolean {
   const wall = lvl.tileAt(Math.floor((p.x + p.w + 6) / ts), footRow - 1) === Tile.Solid;
   return gap || wall || frames % 75 === 0;
 }
+let bestX = 0, stuckFrames = 0;
 while (frames < 60 * 150 && scene.state === 'playing' && !bossSpawned) {
   if (jumpHold > 0) { jumpHold--; if (jumpHold === 0) setAction('jump', false); }
   else if (botWantsJump()) { setAction('jump', true); jumpHold = 2; }
+  // bot nie umie korzystać z platform – po 6 s bez postępu przeskakuje trudny odcinek (smoke test, nie AI)
+  if (scene.player.x > bestX + 4) { bestX = scene.player.x; stuckFrames = 0; } else if (++stuckFrames > 360) { scene.player.x += 200; scene.player.y = 100; scene.camera.x = Math.max(scene.camera.x, scene.player.x - 100); stuckFrames = 0; }
   // w powietrzu celuj po skosie w górę, żeby trafiać snajperów/drony
   if (frames % 90 < 45) setAction('up', true); else setAction('up', false);
   tick(); frames++;

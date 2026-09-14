@@ -117,4 +117,7 @@ i przeciwnicy używają object poolingu, cząstki mają limity (`CONFIG.vfx.maxP
 **F3** – nakładka debug (FPS, liczniki).
 
 ### Poziom
-`world/TestLevel.ts` — 8 ekranów po 20×15 znaków (`#` blok, `=` platforma one-way, `P/S/D/R/B/X` markery).
+`world/TestLevel.ts` — 8 ekranów po 24×15 znaków: `#` blacha, `C` kontener (blok pełny), `=` platforma one-way
+(łopata / sekcja wieży / dach kontenera pod snajperem), `L` **wielka łopata** (platforma semi-solid rysowana w 2 rzędach,
+na dużych kozłach), `P/S/D/R/B/X` markery. Poziom w stylu Contry: kontenery na różnych wysokościach, tunele do czołgania
+(32 px – tylko leżąc), łopaty jako mosty nad szczelinami, górne platformy w arenie.

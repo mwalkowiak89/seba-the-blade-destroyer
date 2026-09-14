@@ -42,36 +42,36 @@ export class HUD {
 
     // --- panel gracza (lewy górny róg): portret + bateria + etykieta ---
     const panel = Images.tryGet('hudPlayer');
-    const px = 4, py = 4;
+    const px = 2, py = 2;
     if (panel) ctx.drawImage(panel, px, py);
     const portrait = Images.tryGet('portrait');
-    if (portrait) ctx.drawImage(portrait, px + 5, py + 5);
+    if (portrait) ctx.drawImage(portrait, px + 4, py + 4);
     const segs = Sheets.tryGet('hudSeg');
     const f = player.health.fraction;
     const lit = Math.ceil(f * 10);
     const clip = f > 0.5 ? 'green' : f > 0.25 ? 'yellow' : 'red';
     for (let i = 0; i < 10; i++) {
       const on = i < lit && !(f <= 0.25 && f > 0 && Math.floor(time * 6) % 2 === 0 && i === lit - 1);
-      const sx = px + 33 + i * 6, sy = py + 5;
+      const sx = px + 31 + i * 6, sy = py + 4;
       if (segs) segs.drawAnchored(ctx, segs.frameAt(on ? clip : 'off', 0, 'off'), sx, sy, 0, 0);
       else { ctx.fillStyle = on ? '#3ddc84' : '#2f343b'; ctx.fillRect(sx, sy, 5, 8); }
     }
-    this.label(ctx, 'SEBA', px + 31, py + 17, '#e6e9ed');
-    this.label(ctx, `${Math.ceil(player.health.current)}`, px + 70, py + 17, '#3ddc84');
+    this.label(ctx, 'SEBA', px + 29, py + 15, '#e6e9ed');
+    this.label(ctx, `${Math.ceil(player.health.current)}`, px + 66, py + 15, '#3ddc84');
 
     // --- punkty (prawy górny róg) ---
     const sp = Images.tryGet('hudScore');
-    const sw = sp?.width ?? 64, sx0 = W - 4 - sw;
-    if (sp) ctx.drawImage(sp, sx0, 4);
+    const sw = sp?.width ?? 60, sx0 = W - 2 - sw;
+    if (sp) ctx.drawImage(sp, sx0, 2);
     ctx.textAlign = 'right';
-    this.label(ctx, 'SCORE', sx0 + sw - 6, 5, '#d9a72c');
-    this.label(ctx, score.toString().padStart(6, '0'), sx0 + sw - 8, 18, '#ffffff');
+    this.label(ctx, 'SCORE', sx0 + sw - 5, 3, '#d9a72c');
+    this.label(ctx, score.toString().padStart(6, '0'), sx0 + sw - 7, 15, '#ffffff');
     ctx.textAlign = 'left';
 
     // --- boss (pod panelami, wyśrodkowany) ---
     if (boss && boss.alive) {
       const bp = Images.tryGet('hudBoss');
-      const bw = bp?.width ?? 128, bx = Math.round((W - bw) / 2), by = 4;
+      const bw = bp?.width ?? 128, bx = Math.round((W - bw) / 2), by = 2;
       if (bp) ctx.drawImage(bp, bx, by);
       // wypełnienie paska: piksele w kolorze fazy (w wgłębieniu 120x8 → pasek 118x6)
       ctx.fillStyle = boss.tint; ctx.fillRect(bx + 5, by + 5, Math.round(118 * boss.health.fraction), 6);

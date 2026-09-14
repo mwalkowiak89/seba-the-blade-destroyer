@@ -1023,12 +1023,12 @@
 
   // src/assets/manifest.generated.ts
   var MANIFEST = {
-    "version": "mu142ex6",
+    "version": "mu150yui",
     "sheets": {
       "seba": {
         "file": "assets/sprites/player/seba.png",
-        "frameW": 70,
-        "frameH": 49,
+        "frameW": 72,
+        "frameH": 51,
         "cols": 8,
         "clips": {
           "idle": {
@@ -1133,7 +1133,7 @@
           }
         },
         "anchor": "bottom",
-        "anchorX": 35,
+        "anchorX": 36,
         "density": 1,
         "pivots": {
           "stand": {
@@ -1682,13 +1682,13 @@
       },
       "hudPlayer": {
         "file": "assets/sprites/ui/panel-player.png",
-        "w": 104,
-        "h": 30
+        "w": 98,
+        "h": 28
       },
       "hudScore": {
         "file": "assets/sprites/ui/panel-score.png",
-        "w": 64,
-        "h": 30
+        "w": 60,
+        "h": 28
       },
       "hudBoss": {
         "file": "assets/sprites/ui/panel-boss.png",
@@ -1738,7 +1738,19 @@
       "contL": 18,
       "contM": 19,
       "contR": 20,
-      "contLR": 21
+      "contLR": 21,
+      "contBL": 22,
+      "contBM": 23,
+      "contBR": 24,
+      "contBLR": 25,
+      "bigRootT": 26,
+      "bigRootB": 27,
+      "bigMidT": 28,
+      "bigMidB": 29,
+      "bigTipT": 30,
+      "bigTipB": 31,
+      "trestleBig": 32,
+      "trestleBigFoot": 33
     },
     "sebaSource": "seba-ai"
   };
@@ -1973,7 +1985,8 @@
   };
 
   // src/world/Level.ts
-  var TILE_CHARS = { "#": 1 /* Solid */, "=": 2 /* OneWay */ };
+  var TILE_CHARS = { "#": 1 /* Solid */, "=": 2 /* OneWay */, C: 1 /* Solid */, L: 2 /* OneWay */ };
+  var SKIN_CHARS = { C: 1 /* Container */, L: 2 /* BigBlade */ };
   var MARKER_CHARS = {
     P: "player",
     S: "sniper",
@@ -1995,6 +2008,7 @@
       this.widthPx = this.cols * this.tileSize;
       this.heightPx = this.rows * this.tileSize;
       this.tiles = new Uint8Array(this.cols * this.rows);
+      this.skins = new Uint8Array(this.cols * this.rows);
       screens.forEach((screen, si) => {
         if (screen.length !== this.rows) throw new Error(`Ekran ${si}: oczekiwano ${this.rows} wierszy, jest ${screen.length}`);
         screen.forEach((line, r) => {
@@ -2004,6 +2018,8 @@
             const col = si * screenCols + c;
             const tile = TILE_CHARS[ch];
             if (tile !== void 0) this.tiles[r * this.cols + col] = tile;
+            const skin = SKIN_CHARS[ch];
+            if (skin !== void 0) this.skins[r * this.cols + col] = skin;
             const marker = MARKER_CHARS[ch];
             if (marker) this.markers.push({ type: marker, col, row: r, x: col * this.tileSize, y: r * this.tileSize });
           }
@@ -2014,6 +2030,10 @@
       if (col < 0 || col >= this.cols) return 1 /* Solid */;
       if (row < 0 || row >= this.rows) return 0 /* Empty */;
       return this.tiles[row * this.cols + col];
+    }
+    skinAt(col, row) {
+      if (col < 0 || col >= this.cols || row < 0 || row >= this.rows) return 0 /* Plate */;
+      return this.skins[row * this.cols + col];
     }
     isSolidAtPx(px, py) {
       return this.tileAt(Math.floor(px / this.tileSize), Math.floor(py / this.tileSize)) === 1 /* Solid */;
@@ -2090,8 +2110,9 @@
       const sx = idx % this.cols * this.ts, sy = Math.floor(idx / this.cols) * this.ts;
       g.drawImage(this.image, sx, sy, this.ts, this.ts, col * this.ts, row * this.ts, this.ts, this.ts);
     }
-    /** Typ platformy dla runu one-way: pod snajperem kontener, dalej naprzemiennie łopata / sekcja wieży. */
+    /** Typ platformy dla runu one-way: skin L = wielka łopata, pod snajperem kontener, dalej naprzemiennie łopata / sekcja wieży. */
     platformKind(c0, c1, r, runIndex) {
+      if (this.level.skinAt(c0, r) === 2 /* BigBlade */) return "bigBlade";
       for (const m of this.level.markers) if (m.type === "sniper" && m.row + 1 === r && m.col >= c0 && m.col <= c1) return "container";
       return runIndex % 2 === 0 ? "blade" : "tower";
     }
@@ -2111,6 +2132,16 @@
       const L = this.level;
       this.forEachRun((c0, c1, r, kind) => {
         if (kind === "container") return;
+        if (kind === "bigBlade") {
+          for (const c of /* @__PURE__ */ new Set([c0 + Math.floor((c1 - c0) / 4), c1 - Math.floor((c1 - c0) / 4)])) {
+            for (let k = 2; k <= 10 && r + k < L.rows; k++) {
+              if (L.tileAt(c, r + k) !== 0 /* Empty */) break;
+              const last = r + k + 1 >= L.rows || L.tileAt(c, r + k + 1) !== 0 /* Empty */;
+              this.decos.push({ col: c, row: r + k, tile: last ? "trestleBigFoot" : "trestleBig" });
+            }
+          }
+          return;
+        }
         const ends = c1 - c0 >= 2 ? [c0 + 1, c1 - 1] : [c0, c1];
         for (const c of new Set(ends)) {
           for (let k = 1; k <= 8 && r + k < L.rows; k++) {
@@ -2135,8 +2166,15 @@
     }
     drawTiles(g) {
       const L = this.level;
+      const isCont = (c, r) => L.tileAt(c, r) === 1 /* Solid */ && L.skinAt(c, r) === 1 /* Container */;
       for (let r = 0; r < L.rows; r++) for (let c = 0; c < L.cols; c++) {
         if (L.tileAt(c, r) !== 1 /* Solid */) continue;
+        if (isCont(c, r)) {
+          const l = !isCont(c - 1, r), rr = !isCont(c + 1, r), top = !isCont(c, r - 1);
+          const t = top ? l && rr ? "contLR" : l ? "contL" : rr ? "contR" : "contM" : l && rr ? "contBLR" : l ? "contBL" : rr ? "contBR" : "contBM";
+          this.blit(g, t, c, r);
+          continue;
+        }
         this.blit(g, (c * 31 + r * 17) % 5 === 0 ? "plateB" : "plate", c, r);
         if (L.tileAt(c, r - 1) !== 1 /* Solid */) this.blit(g, "edgeTop", c, r);
         if (L.tileAt(c, r + 1) !== 1 /* Solid */ && r + 1 < L.rows) this.blit(g, "edgeBottom", c, r);
@@ -2149,6 +2187,11 @@
         for (let c = c0; c <= c1; c++) {
           const first = c === c0, last = c === c1;
           let t;
+          if (kind === "bigBlade") {
+            this.blit(g, first ? "bigRootT" : last ? "bigTipT" : "bigMidT", c, r);
+            if (r + 1 < this.level.rows && this.level.tileAt(c, r + 1) === 0 /* Empty */) this.blit(g, first ? "bigRootB" : last ? "bigTipB" : "bigMidB", c, r + 1);
+            continue;
+          }
           if (kind === "blade") t = first ? "bladeRoot" : last ? "bladeTip" : "bladeMid";
           else if (kind === "tower") t = first && last ? "towerM" : first ? "towerL" : last ? "towerR" : "towerM";
           else t = first && last ? "contLR" : first ? "contL" : last ? "contR" : "contM";
@@ -2334,149 +2377,149 @@
 
   // src/world/TestLevel.ts
   var SCREENS_20 = [
-    // Ekran 0 – start, płasko
+    // Ekran 0 – start: płasko, pierwszy kontener do przeskoczenia
     [
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "..P.................",
-      "....................",
-      "####################",
-      "####################"
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "..P..............CC.....",
+      ".................CC.....",
+      "########################",
+      "########################"
     ],
-    // Ekran 1 – stopnie, platforma ze snajperem, pierwsza fala biegaczy
+    // Ekran 1 – kontenery na różnych wysokościach, snajper na dachu, pierwsza fala biegaczy
     [
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "..........S.........",
-      ".........====.......",
-      "....................",
-      "....................",
-      "....##.............R",
-      "....##.......###....",
-      "####################",
-      "####################"
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "............S...........",
+      "...........====.........",
+      "........................",
+      "........................",
+      "....CC..................",
+      "....CC........CCC......R",
+      "....CC........CCC.......",
+      "########################",
+      "########################"
     ],
-    // Ekran 2 – szczelina z platformami jednokierunkowymi i dronem
+    // Ekran 2 – WIELKA ŁOPATA nad szczeliną (platforma semi-solid) + dron
     [
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....D...............",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      ".....=====..=====...",
-      "....................",
-      "....................",
-      "#####........#######",
-      "#####........#######"
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      ".....D..................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "....LLLLLLLLLLLLLLL.....",
+      "........................",
+      "........................",
+      "........................",
+      "######...........#######",
+      "######...........#######"
     ],
-    // Ekran 3 – wieża ze snajperem, biegacze
+    // Ekran 3 – wiszący blok kontenerów: pod nim tunel do czołgania (32 px), na nim droga górą
     [
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "..........S.........",
-      ".........####.......",
-      ".........####.......",
-      "......===####.......",
-      ".........####.......",
-      ".........####......R",
-      "####################",
-      "####################"
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "......CCCCCCCCCC........",
+      "......CCCCCCCCCC.......R",
+      "........................",
+      "........................",
+      "########################",
+      "########################"
     ],
-    // Ekran 4 – wielopoziomowe platformy (test zeskoku), dron
+    // Ekran 4 – schody z kontenerów + platformy wysoko, dron, strzelanie po skosie
     [
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "..=====......=====..",
-      "....................",
-      "....................",
-      "......======........",
-      "....................",
-      ".............D......",
-      "..=====......=====..",
-      "....................",
-      "....................",
-      "####################",
-      "####################"
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "..............====......",
+      "........D...............",
+      "........................",
+      ".........====...........",
+      "........................",
+      "............CC..........",
+      "........CC..CC..........",
+      "....CC..CC..CC....CC....",
+      "....CC..CC..CC....CC....",
+      "########################",
+      "########################"
     ],
-    // Ekran 5 – szczeliny i filary, biegacze
+    // Ekran 5 – szczeliny, filary i druga wielka łopata jako most; biegacze
     [
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "...........#........",
-      "......#....#......R.",
-      "###...####.####..###",
-      "###...####.####..###"
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      ".......LLLLLLLLLL.......",
+      "........................",
+      "........................",
+      "........................",
+      ".....C.........C.......R",
+      ".....C.........C........",
+      "###...#####.#####...####",
+      "###...#####.#####...####"
     ],
-    // Ekran 6 – podejście do bossa: snajper wysoko, dron, biegacze
+    // Ekran 6 – podejście do bossa: snajper wysoko na kontenerze, dron, niski tunel
     [
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "....................",
-      "........S...........",
-      ".......====.........",
-      "....................",
-      "...D................",
-      "...====.......=====.",
-      "....................",
-      ".................R..",
-      "####################",
-      "####################"
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "........................",
+      "..........S.............",
+      ".........====...........",
+      "........................",
+      "....D...................",
+      "........................",
+      "..............CCCC......",
+      "..............CCCC....R.",
+      "........................",
+      "########################",
+      "########################"
     ],
     // Ekran 7 – arena bossa (górne kratownice = ucieczka przed drganiami podłoża w fazie 3)
     [
-      "B...................",
-      "....................",
-      "....................",
-      "....................",
-      "..............X.....",
-      "....................",
-      ".....====...........",
-      "....................",
-      "....................",
-      ".====.....====......",
-      "....................",
-      "....................",
-      "....................",
-      "####################",
-      "####################"
+      "B.......................",
+      "........................",
+      "........................",
+      "........................",
+      "..............X.........",
+      "........................",
+      ".....====...............",
+      "........................",
+      "........................",
+      ".====.....====..........",
+      "........................",
+      "........................",
+      "........................",
+      "########################",
+      "########################"
     ]
   ];
   var COLS = 384 / 16;
@@ -4279,35 +4322,35 @@
       ctx.textBaseline = "top";
       ctx.font = FONT(16);
       const panel = Images.tryGet("hudPlayer");
-      const px = 4, py = 4;
+      const px = 2, py = 2;
       if (panel) ctx.drawImage(panel, px, py);
       const portrait = Images.tryGet("portrait");
-      if (portrait) ctx.drawImage(portrait, px + 5, py + 5);
+      if (portrait) ctx.drawImage(portrait, px + 4, py + 4);
       const segs = Sheets.tryGet("hudSeg");
       const f = player.health.fraction;
       const lit = Math.ceil(f * 10);
       const clip = f > 0.5 ? "green" : f > 0.25 ? "yellow" : "red";
       for (let i = 0; i < 10; i++) {
         const on = i < lit && !(f <= 0.25 && f > 0 && Math.floor(time * 6) % 2 === 0 && i === lit - 1);
-        const sx = px + 33 + i * 6, sy = py + 5;
+        const sx = px + 31 + i * 6, sy = py + 4;
         if (segs) segs.drawAnchored(ctx, segs.frameAt(on ? clip : "off", 0, "off"), sx, sy, 0, 0);
         else {
           ctx.fillStyle = on ? "#3ddc84" : "#2f343b";
           ctx.fillRect(sx, sy, 5, 8);
         }
       }
-      this.label(ctx, "SEBA", px + 31, py + 17, "#e6e9ed");
-      this.label(ctx, `${Math.ceil(player.health.current)}`, px + 70, py + 17, "#3ddc84");
+      this.label(ctx, "SEBA", px + 29, py + 15, "#e6e9ed");
+      this.label(ctx, `${Math.ceil(player.health.current)}`, px + 66, py + 15, "#3ddc84");
       const sp = Images.tryGet("hudScore");
-      const sw = sp?.width ?? 64, sx0 = W - 4 - sw;
-      if (sp) ctx.drawImage(sp, sx0, 4);
+      const sw = sp?.width ?? 60, sx0 = W - 2 - sw;
+      if (sp) ctx.drawImage(sp, sx0, 2);
       ctx.textAlign = "right";
-      this.label(ctx, "SCORE", sx0 + sw - 6, 5, "#d9a72c");
-      this.label(ctx, score.toString().padStart(6, "0"), sx0 + sw - 8, 18, "#ffffff");
+      this.label(ctx, "SCORE", sx0 + sw - 5, 3, "#d9a72c");
+      this.label(ctx, score.toString().padStart(6, "0"), sx0 + sw - 7, 15, "#ffffff");
       ctx.textAlign = "left";
       if (boss && boss.alive) {
         const bp = Images.tryGet("hudBoss");
-        const bw = bp?.width ?? 128, bx = Math.round((W - bw) / 2), by = 4;
+        const bw = bp?.width ?? 128, bx = Math.round((W - bw) / 2), by = 2;
         if (bp) ctx.drawImage(bp, bx, by);
         ctx.fillStyle = boss.tint;
         ctx.fillRect(bx + 5, by + 5, Math.round(118 * boss.health.fraction), 6);
@@ -4408,6 +4451,9 @@
       this.debug = false;
       this.hitStopTimer = 0;
       this.arenaFloorY = 0;
+      /** Podpowiedź sterowania: znika (fade) po 4 s lub po pierwszym klawiszu. */
+      this.hintAlpha = 1;
+      this.hintDismissed = false;
       const start = this.level.findMarker("player") ?? { x: 32, y: 160 };
       this.player = new PlayerController(input, start.x, start.y + CONFIG.view.tile - CONFIG.player.standHeight);
       this.camera.maxX = this.level.widthPx - this.camera.width;
@@ -4516,6 +4562,8 @@
       this.time += dt;
       this.hud.update(dt);
       this.camera.update(dt);
+      if (!this.hintDismissed && (this.time > 4 || ["left", "right", "up", "down", "jump", "fire"].some((a) => this.input.held(a)))) this.hintDismissed = true;
+      if (this.hintDismissed && this.hintAlpha > 0) this.hintAlpha = Math.max(0, this.hintAlpha - dt * 2);
       if (this.input.justPressed("mute")) {
         AudioEngine.toggleMute();
         Sfx.play("ui");
@@ -4675,7 +4723,7 @@
       }
       this.hud.draw(ctx, this.player, this.score, this.boss, this.time);
       this.hud.drawAudioState(ctx, AudioEngine.muted, AudioEngine.running || !AudioEngine.available);
-      if (this.time < 6) this.hud.drawHint(ctx, Math.min(1, 6 - this.time), this.input.gamepadConnected);
+      if (this.hintAlpha > 0) this.hud.drawHint(ctx, this.hintAlpha, this.input.gamepadConnected);
       if (this.debug) {
         let pb = 0, eb = 0;
         this.playerBullets.forEachActive(() => pb++);

@@ -21,7 +21,8 @@ const DENSITY = 1;
 
 /** Docelowa wysokość stojącej postaci (px) – ~ hitbox 42 + margines na kask. */
 const TARGET_HEIGHT = 48; // natywny low-res: hitbox 42 px + kask
-const PALETTE_SIZE = 18;
+const PALETTE_SIZE = 14; // mniej odcieni = ostrzejszy pixel art, spójny z kaflami
+const OUTLINE = [43, 47, 54];  // kontur 1 px jak w sprite'ach otoczenia
 
 // Prostokąty wierszy w źródle (2048x2048) i mapowanie na klipy.
 const ROWS = {
@@ -206,17 +207,28 @@ for (const [name, c] of Object.entries(CLIPS)) {
   clips[name] = { frames: idx.map((_, i) => list.length + i), fps: c.fps, loop: c.loop };
   for (const i of idx) list.push({ ...avail[i], spin: name === 'spin' });
 }
-const FW = Math.max(...list.map((f) => f.w)) + 2, FH = Math.max(...list.map((f) => f.h)) + 2;
+const FW = Math.max(...list.map((f) => f.w)) + 4, FH = Math.max(...list.map((f) => f.h)) + 4;
 const cols = 8, rows = Math.ceil(list.length / cols);
 const sheet = create(FW * cols, FH * rows);
 list.forEach((f, i) => {
   const cx = (i % cols) * FW, cy = Math.floor(i / cols) * FH;
-  // stopy do dołu klatki; klatki koziołka – środek bboxa na wysokości połowy hitboxa
+  // stopy do dołu klatki (z 1 px zapasu na kontur); klatki koziołka – środek bboxa na wysokości połowy hitboxa
   const ox = Math.floor((FW - f.w) / 2);
-  const oy = f.spin ? Math.round(FH - 21 - f.h / 2) : FH - 1 - f.h;
+  const oy = f.spin ? Math.round(FH - 21 - f.h / 2) : FH - 2 - f.h;
+  const filled = new Set();
   for (const p of f.px) {
     const c = nearest(palette, p);
     sheet.data.set([c.r, c.g, c.b, 255], ((cy + oy + p.y) * sheet.width + (cx + ox + p.x)) * 4);
+    filled.add(`${p.x},${p.y}`);
+  }
+  // kontur: przezroczyste piksele stykające się z sylwetką (4-sąsiedztwo) – spójna gęstość z kaflami/wrogami
+  for (const p of f.px) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const nx = p.x + dx, ny = p.y + dy;
+    if (filled.has(`${nx},${ny}`)) continue;
+    const X = cx + ox + nx, Y = cy + oy + ny;
+    if (X < cx || Y < cy || X >= cx + FW || Y >= cy + FH) continue;
+    const idx = (Y * sheet.width + X) * 4;
+    if (sheet.data[idx + 3] === 0) sheet.data.set([...OUTLINE, 255], idx);
   }
 });
 save(sheet, OUT_SHEET);
