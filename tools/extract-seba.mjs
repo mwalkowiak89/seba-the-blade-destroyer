@@ -17,9 +17,10 @@ const SRC = 'assets/raw/seba-ai/source.jpeg';
 const OUT_SHEET = 'assets/sprites/player/seba.png';
 const OUT_JSON = 'assets/raw/seba-ai/seba.sheet.json';
 const OUT_PORTRAIT = 'assets/sprites/ui/portrait.png';
+const DENSITY = 2;
 
 /** Docelowa wysokość stojącej postaci (px) – ~ hitbox 42 + margines na kask. */
-const TARGET_HEIGHT = 48;
+const TARGET_HEIGHT = 96; // gęstość 2x: 1 jednostka świata = 2 px (hitbox 42 j. ≈ 84 px + kask)
 const PALETTE_SIZE = 18;
 
 // Prostokąty wierszy w źródle (2048x2048) i mapowanie na klipy.
@@ -177,7 +178,8 @@ const K = idleH / TARGET_HEIGHT;
 console.log('klatki per wiersz:', Object.fromEntries(Object.entries(rowBlobs).map(([k, v]) => [k, v.length])), '| skala 1/' + K.toFixed(2));
 
 const frames = {}; // clip → [{w,h,px}]
-for (const [row, list] of Object.entries(rowBlobs)) frames[row] = list.map((b) => downscale(b, row === 'face' ? (b.y1 - b.y0 + 1) / 20 : K));
+const PORTRAIT = 40;
+for (const [row, list] of Object.entries(rowBlobs)) frames[row] = list.map((b) => downscale(b, row === 'face' ? (b.y1 - b.y0 + 1) / PORTRAIT : K));
 
 const samples = Object.entries(frames).filter(([k]) => k !== 'face').flatMap(([, fs]) => fs.flatMap((f) => f.px));
 const palette = kmeans(samples, PALETTE_SIZE);
@@ -211,7 +213,7 @@ list.forEach((f, i) => {
   const cx = (i % cols) * FW, cy = Math.floor(i / cols) * FH;
   // stopy do dołu klatki; klatki koziołka – środek bboxa na wysokości połowy hitboxa
   const ox = Math.floor((FW - f.w) / 2);
-  const oy = f.spin ? Math.round(FH - 21 - f.h / 2) : FH - 1 - f.h;
+  const oy = f.spin ? Math.round(FH - 42 - f.h / 2) : FH - 1 - f.h;
   for (const p of f.px) {
     const c = nearest(palette, p);
     sheet.data.set([c.r, c.g, c.b, 255], ((cy + oy + p.y) * sheet.width + (cx + ox + p.x)) * 4);
@@ -219,20 +221,20 @@ list.forEach((f, i) => {
 });
 save(sheet, OUT_SHEET);
 
-// portret 20x20
+// portret (PORTRAIT x PORTRAIT)
 const face = frames.face[0];
 if (face) {
-  const port = create(20, 20);
-  const ox = Math.floor((20 - face.w) / 2), oy = Math.max(0, 20 - face.h);
-  for (const p of face.px) { const x = ox + p.x, y = oy + p.y; if (x >= 0 && y >= 0 && x < 20 && y < 20) port.data.set([Math.round(p.r), Math.round(p.g), Math.round(p.b), 255], (y * 20 + x) * 4); }
+  const port = create(PORTRAIT, PORTRAIT);
+  const ox = Math.floor((PORTRAIT - face.w) / 2), oy = Math.max(0, PORTRAIT - face.h);
+  for (const p of face.px) { const x = ox + p.x, y = oy + p.y; if (x >= 0 && y >= 0 && x < PORTRAIT && y < PORTRAIT) port.data.set([Math.round(p.r), Math.round(p.g), Math.round(p.b), 255], (y * PORTRAIT + x) * 4); }
   save(port, OUT_PORTRAIT);
 }
 
 const meta = {
   file: OUT_SHEET, frameW: FW, frameH: FH, cols, clips,
-  anchor: 'bottom', anchorX: Math.floor(FW / 2),
+  anchor: 'bottom', anchorX: Math.floor(FW / 2), density: DENSITY,
   // dłoń (względem środek-stopy): stojąc ~60% wysokości, w klęku niżej – korekta ręczna po podglądzie
-  pivots: { stand: { x: 5, y: -27 }, up: { x: 9, y: -19 }, crouch: { x: 9, y: -22 }, prone: { x: 24, y: -7 } },
+  pivots: { stand: { x: 10, y: -54 }, up: { x: 18, y: -38 }, crouch: { x: 18, y: -44 }, prone: { x: 48, y: -14 } },
 };
 fs.writeFileSync(OUT_JSON, JSON.stringify(meta, null, 2));
 console.log(`OK: ${list.length} klatek ${FW}x${FH}, paleta ${palette.length}`);

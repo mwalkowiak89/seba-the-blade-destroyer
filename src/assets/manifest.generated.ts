@@ -1,11 +1,11 @@
 /* WYGENEROWANE przez tools/build-assets.mjs – nie edytuj ręcznie. */
 export const MANIFEST = {
-  "version": "mu112axz",
+  "version": "mu11eafb",
   "sheets": {
     "seba": {
       "file": "assets/sprites/player/seba.png",
-      "frameW": 70,
-      "frameH": 49,
+      "frameW": 138,
+      "frameH": 96,
       "cols": 8,
       "clips": {
         "idle": {
@@ -110,30 +110,31 @@ export const MANIFEST = {
         }
       },
       "anchor": "bottom",
-      "anchorX": 35,
+      "anchorX": 69,
+      "density": 2,
       "pivots": {
         "stand": {
-          "x": 5,
-          "y": -27
+          "x": 10,
+          "y": -54
         },
         "up": {
-          "x": 9,
-          "y": -19
+          "x": 18,
+          "y": -38
         },
         "crouch": {
-          "x": 9,
-          "y": -22
+          "x": 18,
+          "y": -44
         },
         "prone": {
-          "x": 24,
-          "y": -7
+          "x": 48,
+          "y": -14
         }
       }
     },
     "runner": {
       "file": "assets/sprites/enemies/runner.png",
-      "frameW": 57,
-      "frameH": 53,
+      "frameW": 114,
+      "frameH": 106,
       "cols": 9,
       "clips": {
         "run": {
@@ -165,13 +166,14 @@ export const MANIFEST = {
           "loop": true
         }
       },
+      "density": 2,
       "anchor": "bottom",
-      "anchorX": 31
+      "anchorX": 62
     },
     "drone": {
       "file": "assets/sprites/enemies/drone.png",
-      "frameW": 36,
-      "frameH": 49,
+      "frameW": 72,
+      "frameH": 98,
       "cols": 4,
       "clips": {
         "patrol": {
@@ -205,14 +207,15 @@ export const MANIFEST = {
           "loop": true
         }
       },
+      "density": 2,
       "anchor": "center",
-      "anchorX": 18,
-      "anchorY": 16
+      "anchorX": 36,
+      "anchorY": 32
     },
     "turret": {
       "file": "assets/sprites/enemies/turret.png",
-      "frameW": 25,
-      "frameH": 23,
+      "frameW": 50,
+      "frameH": 46,
       "cols": 6,
       "clips": {
         "idle": {
@@ -241,13 +244,14 @@ export const MANIFEST = {
           "loop": true
         }
       },
+      "density": 2,
       "anchor": "bottom",
-      "anchorX": 13
+      "anchorX": 26
     },
     "shot": {
       "file": "assets/sprites/fx/shot.png",
-      "frameW": 15,
-      "frameH": 11,
+      "frameW": 30,
+      "frameH": 22,
       "cols": 3,
       "clips": {
         "fly": {
@@ -260,14 +264,15 @@ export const MANIFEST = {
           "loop": true
         }
       },
+      "density": 2,
       "anchor": "center",
-      "anchorX": 8,
-      "anchorY": 5
+      "anchorX": 16,
+      "anchorY": 10
     },
     "shotHit": {
       "file": "assets/sprites/fx/shot-hit.png",
-      "frameW": 15,
-      "frameH": 11,
+      "frameW": 30,
+      "frameH": 22,
       "cols": 3,
       "clips": {
         "play": {
@@ -280,14 +285,15 @@ export const MANIFEST = {
           "loop": false
         }
       },
+      "density": 2,
       "anchor": "center",
-      "anchorX": 7,
-      "anchorY": 5
+      "anchorX": 14,
+      "anchorY": 10
     },
     "explosion": {
       "file": "assets/sprites/fx/explosion.png",
-      "frameW": 55,
-      "frameH": 52,
+      "frameW": 110,
+      "frameH": 104,
       "cols": 6,
       "clips": {
         "play": {
@@ -303,14 +309,15 @@ export const MANIFEST = {
           "loop": false
         }
       },
+      "density": 2,
       "anchor": "center",
-      "anchorX": 27,
-      "anchorY": 26
+      "anchorX": 54,
+      "anchorY": 52
     },
     "makita": {
       "file": "assets/sprites/player/makita.png",
-      "frameW": 28,
-      "frameH": 28,
+      "frameW": 56,
+      "frameH": 56,
       "cols": 6,
       "clips": {
         "horizontal": {
@@ -338,40 +345,41 @@ export const MANIFEST = {
           "loop": true
         }
       },
+      "density": 2,
       "anchor": "pivot",
       "pivots": {
         "horizontal": {
-          "x": 6,
-          "y": 13
+          "x": 12,
+          "y": 26
         },
         "diagonal": {
-          "x": 8,
-          "y": 19
+          "x": 16,
+          "y": 38
         },
         "vertical": {
-          "x": 13,
-          "y": 21
+          "x": 26,
+          "y": 42
         }
       },
       "muzzle": {
         "horizontal": {
-          "x": 27,
-          "y": 13
+          "x": 54,
+          "y": 26
         },
         "diagonal": {
-          "x": 23,
-          "y": 4
+          "x": 46,
+          "y": 8
         },
         "vertical": {
-          "x": 13,
+          "x": 26,
           "y": 0
         }
       }
     },
     "muzzle": {
       "file": "assets/sprites/fx/muzzle.png",
-      "frameW": 12,
-      "frameH": 12,
+      "frameW": 24,
+      "frameH": 24,
       "cols": 2,
       "clips": {
         "flash": {
@@ -383,14 +391,15 @@ export const MANIFEST = {
           "loop": false
         }
       },
+      "density": 2,
       "anchor": "center",
-      "anchorX": 5,
-      "anchorY": 5
+      "anchorX": 10,
+      "anchorY": 10
     },
     "screw": {
       "file": "assets/sprites/fx/screw.png",
-      "frameW": 14,
-      "frameH": 6,
+      "frameW": 28,
+      "frameH": 12,
       "cols": 2,
       "clips": {
         "spin": {
@@ -402,14 +411,15 @@ export const MANIFEST = {
           "loop": true
         }
       },
+      "density": 2,
       "anchor": "center",
-      "anchorX": 10,
-      "anchorY": 3
+      "anchorX": 20,
+      "anchorY": 6
     },
     "saw": {
       "file": "assets/sprites/fx/saw.png",
-      "frameW": 12,
-      "frameH": 12,
+      "frameW": 24,
+      "frameH": 24,
       "cols": 2,
       "clips": {
         "spin": {
@@ -421,14 +431,15 @@ export const MANIFEST = {
           "loop": true
         }
       },
+      "density": 2,
       "anchor": "center",
-      "anchorX": 5,
-      "anchorY": 5
+      "anchorX": 10,
+      "anchorY": 10
     },
     "skyBlades": {
       "file": "assets/backgrounds/sky-blades.png",
-      "frameW": 256,
-      "frameH": 70,
+      "frameW": 640,
+      "frameH": 160,
       "cols": 6,
       "clips": {
         "spin": {
@@ -447,34 +458,36 @@ export const MANIFEST = {
       "anchor": "center",
       "anchorX": 0,
       "anchorY": 0,
-      "y": 126
+      "density": 2,
+      "y": 222
     }
   },
   "images": {
     "tileset": {
       "file": "assets/tilesets/industrial.png",
-      "tileSize": 16,
+      "tileSize": 32,
+      "worldTile": 16,
       "cols": 8
     },
     "portrait": {
       "file": "assets/sprites/ui/portrait.png",
-      "w": 20,
-      "h": 20
+      "w": 40,
+      "h": 40
     },
     "sky": {
       "file": "assets/backgrounds/sky.png",
-      "w": 256,
-      "h": 240
+      "w": 640,
+      "h": 480
     },
     "siteMid": {
       "file": "assets/backgrounds/site-mid.png",
-      "w": 480,
-      "h": 200
+      "w": 960,
+      "h": 400
     },
     "siteNear": {
       "file": "assets/backgrounds/site-near.png",
-      "w": 480,
-      "h": 72
+      "w": 1120,
+      "h": 200
     }
   },
   "tiles": {

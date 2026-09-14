@@ -7,6 +7,7 @@
  * (`anim`), bez zmian w PlayerController / EnemyBase / Boss.
  */
 import { Sheets, type SheetName } from '../assets/AssetLoader';
+import { D } from '../assets/SpriteSheet';
 
 export interface DrawParams {
   /** Lewy-górny róg hitboxa w przestrzeni świata. */
@@ -139,7 +140,7 @@ export class SpriteSheetVisual implements Visual {
     else { y = p.y + p.h; ay = sheet.frameH; }
     y += this.opts.offsetY ?? 0;
     if (p.rotation) { // obrót wokół środka hitboxa (koziołek)
-      y = p.y + p.h / 2; ay = sheet.frameH - p.h / 2;
+      y = p.y + p.h / 2; ay = sheet.frameH - (p.h / 2) * D;
     }
     sheet.drawAnchored(ctx, frame, x, y, ax, ay, { flipX: p.facing < 0, rotation: p.rotation, alpha: p.alpha, flash: p.flash });
   }

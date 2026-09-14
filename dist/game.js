@@ -3,9 +3,12 @@
   // src/core/Config.ts
   var CONFIG = {
     view: {
+      /** Rozmiar świata w jednostkach (logika, kolizje, kamera). */
       width: 320,
       height: 240,
       tile: 16,
+      /** Gęstość pikseli grafiki: 1 jednostka świata = pixelScale pikseli canvasu (sprite'y mają 2x detalu). */
+      pixelScale: 2,
       fixedStep: 1 / 60,
       maxStepsPerFrame: 3
     },
@@ -317,8 +320,11 @@
     isVisible(x, y, w, h, margin = 0) {
       return x + w > this.x - margin && x < this.right + margin && y + h > this.y - margin && y < this.y + this.height + margin;
     }
+    /** Transformacja świat → canvas: skala gęstości pikseli + przewinięcie zaokrąglone do pełnych pikseli canvasu. */
     applyTransform(ctx) {
-      ctx.translate(-Math.round(this.x) + this.shakeX, -Math.round(this.y) + this.shakeY);
+      const D5 = CONFIG.view.pixelScale;
+      ctx.scale(D5, D5);
+      ctx.translate(-Math.round(this.x * D5) / D5 + this.shakeX, -Math.round(this.y * D5) / D5 + this.shakeY);
     }
   };
 
@@ -1013,12 +1019,12 @@
 
   // src/assets/manifest.generated.ts
   var MANIFEST = {
-    "version": "mu112axz",
+    "version": "mu11eafb",
     "sheets": {
       "seba": {
         "file": "assets/sprites/player/seba.png",
-        "frameW": 70,
-        "frameH": 49,
+        "frameW": 138,
+        "frameH": 96,
         "cols": 8,
         "clips": {
           "idle": {
@@ -1123,30 +1129,31 @@
           }
         },
         "anchor": "bottom",
-        "anchorX": 35,
+        "anchorX": 69,
+        "density": 2,
         "pivots": {
           "stand": {
-            "x": 5,
-            "y": -27
+            "x": 10,
+            "y": -54
           },
           "up": {
-            "x": 9,
-            "y": -19
+            "x": 18,
+            "y": -38
           },
           "crouch": {
-            "x": 9,
-            "y": -22
+            "x": 18,
+            "y": -44
           },
           "prone": {
-            "x": 24,
-            "y": -7
+            "x": 48,
+            "y": -14
           }
         }
       },
       "runner": {
         "file": "assets/sprites/enemies/runner.png",
-        "frameW": 57,
-        "frameH": 53,
+        "frameW": 114,
+        "frameH": 106,
         "cols": 9,
         "clips": {
           "run": {
@@ -1178,13 +1185,14 @@
             "loop": true
           }
         },
+        "density": 2,
         "anchor": "bottom",
-        "anchorX": 31
+        "anchorX": 62
       },
       "drone": {
         "file": "assets/sprites/enemies/drone.png",
-        "frameW": 36,
-        "frameH": 49,
+        "frameW": 72,
+        "frameH": 98,
         "cols": 4,
         "clips": {
           "patrol": {
@@ -1218,14 +1226,15 @@
             "loop": true
           }
         },
+        "density": 2,
         "anchor": "center",
-        "anchorX": 18,
-        "anchorY": 16
+        "anchorX": 36,
+        "anchorY": 32
       },
       "turret": {
         "file": "assets/sprites/enemies/turret.png",
-        "frameW": 25,
-        "frameH": 23,
+        "frameW": 50,
+        "frameH": 46,
         "cols": 6,
         "clips": {
           "idle": {
@@ -1254,13 +1263,14 @@
             "loop": true
           }
         },
+        "density": 2,
         "anchor": "bottom",
-        "anchorX": 13
+        "anchorX": 26
       },
       "shot": {
         "file": "assets/sprites/fx/shot.png",
-        "frameW": 15,
-        "frameH": 11,
+        "frameW": 30,
+        "frameH": 22,
         "cols": 3,
         "clips": {
           "fly": {
@@ -1273,14 +1283,15 @@
             "loop": true
           }
         },
+        "density": 2,
         "anchor": "center",
-        "anchorX": 8,
-        "anchorY": 5
+        "anchorX": 16,
+        "anchorY": 10
       },
       "shotHit": {
         "file": "assets/sprites/fx/shot-hit.png",
-        "frameW": 15,
-        "frameH": 11,
+        "frameW": 30,
+        "frameH": 22,
         "cols": 3,
         "clips": {
           "play": {
@@ -1293,14 +1304,15 @@
             "loop": false
           }
         },
+        "density": 2,
         "anchor": "center",
-        "anchorX": 7,
-        "anchorY": 5
+        "anchorX": 14,
+        "anchorY": 10
       },
       "explosion": {
         "file": "assets/sprites/fx/explosion.png",
-        "frameW": 55,
-        "frameH": 52,
+        "frameW": 110,
+        "frameH": 104,
         "cols": 6,
         "clips": {
           "play": {
@@ -1316,14 +1328,15 @@
             "loop": false
           }
         },
+        "density": 2,
         "anchor": "center",
-        "anchorX": 27,
-        "anchorY": 26
+        "anchorX": 54,
+        "anchorY": 52
       },
       "makita": {
         "file": "assets/sprites/player/makita.png",
-        "frameW": 28,
-        "frameH": 28,
+        "frameW": 56,
+        "frameH": 56,
         "cols": 6,
         "clips": {
           "horizontal": {
@@ -1351,40 +1364,41 @@
             "loop": true
           }
         },
+        "density": 2,
         "anchor": "pivot",
         "pivots": {
           "horizontal": {
-            "x": 6,
-            "y": 13
+            "x": 12,
+            "y": 26
           },
           "diagonal": {
-            "x": 8,
-            "y": 19
+            "x": 16,
+            "y": 38
           },
           "vertical": {
-            "x": 13,
-            "y": 21
+            "x": 26,
+            "y": 42
           }
         },
         "muzzle": {
           "horizontal": {
-            "x": 27,
-            "y": 13
+            "x": 54,
+            "y": 26
           },
           "diagonal": {
-            "x": 23,
-            "y": 4
+            "x": 46,
+            "y": 8
           },
           "vertical": {
-            "x": 13,
+            "x": 26,
             "y": 0
           }
         }
       },
       "muzzle": {
         "file": "assets/sprites/fx/muzzle.png",
-        "frameW": 12,
-        "frameH": 12,
+        "frameW": 24,
+        "frameH": 24,
         "cols": 2,
         "clips": {
           "flash": {
@@ -1396,14 +1410,15 @@
             "loop": false
           }
         },
+        "density": 2,
         "anchor": "center",
-        "anchorX": 5,
-        "anchorY": 5
+        "anchorX": 10,
+        "anchorY": 10
       },
       "screw": {
         "file": "assets/sprites/fx/screw.png",
-        "frameW": 14,
-        "frameH": 6,
+        "frameW": 28,
+        "frameH": 12,
         "cols": 2,
         "clips": {
           "spin": {
@@ -1415,14 +1430,15 @@
             "loop": true
           }
         },
+        "density": 2,
         "anchor": "center",
-        "anchorX": 10,
-        "anchorY": 3
+        "anchorX": 20,
+        "anchorY": 6
       },
       "saw": {
         "file": "assets/sprites/fx/saw.png",
-        "frameW": 12,
-        "frameH": 12,
+        "frameW": 24,
+        "frameH": 24,
         "cols": 2,
         "clips": {
           "spin": {
@@ -1434,14 +1450,15 @@
             "loop": true
           }
         },
+        "density": 2,
         "anchor": "center",
-        "anchorX": 5,
-        "anchorY": 5
+        "anchorX": 10,
+        "anchorY": 10
       },
       "skyBlades": {
         "file": "assets/backgrounds/sky-blades.png",
-        "frameW": 256,
-        "frameH": 70,
+        "frameW": 640,
+        "frameH": 160,
         "cols": 6,
         "clips": {
           "spin": {
@@ -1460,34 +1477,36 @@
         "anchor": "center",
         "anchorX": 0,
         "anchorY": 0,
-        "y": 126
+        "density": 2,
+        "y": 222
       }
     },
     "images": {
       "tileset": {
         "file": "assets/tilesets/industrial.png",
-        "tileSize": 16,
+        "tileSize": 32,
+        "worldTile": 16,
         "cols": 8
       },
       "portrait": {
         "file": "assets/sprites/ui/portrait.png",
-        "w": 20,
-        "h": 20
+        "w": 40,
+        "h": 40
       },
       "sky": {
         "file": "assets/backgrounds/sky.png",
-        "w": 256,
-        "h": 240
+        "w": 640,
+        "h": 480
       },
       "siteMid": {
         "file": "assets/backgrounds/site-mid.png",
-        "w": 480,
-        "h": 200
+        "w": 960,
+        "h": 400
       },
       "siteNear": {
         "file": "assets/backgrounds/site-near.png",
-        "w": 480,
-        "h": 72
+        "w": 1120,
+        "h": 200
       }
     },
     "tiles": {
@@ -1530,6 +1549,7 @@
   var Assets = _Assets;
 
   // src/assets/SpriteSheet.ts
+  var D = CONFIG.view.pixelScale;
   var SpriteSheet = class {
     constructor(image, def) {
       this.image = image;
@@ -1572,19 +1592,26 @@
       const clip = this.def.clips[clipName];
       return clip ? clip.frames.length / clip.fps : 0;
     }
+    /** Rozmiar klatki w jednostkach świata. */
+    get worldW() {
+      return this.frameW / D;
+    }
+    get worldH() {
+      return this.frameH / D;
+    }
     /**
-     * Rysuje klatkę tak, aby punkt kotwicy (ax, ay w klatce) trafił w (x, y) świata.
-     * flipX odbija względem kotwicy. Pozycje zaokrąglane do pełnych pikseli (pixel-perfect).
+     * Rysuje klatkę tak, aby punkt kotwicy (ax, ay w pikselach klatki) trafił w (x, y) świata.
+     * flipX odbija względem kotwicy. Pozycje zaokrąglane do pełnych pikseli canvasu (pixel-perfect).
      */
     drawAnchored(ctx, frame, x, y, ax, ay, opts = {}) {
       const sx = frame % this.def.cols * this.frameW;
       const sy = Math.floor(frame / this.def.cols) * this.frameH;
       ctx.save();
       if (opts.alpha !== void 0) ctx.globalAlpha = opts.alpha;
-      ctx.translate(Math.round(x), Math.round(y));
+      ctx.translate(Math.round(x * D) / D, Math.round(y * D) / D);
       if (opts.rotation) ctx.rotate(opts.rotation);
       ctx.scale(opts.flipX ? -1 : 1, opts.flipY ? -1 : 1);
-      ctx.drawImage(opts.flash ? this.flashImage : this.image, sx, sy, this.frameW, this.frameH, -ax, -ay, this.frameW, this.frameH);
+      ctx.drawImage(opts.flash ? this.flashImage : this.image, sx, sy, this.frameW, this.frameH, -ax / D, -ay / D, this.frameW / D, this.frameH / D);
       ctx.restore();
     }
   };
@@ -1708,10 +1735,10 @@
       this.layers = layers;
     }
     draw(ctx, camX, time = 0) {
-      const W = CONFIG.view.width;
+      const W = CONFIG.view.width * CONFIG.view.pixelScale;
       for (const l of this.layers) {
         const w = l.sheet ? l.sheet.frameW : l.image.width;
-        const shift = Math.round(camX * l.scroll) - (l.offsetX ?? 0);
+        const shift = Math.round(camX * CONFIG.view.pixelScale * l.scroll) - (l.offsetX ?? 0);
         ctx.globalAlpha = l.alpha ?? 1;
         if (l.repeat === false) {
           ctx.drawImage(l.image, -shift, l.y);
@@ -1805,14 +1832,15 @@
   };
 
   // src/render/TileRenderer.ts
+  var D2 = CONFIG.view.pixelScale;
   var TileRenderer = class {
     constructor(level) {
       this.level = level;
       this.decos = [];
-      /** Cała statyczna plansza wyrenderowana raz do offscreen canvasu – 1 drawImage na klatkę. */
       this.cache = null;
       this.image = Images.get("tileset");
       this.ts = MANIFEST.images.tileset.tileSize;
+      this.wt = MANIFEST.images.tileset.worldTile;
       this.cols = MANIFEST.images.tileset.cols;
       this.buildDecorations();
       this.prerender();
@@ -1820,31 +1848,36 @@
     prerender() {
       if (typeof document === "undefined") return;
       const c = document.createElement("canvas");
-      c.width = this.level.widthPx;
-      c.height = this.level.heightPx;
+      c.width = this.level.widthPx * D2;
+      c.height = this.level.heightPx * D2;
       const g = c.getContext("2d");
       if (!g) return;
       g.imageSmoothingEnabled = false;
-      this.drawBackgroundDirect(g, 0, this.level.widthPx);
-      this.drawTilesDirect(g, 0, this.level.widthPx);
-      this.drawPlatformsDirect(g);
+      this.drawAll(g);
       this.cache = c;
     }
-    /** Rysuje widoczny wycinek prerenderowanej planszy (tło + kafle). */
+    /** Rysuje w px canvasu (współrzędne świata × D). */
+    drawAll(g) {
+      this.drawDecorations(g);
+      this.drawTiles(g);
+      this.drawPlatforms(g);
+    }
+    /** Rysuje widoczny wycinek prerenderowanej planszy (ctx ma już transformację świata). */
     draw(ctx, camX, camW) {
       if (!this.cache) {
-        this.drawBackgroundDirect(ctx, camX, camW);
-        this.drawTilesDirect(ctx, camX, camW);
-        this.drawPlatformsDirect(ctx);
+        ctx.save();
+        ctx.scale(1 / D2, 1 / D2);
+        this.drawAll(ctx);
+        ctx.restore();
         return;
       }
-      const x = Math.max(0, Math.floor(camX)), w = Math.min(this.cache.width - x, Math.ceil(camW) + 1);
-      if (w > 0) ctx.drawImage(this.cache, x, 0, w, this.cache.height, x, 0, w, this.cache.height);
+      const x = Math.max(0, Math.floor(camX)), w = Math.min(this.level.widthPx - x, Math.ceil(camW) + 1);
+      if (w > 0) ctx.drawImage(this.cache, x * D2, 0, w * D2, this.cache.height, x, 0, w, this.level.heightPx);
     }
-    blit(ctx, tile, col, row) {
+    blit(g, tile, col, row) {
       const idx = MANIFEST.tiles[tile];
       const sx = idx % this.cols * this.ts, sy = Math.floor(idx / this.cols) * this.ts;
-      ctx.drawImage(this.image, sx, sy, this.ts, this.ts, col * this.ts, row * this.ts, this.ts, this.ts);
+      g.drawImage(this.image, sx, sy, this.ts, this.ts, col * this.wt * D2, row * this.wt * D2, this.ts, this.ts);
     }
     buildDecorations() {
       const L = this.level;
@@ -1871,12 +1904,28 @@
         }
       }
     }
+    drawDecorations(g) {
+      for (const d of this.decos) this.blit(g, d.tile, d.col, d.row);
+    }
+    drawTiles(g) {
+      const L = this.level;
+      for (let r = 0; r < L.rows; r++) {
+        for (let c = 0; c < L.cols; c++) {
+          if (L.tileAt(c, r) !== 1 /* Solid */) continue;
+          this.blit(g, (c * 31 + r * 17) % 5 === 0 ? "plateB" : "plate", c, r);
+          if (L.tileAt(c, r - 1) !== 1 /* Solid */) this.blit(g, "edgeTop", c, r);
+          if (L.tileAt(c, r + 1) !== 1 /* Solid */ && r + 1 < L.rows) this.blit(g, "edgeBottom", c, r);
+          if (L.tileAt(c - 1, r) !== 1 /* Solid */) this.blit(g, "edgeLeft", c, r);
+          if (L.tileAt(c + 1, r) !== 1 /* Solid */) this.blit(g, "edgeRight", c, r);
+        }
+      }
+    }
     /**
-     * Platformy semi-solid jako elementy placu montażu: łopaty na stojakach, sekcje wieży leżące poziomo,
-     * a pod snajperami – dachy kontenerów technicznych. Kolizja pozostaje na górnej krawędzi kafla.
+     * Platformy semi-solid jako elementy placu montażu (w px canvasu = jednostki świata × D).
+     * Kolizja pozostaje na górnej krawędzi kafla.
      */
-    drawPlatformsDirect(g) {
-      const L = this.level, ts = this.ts;
+    drawPlatforms(g) {
+      const L = this.level, wt = this.wt;
       const sniperCols = new Set(L.markers.filter((m) => m.type === "sniper").map((m) => `${m.col},${m.row + 1}`));
       let runIndex = 0;
       for (let r = 0; r < L.rows; r++) {
@@ -1884,7 +1933,7 @@
           if (L.tileAt(c, r) !== 2 /* OneWay */ || L.tileAt(c - 1, r) === 2 /* OneWay */) continue;
           let c1 = c;
           while (L.tileAt(c1 + 1, r) === 2 /* OneWay */) c1++;
-          const x0 = c * ts, x1 = (c1 + 1) * ts, y = r * ts;
+          const x0 = c * wt * D2, x1 = (c1 + 1) * wt * D2, y = r * wt * D2;
           let hasSniper = false;
           for (let k = c; k <= c1; k++) if (sniperCols.has(`${k},${r}`)) hasSniper = true;
           if (hasSniper) this.drawContainerRoof(g, x0, y, x1 - x0);
@@ -1895,105 +1944,75 @@
         }
       }
     }
+    R(g, x, y, w, h, c) {
+      g.fillStyle = c;
+      g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+    }
     /** Łopata z włókna szklanego na żółtych stojakach montażowych (nasada po lewej, końcówka po prawej). */
     drawBladePlatform(g, x, y, w) {
-      const K = "#2b2f36", W1 = "#f4f6f8", W2 = "#c9cfd6", W3 = "#9aa3ad";
+      const K = "#2b2f36", W1 = "#f4f6f8", W2 = "#dfe3e8", W3 = "#b9c0c9", W4 = "#8f98a3";
+      const T = 16 * D2;
       for (let i = 0; i < w; i++) {
         const t = i / w;
-        const th = Math.max(3, Math.round(8 * (1 - t * 0.6)));
-        const top = y + 1 + Math.round(2 * t);
-        g.fillStyle = W1;
-        g.fillRect(x + i, top, 1, th);
-        g.fillStyle = W2;
-        g.fillRect(x + i, top + th - 2, 1, 1);
-        g.fillStyle = W3;
-        g.fillRect(x + i, top + th - 1, 1, 1);
-        g.fillStyle = K;
-        g.fillRect(x + i, top - 1, 1, 1);
-        g.fillRect(x + i, top + th, 1, 1);
+        const th = Math.max(5, Math.round(T * 0.55 * (1 - t * 0.55)));
+        const top = y + 2 + Math.round(T * 0.12 * t);
+        this.R(g, x + i, top, 1, th, W1);
+        this.R(g, x + i, top + Math.floor(th * 0.55), 1, Math.ceil(th * 0.25), W2);
+        this.R(g, x + i, top + th - 3, 1, 2, W3);
+        this.R(g, x + i, top + th - 1, 1, 1, W4);
+        this.R(g, x + i, top - 1, 1, 1, K);
+        this.R(g, x + i, top + th, 1, 1, K);
       }
-      g.fillStyle = W2;
-      g.fillRect(x, y, 5, 11);
-      g.fillStyle = K;
-      g.fillRect(x, y, 1, 11);
-      for (let sx = x + 6; sx < x + w - 6; sx += Math.max(32, w - 12)) {
-        g.fillStyle = "#f2c230";
-        g.fillRect(sx, y + 9, 6, 7);
-        g.fillStyle = "#a88410";
-        g.fillRect(sx, y + 14, 6, 2);
-        g.fillStyle = K;
-        g.fillRect(sx - 1, y + 15, 8, 1);
+      this.R(g, x, y, 10, T * 0.8, W3);
+      this.R(g, x, y, 2, T * 0.8, K);
+      for (let k = 4; k < T * 0.8 - 2; k += 6) this.R(g, x + 5, y + k, 2, 2, K);
+      for (let sx = x + 12; sx < x + w - 12; sx += Math.max(64, w - 24)) {
+        this.R(g, sx, y + T * 0.55, 12, T * 0.45, "#f2c230");
+        this.R(g, sx + 2, y + T * 0.6, 8, 2, "#ffe08a");
+        this.R(g, sx, y + T * 0.55, 12, 1, K);
+        this.R(g, sx, y + T - 3, 12, 3, "#2b2f36");
+        this.R(g, sx - 3, y + T - 2, 18, 2, K);
       }
     }
     /** Cylindryczna sekcja wieży leżąca poziomo, na kołyskach. */
     drawTowerPlatform(g, x, y, w) {
-      const K = "#2b2f36";
-      g.fillStyle = "#c9cfd6";
-      g.fillRect(x, y + 1, w, 14);
-      g.fillStyle = "#f4f6f8";
-      g.fillRect(x, y + 2, w, 4);
-      g.fillStyle = "#9aa3ad";
-      g.fillRect(x, y + 11, w, 3);
-      g.fillStyle = K;
-      g.fillRect(x, y, w, 1);
-      g.fillRect(x, y + 15, w, 1);
-      g.fillStyle = "#8a94a3";
-      g.fillRect(x, y, 3, 16);
-      g.fillRect(x + w - 3, y, 3, 16);
-      g.fillStyle = K;
-      g.fillRect(x, y, 1, 16);
-      g.fillRect(x + w - 1, y, 1, 16);
-      for (let i = x + 10; i < x + w - 6; i += 14) {
-        g.fillStyle = "#e5e9ef";
-        g.fillRect(i, y + 3, 1, 1);
+      const K = "#2b2f36", T = 16 * D2;
+      this.R(g, x, y + 1, w, T - 2, "#c9cfd6");
+      this.R(g, x, y + 3, w, T * 0.28, "#f4f6f8");
+      this.R(g, x, y + T * 0.62, w, T * 0.25, "#9aa3ad");
+      this.R(g, x, y + T * 0.87, w, T * 0.1, "#6f7a86");
+      this.R(g, x, y, w, 1, K);
+      this.R(g, x, y + T - 1, w, 1, K);
+      for (const fx of [x, x + w - 6]) {
+        this.R(g, fx, y - 1, 6, T + 2, "#8a94a3");
+        this.R(g, fx + 2, y + 1, 2, T - 2, "#b8c0ca");
+        for (let k = 3; k < T - 2; k += 6) this.R(g, fx + 2, y + k, 2, 2, K);
       }
-      for (let sx = x + 4; sx < x + w - 8; sx += Math.max(28, w - 16)) {
-        g.fillStyle = "#4a505c";
-        g.fillRect(sx, y + 13, 8, 3);
-        g.fillStyle = K;
-        g.fillRect(sx, y + 15, 8, 1);
+      this.R(g, x, y - 1, 1, T + 2, K);
+      this.R(g, x + w - 1, y - 1, 1, T + 2, K);
+      for (let i = x + 20; i < x + w - 12; i += 28) {
+        this.R(g, i, y + 6, 2, 2, "#ffffff");
+        this.R(g, i, y + T * 0.7, 2, 1, "#5e6873");
+      }
+      for (let sx = x + 8; sx < x + w - 16; sx += Math.max(56, w - 32)) {
+        this.R(g, sx, y + T - 7, 16, 7, "#4a505c");
+        this.R(g, sx + 2, y + T - 6, 12, 1, "#7d8792");
+        this.R(g, sx, y + T - 1, 16, 1, K);
       }
     }
     /** Dach kontenera technicznego (stanowisko snajpera). */
     drawContainerRoof(g, x, y, w) {
-      const K = "#2b2f36", base = "#2e86c1", dark = "#1f5f8a", light = "#5dade2";
-      g.fillStyle = base;
-      g.fillRect(x, y, w, 16);
-      g.fillStyle = dark;
-      for (let i = x + 2; i < x + w - 2; i += 3) g.fillRect(i, y + 2, 1, 13);
-      g.fillStyle = light;
-      g.fillRect(x, y, w, 1);
-      g.fillRect(x + 3, y + 3, 8, 3);
-      g.fillStyle = K;
-      g.fillRect(x, y + 15, w, 1);
-      g.fillRect(x, y, 1, 16);
-      g.fillRect(x + w - 1, y, 1, 16);
-      g.fillStyle = "#ffe36b";
-      g.fillRect(x + w - 4, y + 8, 1, 1);
-      g.fillStyle = "#f2c230";
-      for (let i = x + 1; i < x + w - 1; i += 4) g.fillRect(i, y + 1, 2, 1);
-    }
-    /** Dekoracje – rysować przed encjami. */
-    drawBackgroundDirect(ctx, camX, camW) {
-      const c0 = Math.floor(camX / this.ts) - 1, c1 = Math.ceil((camX + camW) / this.ts) + 1;
-      for (const d of this.decos) if (d.col >= c0 && d.col <= c1) this.blit(ctx, d.tile, d.col, d.row);
-    }
-    drawTilesDirect(ctx, camX, camW) {
-      const L = this.level;
-      const c0 = Math.max(0, Math.floor(camX / this.ts));
-      const c1 = Math.min(L.cols - 1, Math.ceil((camX + camW) / this.ts));
-      for (let r = 0; r < L.rows; r++) {
-        for (let c = c0; c <= c1; c++) {
-          const t = L.tileAt(c, r);
-          if (t === 1 /* Solid */) {
-            this.blit(ctx, (c * 31 + r * 17) % 5 === 0 ? "plateB" : "plate", c, r);
-            if (L.tileAt(c, r - 1) !== 1 /* Solid */) this.blit(ctx, "edgeTop", c, r);
-            if (L.tileAt(c, r + 1) !== 1 /* Solid */ && r + 1 < L.rows) this.blit(ctx, "edgeBottom", c, r);
-            if (L.tileAt(c - 1, r) !== 1 /* Solid */) this.blit(ctx, "edgeLeft", c, r);
-            if (L.tileAt(c + 1, r) !== 1 /* Solid */) this.blit(ctx, "edgeRight", c, r);
-          }
-        }
-      }
+      const K = "#2b2f36", base = "#2e86c1", dark = "#1f5f8a", light = "#5dade2", T = 16 * D2;
+      this.R(g, x, y, w, T, base);
+      for (let i = x + 4; i < x + w - 4; i += 6) this.R(g, i, y + 4, 2, T - 6, dark);
+      this.R(g, x, y, w, 2, light);
+      this.R(g, x + 6, y + 6, 16, 6, light);
+      this.R(g, x + 8, y + 8, 12, 2, "#ffffff");
+      this.R(g, x, y + T - 2, w, 2, K);
+      this.R(g, x, y, 2, T, K);
+      this.R(g, x + w - 2, y, 2, T, K);
+      this.R(g, x + w - 8, y + T / 2, 2, 2, "#ffe36b");
+      for (let i = x + 2; i < x + w - 2; i += 8) this.R(g, i, y + 2, 4, 2, "#f2c230");
     }
   };
 
@@ -2142,7 +2161,7 @@
             return;
           }
           if (saw) {
-            saw.drawAnchored(ctx, saw.frameAt("spin", b.age), b.x, b.y, 5, 5, { rotation: b.age * 14 });
+            saw.drawAnchored(ctx, saw.frameAt("spin", b.age), b.x, b.y, saw.def.anchorX ?? 10, saw.def.anchorY ?? 10, { rotation: b.age * 14 });
             return;
           }
         }
@@ -2398,7 +2417,7 @@
       y += this.opts.offsetY ?? 0;
       if (p.rotation) {
         y = p.y + p.h / 2;
-        ay = sheet.frameH - p.h / 2;
+        ay = sheet.frameH - p.h / 2 * D;
       }
       sheet.drawAnchored(ctx, frame, x, y, ax, ay, { flipX: p.facing < 0, rotation: p.rotation, alpha: p.alpha, flash: p.flash });
     }
@@ -2963,15 +2982,15 @@
     handPoint() {
       const pivots = MANIFEST.sheets.seba.pivots;
       const pv = this.state.name === "prone" || this.isDead ? pivots.prone ?? pivots.crouch : this.animName() === "shoot_up" ? pivots.up ?? pivots.stand : pivots.stand;
-      return { x: this.cx + pv.x * this.facing, y: this.bottom + pv.y };
+      return { x: this.cx + pv.x / D * this.facing, y: this.bottom + pv.y / D };
     }
     updateWeaponPose() {
       const hand = this.handPoint();
       const o = this.orientation;
       const pv = MAKITA.pivots[o], mz = MAKITA.muzzle[o];
       const flipY = this.aim.y > 0.3;
-      this.muzzle.x = hand.x + (mz.x - pv.x) * this.facing;
-      this.muzzle.y = hand.y + (mz.y - pv.y) * (flipY ? -1 : 1);
+      this.muzzle.x = hand.x + (mz.x - pv.x) / D * this.facing;
+      this.muzzle.y = hand.y + (mz.y - pv.y) / D * (flipY ? -1 : 1);
     }
     fire(world) {
       const origin = this.weaponVisible ? this.muzzle : { x: this.cx + this.aim.x * 10, y: this.cy + this.aim.y * 10 };
@@ -3281,21 +3300,21 @@
   };
 
   // src/entities/enemies/Drone.ts
-  var D = CONFIG.enemies.drone;
+  var D3 = CONFIG.enemies.drone;
   var Drone = class extends EnemyBase {
     constructor(x, y) {
-      super("drone", D.hp, D.contactDamage, D.score);
+      super("drone", D3.hp, D3.contactDamage, D3.score);
       this.visual = new SpriteSheetVisual("drone", { fallback: "patrol", placeholder: new PlaceholderVisual({ color: "#1abc9c", accent: "#fff", shape: "diamond", faceMarker: false }) });
       this.mode = "patrol";
       this.patrolT = 0;
-      this.attackTimer = D.attackInterval;
+      this.attackTimer = D3.attackInterval;
       this.chargeTimer = 0;
       this.chargeDir = { x: 0, y: 0 };
       /** Dron serwisowy (wsparcie bossa): krąży w arenie i ostrzeliwuje gracza wyładowaniami. */
       this.service = false;
       this.serviceTimer = 1.2;
-      this.w = D.width;
-      this.h = D.height;
+      this.w = D3.width;
+      this.h = D3.height;
       this.originX = x;
       this.originY = y;
       this.x = x;
@@ -3307,7 +3326,7 @@
       this.originY = this.y;
       this.mode = "patrol";
       this.patrolT = 0;
-      this.attackTimer = D.attackInterval;
+      this.attackTimer = D3.attackInterval;
       this.facing = -1;
       this.service = false;
       this.serviceTimer = 1.2;
@@ -3322,8 +3341,8 @@
       switch (this.mode) {
         case "patrol": {
           this.patrolT += dt;
-          const px = this.originX + Math.sin(this.patrolT * (D.patrolSpeed / D.patrolRange)) * D.patrolRange;
-          const py = this.originY + Math.sin(this.patrolT * D.waveFrequency * Math.PI * 2) * D.waveAmplitude;
+          const px = this.originX + Math.sin(this.patrolT * (D3.patrolSpeed / D3.patrolRange)) * D3.patrolRange;
+          const py = this.originY + Math.sin(this.patrolT * D3.waveFrequency * Math.PI * 2) * D3.waveAmplitude;
           this.facing = px < this.x ? -1 : 1;
           this.x = px;
           this.y = py + Math.sin(this.age * 9) * 1.5;
@@ -3339,8 +3358,8 @@
           }
           this.attackTimer -= dt;
           if (this.attackTimer <= 0 && world.camera.isVisible(this.x, this.y, this.w, this.h) && !player.isDead) {
-            this.attackTimer = D.attackInterval;
-            if (Math.abs(player.cx - this.cx) <= D.bombWindowX && player.cy > this.cy) {
+            this.attackTimer = D3.attackInterval;
+            if (Math.abs(player.cx - this.cx) <= D3.bombWindowX && player.cy > this.cy) {
               this.dropBomb(world);
             } else {
               this.startCharge(world);
@@ -3350,8 +3369,8 @@
         }
         case "charge": {
           this.chargeTimer -= dt;
-          this.x += this.chargeDir.x * D.chargeSpeed * dt;
-          this.y += this.chargeDir.y * D.chargeSpeed * dt;
+          this.x += this.chargeDir.x * D3.chargeSpeed * dt;
+          this.y += this.chargeDir.y * D3.chargeSpeed * dt;
           if (this.chargeTimer <= 0) this.mode = "return";
           break;
         }
@@ -3359,7 +3378,7 @@
           const tx = this.originX, ty = this.originY;
           const d = normalize(tx - this.x, ty - this.y);
           const dist = Math.hypot(tx - this.x, ty - this.y);
-          const step = D.chargeSpeed * 0.6 * dt;
+          const step = D3.chargeSpeed * 0.6 * dt;
           if (dist <= step) {
             this.x = tx;
             this.y = ty;
@@ -3377,12 +3396,12 @@
     }
     dropBomb(world) {
       Sfx.play("drone_bomb");
-      world.fireEnemyBullet(this.cx, this.bottom + 2, 0, 1, D.bombSpeed * 0.4, D.bombDamage, { gravity: 260, radius: 4, kind: "mine", hitsTerrain: true, life: 5 });
+      world.fireEnemyBullet(this.cx, this.bottom + 2, 0, 1, D3.bombSpeed * 0.4, D3.bombDamage, { gravity: 260, radius: 4, kind: "mine", hitsTerrain: true, life: 5 });
     }
     startCharge(world) {
       const p = world.player;
       this.chargeDir = normalize(p.cx - this.cx, p.cy - this.cy);
-      this.chargeTimer = D.chargeTime;
+      this.chargeTimer = D3.chargeTime;
       this.mode = "charge";
       this.facing = this.chargeDir.x < 0 ? -1 : 1;
     }
@@ -4143,10 +4162,11 @@
   ];
 
   // src/ui/HUD.ts
+  var D4 = CONFIG.view.pixelScale;
   var FONT = (px) => `${px}px ${PIXEL_FONT}, monospace`;
+  var C = { K: "#161a20", P0: "#3b4048", P1: "#4f565f", P2: "#656d78", P3: "#8a93a0", HI: "#aab3bf", RUST: "#7a4a2e", Y: "#d9a72c", G: "#3ddc84", GD: "#1c7a48", T: "#2fb9b0" };
   var PL = { \u0105: "a", \u0107: "c", \u0119: "e", \u0142: "l", \u0144: "n", \u00F3: "o", \u015B: "s", \u017A: "z", \u017C: "z", \u0104: "A", \u0106: "C", \u0118: "E", \u0141: "L", \u0143: "N", \u00D3: "O", \u015A: "S", \u0179: "Z", \u017B: "Z", "\u2013": "-" };
   var ascii = (t) => t.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ–]/g, (c) => PL[c] ?? c);
-  var C = { K: "#050912", P0: "#08202f", P1: "#0d3344", P2: "#13506a", P3: "#1d6c86", R: "#2fb9b0", Y: "#c9a227" };
   var HUD = class {
     constructor() {
       this.phaseBanner = "";
@@ -4159,166 +4179,176 @@
     update(dt) {
       if (this.phaseBannerTimer > 0) this.phaseBannerTimer -= dt;
     }
-    /** Tekst z 1-px cieniem – czytelny na jasnym niebie. */
     label(ctx, text, x, y, color) {
       const t = ascii(text);
       ctx.fillStyle = C.K;
-      ctx.fillText(t, x + 1, y + 1);
+      ctx.fillText(t, x + 2, y + 2);
       ctx.fillStyle = color;
       ctx.fillText(t, x, y);
     }
-    /** Metalowa obudowa: obrys, płyta, krawędź światła/cienia. */
+    /** Metalowa obudowa: obrys, płyta, krawędzie, nity w rogach, zaciek rdzy. */
     panel(ctx, x, y, w, h) {
       ctx.fillStyle = C.K;
       ctx.fillRect(x, y, w, h);
       ctx.fillStyle = C.P1;
-      ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
+      ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
       ctx.fillStyle = C.P3;
-      ctx.fillRect(x + 1, y + 1, w - 2, 1);
-      ctx.fillRect(x + 1, y + 1, 1, h - 2);
+      ctx.fillRect(x + 2, y + 2, w - 4, 2);
+      ctx.fillRect(x + 2, y + 2, 2, h - 4);
       ctx.fillStyle = C.P0;
-      ctx.fillRect(x + 1, y + h - 2, w - 2, 1);
-      ctx.fillRect(x + w - 2, y + 1, 1, h - 2);
-      ctx.fillStyle = C.R;
-      ctx.fillRect(x + 2, y + 2, 1, 1);
-      ctx.fillRect(x + w - 3, y + 2, 1, 1);
-      ctx.fillRect(x + 2, y + h - 3, 1, 1);
-      ctx.fillRect(x + w - 3, y + h - 3, 1, 1);
+      ctx.fillRect(x + 2, y + h - 4, w - 4, 2);
+      ctx.fillRect(x + w - 4, y + 2, 2, h - 4);
+      ctx.fillStyle = C.RUST;
+      ctx.fillRect(x + w - 14, y + 4, 3, 10);
+      ctx.fillRect(x + w - 13, y + 14, 1, 6);
+      ctx.fillStyle = C.HI;
+      for (const [rx, ry] of [[x + 5, y + 5], [x + w - 8, y + 5], [x + 5, y + h - 8], [x + w - 8, y + h - 8]]) {
+        ctx.fillRect(rx, ry, 3, 3);
+        ctx.fillStyle = C.K;
+        ctx.fillRect(rx + 2, ry + 2, 1, 1);
+        ctx.fillStyle = C.HI;
+      }
+    }
+    /** Wgłębiony ekran (ciemne pole z jasną dolną krawędzią). */
+    inset(ctx, x, y, w, h) {
+      ctx.fillStyle = C.K;
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = "#23272e";
+      ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+      ctx.fillStyle = C.P2;
+      ctx.fillRect(x + 2, y + h - 3, w - 4, 1);
     }
     draw(ctx, player, score, boss, time) {
-      const W = CONFIG.view.width;
+      const W = CONFIG.view.width * D4;
       ctx.save();
       ctx.textBaseline = "top";
-      ctx.font = FONT(16);
-      const px = 6, py = 6;
-      this.panel(ctx, px, py, 28, 28);
+      ctx.font = FONT(24);
+      const px = 12, py = 12, pw = 268, ph = 84;
+      this.panel(ctx, px, py, pw, ph);
+      this.inset(ctx, px + 8, py + 8, 56, 56);
       const portrait = Images.tryGet("portrait");
-      if (portrait) ctx.drawImage(portrait, px + 4, py + 4);
+      if (portrait) ctx.drawImage(portrait, px + 16, py + 16, 40, 40);
       else {
         ctx.fillStyle = "#4f8fd6";
-        ctx.fillRect(px + 6, py + 6, 16, 16);
+        ctx.fillRect(px + 20, py + 20, 32, 32);
       }
-      const segs = 10, segW = 6, segH = 8, gap = 1;
-      const bx = px + 32, by = py;
-      const barW = segs * (segW + gap) + 5, barH = segH + 6;
-      this.panel(ctx, bx, by, barW, barH);
+      ctx.fillStyle = C.P3;
+      ctx.fillRect(px + 14, py + 66, 44, 4);
+      const segs = 10, segW = 14, segH = 18, gap = 2;
+      const bx = px + 74, by = py + 10;
+      this.inset(ctx, bx, by, segs * (segW + gap) + 10, segH + 12);
       const f = player.health.fraction;
       const lit = Math.ceil(f * segs);
-      const col = f > 0.5 ? "#3ddc84" : f > 0.25 ? "#ffb300" : "#ff3b3b";
-      const colDark = f > 0.5 ? "#1c7a48" : f > 0.25 ? "#8a5f00" : "#7a1a1a";
+      const col = f > 0.5 ? C.G : f > 0.25 ? "#ffb300" : "#ff3b3b";
+      const colDark = f > 0.5 ? C.GD : f > 0.25 ? "#8a5f00" : "#7a1a1a";
       for (let i = 0; i < segs; i++) {
-        const sx = bx + 3 + i * (segW + gap), sy = by + 3;
+        const sx = bx + 6 + i * (segW + gap), sy = by + 6;
         const on = i < lit && !(f <= 0.25 && f > 0 && Math.floor(time * 6) % 2 === 0 && i === lit - 1);
-        ctx.fillStyle = on ? col : C.P0;
+        ctx.fillStyle = on ? col : "#2f343b";
         ctx.fillRect(sx, sy, segW, segH);
         if (on) {
           ctx.fillStyle = colDark;
-          ctx.fillRect(sx, sy + segH - 2, segW, 2);
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(sx + 1, sy + 1, 1, 1);
+          ctx.fillRect(sx, sy + segH - 4, segW, 4);
+          ctx.fillStyle = "#e9ffe9";
+          ctx.fillRect(sx + 2, sy + 2, 2, 2);
+          ctx.fillStyle = "#bfffd8";
+          ctx.fillRect(sx + 2, sy + 5, 1, segH - 10);
         }
       }
-      this.label(ctx, "SEBA", bx, by + barH + 1, "#ffffff");
-      this.label(ctx, `${Math.ceil(player.health.current)}`, bx + 40, by + barH + 1, C.R);
+      ctx.fillStyle = C.P3;
+      ctx.fillRect(bx + segs * (segW + gap) + 10, by + 10, 4, segH - 8);
+      this.label(ctx, "SEBA", bx + 6, by + segH + 20, "#e6e9ed");
+      this.label(ctx, `${Math.ceil(player.health.current)}`, bx + 96, by + segH + 20, C.G);
+      const sw = 160, sx0 = W - 12 - sw;
+      this.panel(ctx, sx0, 12, sw, 84);
       ctx.textAlign = "right";
-      this.label(ctx, "SCORE", W - 8, 6, C.Y);
-      this.label(ctx, score.toString().padStart(6, "0"), W - 8, 18, "#ffffff");
+      this.label(ctx, "SCORE", sx0 + sw - 12, 20, C.Y);
+      this.inset(ctx, sx0 + 12, 50, sw - 24, 34);
+      this.label(ctx, score.toString().padStart(6, "0"), sx0 + sw - 20, 56, "#ffffff");
       ctx.textAlign = "left";
       if (boss && boss.alive) {
-        const bw = 96, bh = 8, bxx = Math.round((W - bw) / 2) + 6, byy = 6;
-        this.panel(ctx, bxx - 3, byy - 3, bw + 6, bh + 6);
-        ctx.fillStyle = C.P0;
-        ctx.fillRect(bxx, byy, bw, bh);
+        const bw = 200, bh = 14, bxx = Math.round((W - bw) / 2), byy = 112;
+        this.panel(ctx, bxx - 10, byy - 8, bw + 20, bh + 40);
+        this.inset(ctx, bxx - 4, byy - 2, bw + 8, bh + 4);
         ctx.fillStyle = boss.tint;
         ctx.fillRect(bxx, byy, Math.round(bw * boss.health.fraction), bh);
         ctx.fillStyle = "rgba(255,255,255,0.35)";
-        ctx.fillRect(bxx, byy, Math.round(bw * boss.health.fraction), 1);
+        ctx.fillRect(bxx, byy, Math.round(bw * boss.health.fraction), 3);
         ctx.fillStyle = "#ffffff";
-        for (const t of CONFIG.boss.phaseThresholds.slice(1)) ctx.fillRect(Math.round(bxx + bw * t), byy - 1, 1, bh + 2);
+        for (const t of CONFIG.boss.phaseThresholds.slice(1)) ctx.fillRect(Math.round(bxx + bw * t), byy - 2, 2, bh + 4);
         ctx.textAlign = "center";
-        this.label(ctx, CONFIG.boss.name, W / 2, byy + bh + 4, "#ff9a90");
+        this.label(ctx, CONFIG.boss.name, W / 2, byy + bh + 8, "#ff9a90");
         ctx.textAlign = "left";
       }
       if (this.phaseBannerTimer > 0 && Math.floor(time * 8) % 2 === 0) {
         ctx.textAlign = "center";
-        ctx.font = FONT(24);
-        ctx.fillStyle = C.K;
-        ctx.fillText(ascii(this.phaseBanner), W / 2 + 1, 41);
-        ctx.fillStyle = "#ffdd59";
-        ctx.fillText(ascii(this.phaseBanner), W / 2, 40);
+        ctx.font = FONT(40);
+        this.label(ctx, this.phaseBanner, W / 2, 180, "#ffdd59");
       }
       ctx.restore();
     }
     drawOverlay(ctx, title, subtitle, color) {
-      const W = CONFIG.view.width, H = CONFIG.view.height;
+      const W = CONFIG.view.width * D4, H = CONFIG.view.height * D4;
       ctx.save();
       ctx.fillStyle = "rgba(5,9,18,0.6)";
       ctx.fillRect(0, 0, W, H);
-      this.panel(ctx, 40, H / 2 - 28, W - 80, 56);
+      this.panel(ctx, 80, H / 2 - 60, W - 160, 120);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.font = FONT(32);
-      ctx.fillStyle = C.K;
-      ctx.fillText(ascii(title), W / 2 + 1, H / 2 - 9);
-      ctx.fillStyle = color;
-      ctx.fillText(ascii(title), W / 2, H / 2 - 10);
-      ctx.font = FONT(16);
-      ctx.fillStyle = "#ddd";
-      ctx.fillText(ascii(subtitle), W / 2, H / 2 + 12);
+      ctx.font = FONT(56);
+      this.label(ctx, title, W / 2, H / 2 - 18, color);
+      ctx.font = FONT(24);
+      this.label(ctx, subtitle, W / 2, H / 2 + 28, "#ddd");
       ctx.restore();
     }
     drawHint(ctx, alpha, gamepad = false) {
-      const W = CONFIG.view.width, H = CONFIG.view.height;
+      const W = CONFIG.view.width * D4, H = CONFIG.view.height * D4;
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.font = FONT(16);
-      this.label(ctx, gamepad ? "D-PAD/GA\u0141KA: RUCH   A: SKOK   B/X/RT: OGIE\u0143   D\xD3\u0141+A: ZESKOK" : "STRZA\u0141KI: RUCH   Z: SKOK   X: OGIE\u0143   D\xD3\u0141+Z: ZESKOK", W / 2, H - 14, "#ffffff");
+      ctx.font = FONT(24);
+      this.label(ctx, gamepad ? "D-PAD/GA\u0141KA: RUCH   A: SKOK   B/X/RT: OGIE\u0143   D\xD3\u0141+A: LE\u017BENIE" : "STRZA\u0141KI: RUCH   Z: SKOK   X: OGIE\u0143   D\xD3\u0141: LE\u017BENIE   D\xD3\u0141+Z: ZESKOK", W / 2, H - 26, "#ffffff");
       ctx.restore();
     }
     /** Ikona głośnika (prawy dolny róg) + podpowiedź, gdy przeglądarka czeka na gest użytkownika. */
     drawAudioState(ctx, muted, unlocked) {
-      const W = CONFIG.view.width, H = CONFIG.view.height;
-      const x = W - 14, y = H - 12;
+      const W = CONFIG.view.width * D4, H = CONFIG.view.height * D4;
+      const x = W - 30, y = H - 26, s = 2;
       ctx.save();
-      ctx.globalAlpha = 0.8;
-      ctx.fillStyle = muted || !unlocked ? "#7d8794" : C.R;
-      ctx.fillRect(x, y + 2, 3, 4);
-      ctx.fillRect(x + 3, y + 1, 2, 6);
-      ctx.fillRect(x + 5, y, 1, 8);
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = muted || !unlocked ? "#7d8794" : C.T;
+      ctx.fillRect(x, y + 2 * s, 3 * s, 4 * s);
+      ctx.fillRect(x + 3 * s, y + s, 2 * s, 6 * s);
+      ctx.fillRect(x + 5 * s, y, s, 8 * s);
       if (muted || !unlocked) {
         ctx.fillStyle = "#ff3b3b";
-        ctx.fillRect(x + 7, y + 1, 1, 1);
-        ctx.fillRect(x + 8, y + 2, 1, 1);
-        ctx.fillRect(x + 9, y + 3, 1, 1);
-        ctx.fillRect(x + 9, y + 1, 1, 1);
-        ctx.fillRect(x + 7, y + 3, 1, 1);
+        for (const [dx, dy] of [[7, 1], [8, 2], [9, 3], [9, 1], [7, 3]]) ctx.fillRect(x + dx * s, y + dy * s, s, s);
       } else {
-        ctx.fillRect(x + 7, y + 2, 1, 4);
-        ctx.fillRect(x + 9, y + 1, 1, 6);
+        ctx.fillRect(x + 7 * s, y + 2 * s, s, 4 * s);
+        ctx.fillRect(x + 9 * s, y + s, s, 6 * s);
       }
       if (!unlocked) {
-        ctx.font = FONT(16);
+        ctx.font = FONT(24);
         ctx.textAlign = "right";
         ctx.textBaseline = "bottom";
-        this.label(ctx, "DOWOLNY KLAWISZ: D\u0179WI\u0118K", x - 4, H - 2, "#ffffff");
+        this.label(ctx, "DOWOLNY KLAWISZ: D\u0179WI\u0118K", x - 8, H - 4, "#ffffff");
       }
       ctx.restore();
     }
     static drawLoading(ctx, done, total) {
-      const W = CONFIG.view.width, H = CONFIG.view.height;
-      ctx.fillStyle = "#050912";
+      const W = CONFIG.view.width * D4, H = CONFIG.view.height * D4;
+      ctx.fillStyle = "#161a20";
       ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = "#0d3344";
-      ctx.fillRect(W / 2 - 60, H / 2, 120, 6);
+      ctx.fillStyle = "#3b4048";
+      ctx.fillRect(W / 2 - 120, H / 2, 240, 12);
       ctx.fillStyle = "#2fb9b0";
-      ctx.fillRect(W / 2 - 60, H / 2, Math.round(120 * (total ? done / total : 0)), 6);
-      ctx.font = "8px monospace";
+      ctx.fillRect(W / 2 - 120, H / 2, Math.round(240 * (total ? done / total : 0)), 12);
+      ctx.font = "16px monospace";
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.fillStyle = "#c3c8d1";
-      ctx.fillText(ascii("\u0141ADOWANIE..."), W / 2, H / 2 - 6);
+      ctx.fillText("LADOWANIE...", W / 2, H / 2 - 10);
     }
   };
 
@@ -4381,15 +4411,17 @@
       if (sky && mid && near) {
         const H = CONFIG.view.height;
         const blades = Sheets.tryGet("skyBlades");
+        const D5 = CONFIG.view.pixelScale, HC = H * D5;
+        const bladesY = MANIFEST.sheets.skyBlades?.y ?? 0;
         this.parallax = new Parallax([
           { image: sky, scroll: 0.05, y: 0 },
           // zachód słońca, pola, wieże turbin
-          ...blades ? [{ image: blades.image, sheet: blades, clip: "spin", scroll: 0.05, y: 126 }] : [],
+          ...blades ? [{ image: blades.image, sheet: blades, clip: "spin", scroll: 0.05, y: bladesY }] : [],
           // obracające się łopaty
-          { image: mid, scroll: 0.3, y: H - 40 - mid.height },
-          // żuraw gąsienicowy, sekcje masztów
-          { image: near, scroll: 0.7, y: H - 30 - near.height }
-          // kontenery, płoty, barierki
+          { image: mid, scroll: 0.3, y: HC - 40 * D5 - mid.height },
+          // wieża turbiny, żuraw, zaplecze
+          { image: near, scroll: 0.7, y: HC - 30 * D5 - near.height }
+          // łopata na kozłach, sekcja wieży, płot
         ]);
       }
       if (Images.tryGet("tileset")) this.tiles = new TileRenderer(this.level);
@@ -4583,10 +4615,11 @@
     }
     // ---- Render ------------------------------------------------------------
     draw(ctx, fps = 0) {
-      const W = CONFIG.view.width, H = CONFIG.view.height;
+      const D5 = CONFIG.view.pixelScale;
+      const W = CONFIG.view.width * D5, H = CONFIG.view.height * D5;
       if (this.parallax) {
         this.parallax.draw(ctx, this.camera.x, this.time);
-        ctx.fillStyle = "rgba(230,236,245,0.12)";
+        ctx.fillStyle = "rgba(240,225,200,0.10)";
         ctx.fillRect(0, 0, W, H);
       } else {
         ctx.fillStyle = "#141826";
@@ -4619,14 +4652,14 @@
         this.playerBullets.forEachActive(() => pb++);
         this.enemyBullets.forEachActive(() => eb++);
         ctx.save();
-        ctx.font = "8px monospace";
+        ctx.font = "12px monospace";
         ctx.textBaseline = "top";
         ctx.fillStyle = "rgba(0,0,0,0.6)";
-        ctx.fillRect(4, 40, 120, 30);
+        ctx.fillRect(8, 90, 200, 44);
         ctx.fillStyle = "#7fff7f";
-        ctx.fillText(`FPS ${fps.toFixed(0)}  cam ${this.camera.x.toFixed(0)}`, 6, 42);
-        ctx.fillText(`enemies ${this.enemies.length} pool ${[...this.enemyPool.values()].reduce((a, p) => a + p.length, 0)}`, 6, 51);
-        ctx.fillText(`bullets ${pb}/${eb}  x ${this.player.x.toFixed(0)}`, 6, 60);
+        ctx.fillText(`FPS ${fps.toFixed(0)}  cam ${this.camera.x.toFixed(0)}`, 12, 92);
+        ctx.fillText(`enemies ${this.enemies.length} pool ${[...this.enemyPool.values()].reduce((a, p) => a + p.length, 0)}`, 12, 106);
+        ctx.fillText(`bullets ${pb}/${eb}  x ${this.player.x.toFixed(0)}`, 12, 120);
         ctx.restore();
       }
       const again = this.input.gamepadConnected ? "START \u2013 jeszcze raz" : "R \u2013 jeszcze raz";
@@ -4648,8 +4681,8 @@
       this.running = false;
       /** Wygładzone FPS (do nakładki debug F3). */
       this.fps = 60;
-      canvas.width = CONFIG.view.width;
-      canvas.height = CONFIG.view.height;
+      canvas.width = CONFIG.view.width * CONFIG.view.pixelScale;
+      canvas.height = CONFIG.view.height * CONFIG.view.pixelScale;
       const ctx = canvas.getContext("2d", { alpha: false });
       if (!ctx) throw new Error("Brak kontekstu 2D");
       this.ctx = ctx;
@@ -4661,9 +4694,10 @@
       canvas.focus();
     }
     fitToWindow() {
-      const scale = Math.max(1, Math.floor(Math.min(window.innerWidth / CONFIG.view.width, window.innerHeight / CONFIG.view.height)));
-      this.canvas.style.width = `${CONFIG.view.width * scale}px`;
-      this.canvas.style.height = `${CONFIG.view.height * scale}px`;
+      const cw = CONFIG.view.width * CONFIG.view.pixelScale, ch = CONFIG.view.height * CONFIG.view.pixelScale;
+      const scale = Math.max(1, Math.floor(Math.min(window.innerWidth / cw, window.innerHeight / ch)));
+      this.canvas.style.width = `${cw * scale}px`;
+      this.canvas.style.height = `${ch * scale}px`;
     }
     /** Ładuje zasoby (ekran ładowania), tworzy scenę i startuje pętlę. */
     async start() {

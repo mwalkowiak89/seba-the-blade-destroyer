@@ -5,9 +5,12 @@
  */
 export const CONFIG = {
   view: {
+    /** Rozmiar świata w jednostkach (logika, kolizje, kamera). */
     width: 320,
     height: 240,
     tile: 16,
+    /** Gęstość pikseli grafiki: 1 jednostka świata = pixelScale pikseli canvasu (sprite'y mają 2x detalu). */
+    pixelScale: 2,
     fixedStep: 1 / 60,
     maxStepsPerFrame: 3,
   },

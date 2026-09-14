@@ -1,7 +1,7 @@
 {
   "file": "assets/sprites/player/seba.png",
-  "frameW": 70,
-  "frameH": 49,
+  "frameW": 138,
+  "frameH": 96,
   "cols": 8,
   "clips": {
     "idle": {
@@ -106,23 +106,24 @@
     }
   },
   "anchor": "bottom",
-  "anchorX": 35,
+  "anchorX": 69,
+  "density": 2,
   "pivots": {
     "stand": {
-      "x": 5,
-      "y": -27
+      "x": 10,
+      "y": -54
     },
     "up": {
-      "x": 9,
-      "y": -19
+      "x": 18,
+      "y": -38
     },
     "crouch": {
-      "x": 9,
-      "y": -22
+      "x": 18,
+      "y": -44
     },
     "prone": {
-      "x": 24,
-      "y": -7
+      "x": 48,
+      "y": -14
     }
   }
 }

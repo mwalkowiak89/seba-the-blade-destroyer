@@ -44,17 +44,20 @@ proceduralnie (plac budowy farmy wiatrowej o świcie) – szczegóły w `assets/
 Surowe pliki leżą w `assets/raw/`, a `npm run assets` (`tools/build-assets.mjs`) generuje z nich:
 
 - `assets/sprites/player/seba.png` – z wygenerowanego sheetu `assets/raw/seba-ai/source.jpeg` przez `tools/extract-seba.mjs`
-  (chroma-key, cięcie klatek, downscale + paleta); `makita.png` (3 orientacje × 2 klatki tarczy),
+  (chroma-key, cięcie klatek, wymazanie karabinu, downscale do 96 px + paleta); `makita.png` (3 orientacje × 2 klatki tarczy),
+  sheety 1× (Warped City, FX) są podbijane ×2 w `emitSheet` razem z kotwicami,
 - `assets/sprites/enemies/{runner,drone,turret}.png`, `assets/sprites/fx/{shot,shot-hit,explosion,muzzle,saw}.png`,
-- `assets/tilesets/industrial.png` (płyty z nitami, kraty one-way, słupy, rury – autotiling po sąsiadach w `TileRenderer`),
-- `assets/backgrounds/` (3 warstwy parallax generowane w `tools/site-backgrounds.mjs`: niebo o świcie z farmą wiatrową 0.1,
-  żurawie i stawiana turbina 0.4, kontenery/łopaty/ogrodzenie 0.7),
+- `assets/tilesets/industrial.png` (kafel 32 px = 16 jednostek: płyty ryflowane z nitami, krawędzie, słupy, rury – autotiling w `TileRenderer`),
+- `assets/backgrounds/` (3 warstwy parallax 640×480 generowane w `tools/site-backgrounds.mjs` wg mockupu
+  `assets/raw/reference/mockup-scene.jpeg`: zachód słońca z farmą wiatrową 0.05, wieża turbiny + żuraw 0.3,
+  gigantyczna łopata na kozłach + sekcja wieży na naczepie 0.7),
 - `src/assets/manifest.generated.ts` – rozmiary klatek, klipy (nazwa → indeksy + fps), kotwice, punkty dłoni/wylotu broni.
 
 **Podmiana grafiki 1:1**: podmień PNG w `assets/raw/...` (te same nazwy i liczba klatek) i odpal `npm run assets`.
 Nazwy klipów = nazwy stanów FSM (`idle, run, run_shoot, shoot, crouch, jump, spin, hurt`) / trybów wrogów.
 
-Pixel-perfect: wirtualna rozdzielczość 320×240, skalowanie całkowite z letterboxem (odpowiednik `viewport` + `keep`),
+Pixel-perfect: świat 320×240 jednostek, grafika w gęstości 2× (`CONFIG.view.pixelScale`, canvas 640×480 – sprite'y mają
+2× więcej detalu przy tej samej logice), skalowanie całkowite z letterboxem (odpowiednik `viewport` + `keep`),
 `image-rendering: pixelated` + `imageSmoothingEnabled = false` (Nearest), pozycje kamery i sprite'ów zaokrąglane do pełnych pikseli.
 
 ## Audio (chiptune syntezowany w Web Audio)

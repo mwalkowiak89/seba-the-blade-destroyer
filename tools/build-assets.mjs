@@ -6,9 +6,12 @@
  * Podmiana grafiki 1:1: podmień PNG w assets/raw/... zachowując nazwy i liczbę klatek, odpal ponownie.
  */
 import fs from 'node:fs';
-import { load, save, create, blit, bbox } from './png.mjs';
+import { load, save, create, blit, bbox, scale } from './png.mjs';
+
+/** Gęstość pikseli gry (musi zgadzać się z CONFIG.view.pixelScale). Sheety 1x są podbijane ×D. */
+const D = 2;
 import { px, rect, hline, vline, line, circle, recolor, flipX, rotate45, rotate90ccw, hex } from './pixel.mjs';
-import { drawSky, drawSiteMid, drawSiteNear, drawSkyBlades } from './site-backgrounds.mjs';
+import { drawSky, drawSiteMid, drawSiteNear, drawSkyBlades, SKY_HORIZON } from './site-backgrounds.mjs';
 
 const RAW = 'assets/raw/warped-city';
 
@@ -37,9 +40,19 @@ function pack(imgs, cols) {
   return { sheet, frameW: fw, frameH: fh, cols };
 }
 
+const scalePt = (p) => (p ? { x: p.x * D, y: p.y * D } : p);
+const scaleMap = (m) => (m ? Object.fromEntries(Object.entries(m).map(([k, v]) => [k, scalePt(v)])) : m);
+
+/** Zapisuje sheet do manifestu. Wejście ma gęstość 1x – podbijane ×D (nearest), kotwice/pivoty przeliczane. */
 function emitSheet(name, file, packed, clips, extra = {}) {
-  save(packed.sheet, file);
-  manifest.sheets[name] = { file, frameW: packed.frameW, frameH: packed.frameH, cols: packed.cols, clips, ...extra };
+  const sheet = scale(packed.sheet, D);
+  save(sheet, file);
+  const e = { ...extra };
+  if (e.anchorX !== undefined) e.anchorX *= D;
+  if (e.anchorY !== undefined) e.anchorY *= D;
+  if (e.pivots) e.pivots = scaleMap(e.pivots);
+  if (e.muzzle) e.muzzle = scaleMap(e.muzzle);
+  manifest.sheets[name] = { file, frameW: packed.frameW * D, frameH: packed.frameH * D, cols: packed.cols, clips, density: D, ...e };
 }
 
 // ---------------------------------------------------------------------------
@@ -266,58 +279,52 @@ const RUNNER_PALETTE = {
 }
 
 // ---------------------------------------------------------------------------
-// Tileset industrialny 16x16 (paleta Warped City)
+// Tileset industrialny: kafel 16 jednostek świata = 32 px (gęstość 2x) – płyty pancerne z nitami,
+// blacha ryflowana, krawędzie, słupy i rury planu drugiego
 // ---------------------------------------------------------------------------
 {
-  const T = 16;
-  const C = { K: '#050912', P0: '#08202f', P1: '#0d3344', P2: '#13506a', P3: '#1d6c86', R: '#2fb9b0', RUST: '#6e3a2b', RUST2: '#8a4a2f', G1: '#1a5b6b', G2: '#0d7b89', Y: '#c9a227', YD: '#7a6118' };
+  const T = 16 * D;
+  const C = { K: '#161a20', P0: '#3b4048', P1: '#4f565f', P2: '#656d78', P3: '#7d8692', HI: '#98a1ad', R: '#b8c0ca', RUST: '#7a4a2e', RUST2: '#9a5c34', Y: '#d9a72c', YD: '#8a6a1a', G1: '#2f5f6b', G2: '#3f8291' };
   const tiles = [];
   const tile = (fn) => { const im = create(T, T); fn(im); tiles.push(im); return tiles.length - 1; };
+  const rivet = (im, x, y) => { px(im, x, y, C.HI); px(im, x + 1, y, C.P3); px(im, x, y + 1, C.P3); px(im, x + 1, y + 1, C.K); };
 
-  const plateBase = (im) => { rect(im, 0, 0, T, T, C.P1); // płyta
-    // delikatna faktura
-    for (let y = 2; y < T; y += 5) for (let x = (y % 2) * 2; x < T; x += 6) px(im, x, y, C.P0);
+  const plateBase = (im) => {
+    rect(im, 0, 0, T, T, C.P1);
+    // ryflowanie: ukośne cienkie rowki
+    for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) if ((x + y) % 8 === 0) px(im, x, y, C.P0);
+    // spoiny kafla
+    hline(im, 0, 0, T, C.P2); vline(im, 0, 0, T, C.P2); hline(im, 0, T - 1, T, C.P0); vline(im, T - 1, 0, T, C.P0);
   };
-  const rivets = (im, pts) => pts.forEach(([x, y]) => { px(im, x, y, C.R); px(im, x + 1, y + 1, C.K); });
 
-  manifest.tiles.plate = tile((im) => { plateBase(im); rivets(im, [[2, 2], [12, 2], [2, 12], [12, 12]]); });
-  manifest.tiles.plateB = tile((im) => { plateBase(im); rivets(im, [[2, 2], [12, 12]]); // płyta z wentylem i rdzą
-    rect(im, 5, 6, 6, 4, C.P0); hline(im, 5, 7, 6, C.K); hline(im, 5, 9, 6, C.K); vline(im, 11, 3, 4, C.RUST); px(im, 11, 7, C.RUST2); });
+  manifest.tiles.plate = tile((im) => { plateBase(im); for (const [x, y] of [[3, 3], [T - 6, 3], [3, T - 6], [T - 6, T - 6]]) rivet(im, x, y); });
+  manifest.tiles.plateB = tile((im) => { plateBase(im); rivet(im, 3, 3); rivet(im, T - 6, T - 6);
+    // właz / kratka wentylacyjna + zaciek rdzy
+    rect(im, 9, 11, 14, 10, C.P0); hline(im, 9, 11, 14, C.K); for (let y = 13; y < 21; y += 2) hline(im, 10, y, 12, C.K);
+    vline(im, T - 8, 5, 10, C.RUST); vline(im, T - 7, 7, 6, C.RUST2); px(im, T - 8, 15, C.RUST2); });
   // nakładki krawędzi (przezroczyste tło)
-  manifest.tiles.edgeTop = tile((im) => { hline(im, 0, 0, T, C.P3); hline(im, 0, 1, T, C.P2); hline(im, 0, 2, T, C.K); });
-  manifest.tiles.edgeBottom = tile((im) => { hline(im, 0, T - 1, T, C.K); hline(im, 0, T - 2, T, C.P0); });
-  manifest.tiles.edgeLeft = tile((im) => { vline(im, 0, 0, T, C.P2); vline(im, 1, 0, T, C.K); });
-  manifest.tiles.edgeRight = tile((im) => { vline(im, T - 1, 0, T, C.P0); vline(im, T - 2, 0, T, C.K); });
-  // krata pomostowa (one-way) – dziury przezroczyste, wsporniki pod spodem
-  const grate = (im, left, right) => {
-    hline(im, 0, 0, T, C.G2); hline(im, 0, 1, T, C.G1);
-    for (let y = 2; y < 6; y++) for (let x = 0; x < T; x++) if ((x + y) % 3 !== 0) px(im, x, y, y % 2 ? C.G1 : C.P0);
-    hline(im, 0, 6, T, C.K);
-    // wsporniki
-    if (left) { rect(im, 1, 7, 2, 4, C.P2); px(im, 1, 10, C.K); }
-    if (right) { rect(im, T - 3, 7, 2, 4, C.P2); px(im, T - 2, 10, C.K); }
-    // pasy ostrzegawcze na czole
-    for (let x = 0; x < T; x++) px(im, x, 1, Math.floor(x / 2) % 2 ? C.Y : C.YD);
-  };
-  manifest.tiles.grate = tile((im) => grate(im, false, false));
-  manifest.tiles.grateL = tile((im) => grate(im, true, false));
-  manifest.tiles.grateR = tile((im) => grate(im, false, true));
-  manifest.tiles.grateLR = tile((im) => grate(im, true, true));
+  manifest.tiles.edgeTop = tile((im) => { hline(im, 0, 0, T, C.R); hline(im, 0, 1, T, C.HI); hline(im, 0, 2, T, C.P3); hline(im, 0, 3, T, C.K); for (let x = 2; x < T; x += 8) px(im, x, 1, C.P2); });
+  manifest.tiles.edgeBottom = tile((im) => { hline(im, 0, T - 1, T, C.K); hline(im, 0, T - 2, T, C.K); hline(im, 0, T - 3, T, C.P0); });
+  manifest.tiles.edgeLeft = tile((im) => { vline(im, 0, 0, T, C.HI); vline(im, 1, 0, T, C.P3); vline(im, 2, 0, T, C.K); });
+  manifest.tiles.edgeRight = tile((im) => { vline(im, T - 1, 0, T, C.P0); vline(im, T - 2, 0, T, C.K); vline(im, T - 3, 0, T, C.K); });
+  // krata pomostowa (nieużywana bezpośrednio – platformy rysuje TileRenderer; zostaje dla kompatybilności)
+  const grate = (im) => { hline(im, 0, 0, T, C.G2); hline(im, 0, 1, T, C.G1); for (let y = 2; y < 12; y++) for (let x = 0; x < T; x++) if ((x + y) % 3 !== 0) px(im, x, y, y % 2 ? C.G1 : C.P0); hline(im, 0, 12, T, C.K); for (let x = 0; x < T; x++) px(im, x, 1, Math.floor(x / 4) % 2 ? C.Y : C.YD); };
+  manifest.tiles.grate = tile(grate); manifest.tiles.grateL = tile(grate); manifest.tiles.grateR = tile(grate); manifest.tiles.grateLR = tile(grate);
   // dekoracje planu drugiego: słup wsporczy, rura pionowa, kabel
-  manifest.tiles.column = tile((im) => { rect(im, 5, 0, 6, T, C.P0); vline(im, 5, 0, T, C.P2); vline(im, 10, 0, T, C.K); for (let y = 3; y < T; y += 6) { px(im, 7, y, C.R); px(im, 8, y + 1, C.K); } });
-  manifest.tiles.columnTop = tile((im) => { rect(im, 3, 0, 10, 3, C.P2); hline(im, 3, 2, 10, C.K); rect(im, 5, 3, 6, T - 3, C.P0); vline(im, 5, 3, T - 3, C.P2); vline(im, 10, 3, T - 3, C.K); });
-  manifest.tiles.pipe = tile((im) => { rect(im, 6, 0, 4, T, C.G1); vline(im, 6, 0, T, C.G2); vline(im, 9, 0, T, C.K); rect(im, 5, 6, 6, 2, C.P2); hline(im, 5, 7, 6, C.K); });
-  manifest.tiles.pipeTop = tile((im) => { rect(im, 6, 4, 4, T - 4, C.G1); vline(im, 6, 4, T - 4, C.G2); vline(im, 9, 4, T - 4, C.K); rect(im, 4, 2, 8, 3, C.P2); hline(im, 4, 4, 8, C.K); });
+  manifest.tiles.column = tile((im) => { rect(im, 10, 0, 12, T, C.P0); vline(im, 10, 0, T, C.P3); vline(im, 11, 0, T, C.P2); vline(im, 21, 0, T, C.K); vline(im, 20, 0, T, C.K); for (let y = 6; y < T; y += 12) rivet(im, 14, y); });
+  manifest.tiles.columnTop = tile((im) => { rect(im, 6, 0, 20, 6, C.P2); hline(im, 6, 0, 20, C.HI); hline(im, 6, 5, 20, C.K); rect(im, 10, 6, 12, T - 6, C.P0); vline(im, 10, 6, T - 6, C.P3); vline(im, 11, 6, T - 6, C.P2); vline(im, 21, 6, T - 6, C.K); });
+  manifest.tiles.pipe = tile((im) => { rect(im, 12, 0, 8, T, C.G1); vline(im, 12, 0, T, C.G2); vline(im, 13, 0, T, C.G2); vline(im, 19, 0, T, C.K); rect(im, 10, 12, 12, 4, C.P2); hline(im, 10, 15, 12, C.K); hline(im, 10, 12, 12, C.HI); });
+  manifest.tiles.pipeTop = tile((im) => { rect(im, 12, 8, 8, T - 8, C.G1); vline(im, 12, 8, T - 8, C.G2); vline(im, 13, 8, T - 8, C.G2); vline(im, 19, 8, T - 8, C.K); rect(im, 8, 4, 16, 6, C.P2); hline(im, 8, 4, 16, C.HI); hline(im, 8, 9, 16, C.K); });
   const p = pack(tiles, 8);
   save(p.sheet, 'assets/tilesets/industrial.png');
-  manifest.images.tileset = { file: 'assets/tilesets/industrial.png', tileSize: T, cols: p.cols };
+  manifest.images.tileset = { file: 'assets/tilesets/industrial.png', tileSize: T, worldTile: 16, cols: p.cols };
 }
 
 // ---------------------------------------------------------------------------
 // Portret Seby (HUD) 20x20 – z ekstraktora (twarz ze sheetu) albo rysowany
 // ---------------------------------------------------------------------------
 if (manifest.sebaSource === 'seba-ai') {
-  manifest.images.portrait = { file: 'assets/sprites/ui/portrait.png', w: 20, h: 20 };
+  manifest.images.portrait = { file: 'assets/sprites/ui/portrait.png', w: 40, h: 40 };
 } else {
   const im = create(20, 20);
   rect(im, 4, 1, 12, 7, '#eef1f5'); rect(im, 3, 3, 14, 5, '#eef1f5'); hline(im, 5, 1, 10, '#ffffff'); // kask
@@ -327,8 +334,8 @@ if (manifest.sebaSource === 'seba-ai') {
   px(im, 7, 10, '#2b2f3a'); px(im, 12, 10, '#2b2f3a'); // oczy
   rect(im, 6, 13, 8, 2, '#8a6a52'); rect(im, 8, 13, 4, 1, '#f1c9a5'); // zarost
   rect(im, 3, 16, 14, 4, '#e6ff3d'); hline(im, 3, 17, 14, '#c8ccd0'); px(im, 10, 19, '#ff7a1a'); // kurtka hi-vis + pas odblaskowy + karabińczyk
-  save(im, 'assets/sprites/ui/portrait.png');
-  manifest.images.portrait = { file: 'assets/sprites/ui/portrait.png', w: 20, h: 20 };
+  save(scale(im, D), 'assets/sprites/ui/portrait.png');
+  manifest.images.portrait = { file: 'assets/sprites/ui/portrait.png', w: 40, h: 40 };
 }
 
 // ---------------------------------------------------------------------------
@@ -340,7 +347,8 @@ if (manifest.sebaSource === 'seba-ai') {
   // animowane łopaty turbin: 6 klatek obrotu w jednym pasku
   const BF = 6; const blades = Array.from({ length: BF }, (_, i) => drawSkyBlades(i, BF));
   const pb = pack(blades, BF); save(pb.sheet, 'assets/backgrounds/sky-blades.png');
-  manifest.sheets.skyBlades = { file: 'assets/backgrounds/sky-blades.png', frameW: pb.frameW, frameH: pb.frameH, cols: BF, clips: { spin: { frames: [0, 1, 2, 3, 4, 5], fps: 5, loop: true } }, anchor: 'center', anchorX: 0, anchorY: 0, y: 126 };
+  // uwaga: tła są już w gęstości canvasu – bez podbijania (nie przez emitSheet)
+  manifest.sheets.skyBlades = { file: 'assets/backgrounds/sky-blades.png', frameW: pb.frameW, frameH: pb.frameH, cols: BF, clips: { spin: { frames: [0, 1, 2, 3, 4, 5], fps: 5, loop: true } }, anchor: 'center', anchorX: 0, anchorY: 0, density: D, y: SKY_HORIZON - 150 };
   const mid = drawSiteMid(); save(mid, 'assets/backgrounds/site-mid.png');
   manifest.images.siteMid = { file: 'assets/backgrounds/site-mid.png', w: mid.width, h: mid.height };
   const near = drawSiteNear(); save(near, 'assets/backgrounds/site-near.png');

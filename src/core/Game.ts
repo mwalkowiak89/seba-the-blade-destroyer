@@ -19,8 +19,8 @@ export class Game {
   private fps = 60;
 
   constructor(private canvas: HTMLCanvasElement) {
-    canvas.width = CONFIG.view.width;
-    canvas.height = CONFIG.view.height;
+    canvas.width = CONFIG.view.width * CONFIG.view.pixelScale;
+    canvas.height = CONFIG.view.height * CONFIG.view.pixelScale;
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) throw new Error('Brak kontekstu 2D');
     this.ctx = ctx;
@@ -33,9 +33,10 @@ export class Game {
   }
 
   private fitToWindow(): void {
-    const scale = Math.max(1, Math.floor(Math.min(window.innerWidth / CONFIG.view.width, window.innerHeight / CONFIG.view.height)));
-    this.canvas.style.width = `${CONFIG.view.width * scale}px`;
-    this.canvas.style.height = `${CONFIG.view.height * scale}px`;
+    const cw = CONFIG.view.width * CONFIG.view.pixelScale, ch = CONFIG.view.height * CONFIG.view.pixelScale;
+    const scale = Math.max(1, Math.floor(Math.min(window.innerWidth / cw, window.innerHeight / ch)));
+    this.canvas.style.width = `${cw * scale}px`;
+    this.canvas.style.height = `${ch * scale}px`;
   }
 
   /** Ładuje zasoby (ekran ładowania), tworzy scenę i startuje pętlę. */

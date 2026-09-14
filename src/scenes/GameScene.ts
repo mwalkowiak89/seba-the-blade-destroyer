@@ -11,6 +11,7 @@ import { FxSystem } from '../render/Fx';
 import { Parallax } from '../render/Parallax';
 import { TileRenderer } from '../render/TileRenderer';
 import { Images, Sheets } from '../assets/AssetLoader';
+import { MANIFEST } from '../assets/manifest.generated';
 import { impactSparks, type BulletKind } from '../entities/weapons/Bullet';
 import { Level, Tile, type Marker } from '../world/Level';
 import { TEST_LEVEL } from '../world/TestLevel';
@@ -88,11 +89,13 @@ export class GameScene implements WorldContext {
     if (sky && mid && near) {
       const H = CONFIG.view.height;
       const blades = Sheets.tryGet('skyBlades');
+      const D = CONFIG.view.pixelScale, HC = H * D; // parallax rysowany w px canvasu
+      const bladesY = (MANIFEST.sheets as { skyBlades?: { y?: number } }).skyBlades?.y ?? 0;
       this.parallax = new Parallax([
-        { image: sky, scroll: 0.05, y: 0 },                                        // zachód słońca, pola, wieże turbin
-        ...(blades ? [{ image: blades.image, sheet: blades, clip: 'spin', scroll: 0.05, y: 126 }] : []), // obracające się łopaty
-        { image: mid, scroll: 0.3, y: H - 40 - mid.height },                        // żuraw gąsienicowy, sekcje masztów
-        { image: near, scroll: 0.7, y: H - 30 - near.height },                      // kontenery, płoty, barierki
+        { image: sky, scroll: 0.05, y: 0 },                                                                 // zachód słońca, pola, wieże turbin
+        ...(blades ? [{ image: blades.image, sheet: blades, clip: 'spin', scroll: 0.05, y: bladesY }] : []), // obracające się łopaty
+        { image: mid, scroll: 0.3, y: HC - 40 * D - mid.height },                                           // wieża turbiny, żuraw, zaplecze
+        { image: near, scroll: 0.7, y: HC - 30 * D - near.height },                                         // łopata na kozłach, sekcja wieży, płot
       ]);
     }
     if (Images.tryGet('tileset')) this.tiles = new TileRenderer(this.level);
@@ -284,11 +287,12 @@ export class GameScene implements WorldContext {
 
   // ---- Render ------------------------------------------------------------
   draw(ctx: CanvasRenderingContext2D, fps = 0): void {
-    const W = CONFIG.view.width, H = CONFIG.view.height;
+    const D = CONFIG.view.pixelScale;
+    const W = CONFIG.view.width * D, H = CONFIG.view.height * D; // px canvasu (HUD, tło)
     if (this.parallax) {
       this.parallax.draw(ctx, this.camera.x, this.time);
-      // delikatna mgiełka poranna – lekko odsuwa tło od planu gry
-      ctx.fillStyle = 'rgba(230,236,245,0.12)';
+      // delikatna mgiełka – lekko odsuwa tło od planu gry
+      ctx.fillStyle = 'rgba(240,225,200,0.10)';
       ctx.fillRect(0, 0, W, H);
     } else {
       ctx.fillStyle = '#141826';
@@ -321,11 +325,11 @@ export class GameScene implements WorldContext {
 
     if (this.debug) {
       let pb = 0, eb = 0; this.playerBullets.forEachActive(() => pb++); this.enemyBullets.forEachActive(() => eb++);
-      ctx.save(); ctx.font = '8px monospace'; ctx.textBaseline = 'top'; ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(4, 40, 120, 30);
+      ctx.save(); ctx.font = '12px monospace'; ctx.textBaseline = 'top'; ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(8, 90, 200, 44);
       ctx.fillStyle = '#7fff7f';
-      ctx.fillText(`FPS ${fps.toFixed(0)}  cam ${this.camera.x.toFixed(0)}`, 6, 42);
-      ctx.fillText(`enemies ${this.enemies.length} pool ${[...this.enemyPool.values()].reduce((a, p) => a + p.length, 0)}`, 6, 51);
-      ctx.fillText(`bullets ${pb}/${eb}  x ${this.player.x.toFixed(0)}`, 6, 60);
+      ctx.fillText(`FPS ${fps.toFixed(0)}  cam ${this.camera.x.toFixed(0)}`, 12, 92);
+      ctx.fillText(`enemies ${this.enemies.length} pool ${[...this.enemyPool.values()].reduce((a, p) => a + p.length, 0)}`, 12, 106);
+      ctx.fillText(`bullets ${pb}/${eb}  x ${this.player.x.toFixed(0)}`, 12, 120);
       ctx.restore();
     }
 

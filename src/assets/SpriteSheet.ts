@@ -1,4 +1,8 @@
 import type { AnimClip } from '../render/Visual';
+import { CONFIG } from '../core/Config';
+
+/** Wszystkie sheety mają gęstość pixelScale: 1 px sheetu = 1 px canvasu = 1/pixelScale jednostki świata. */
+export const D = CONFIG.view.pixelScale;
 
 export type AnchorMode = 'bottom' | 'center' | 'pivot';
 
@@ -56,19 +60,23 @@ export class SpriteSheet {
     return clip ? clip.frames.length / clip.fps : 0;
   }
 
+  /** Rozmiar klatki w jednostkach świata. */
+  get worldW(): number { return this.frameW / D; }
+  get worldH(): number { return this.frameH / D; }
+
   /**
-   * Rysuje klatkę tak, aby punkt kotwicy (ax, ay w klatce) trafił w (x, y) świata.
-   * flipX odbija względem kotwicy. Pozycje zaokrąglane do pełnych pikseli (pixel-perfect).
+   * Rysuje klatkę tak, aby punkt kotwicy (ax, ay w pikselach klatki) trafił w (x, y) świata.
+   * flipX odbija względem kotwicy. Pozycje zaokrąglane do pełnych pikseli canvasu (pixel-perfect).
    */
   drawAnchored(ctx: CanvasRenderingContext2D, frame: number, x: number, y: number, ax: number, ay: number, opts: { flipX?: boolean; flipY?: boolean; rotation?: number; alpha?: number; flash?: boolean } = {}): void {
     const sx = (frame % this.def.cols) * this.frameW;
     const sy = Math.floor(frame / this.def.cols) * this.frameH;
     ctx.save();
     if (opts.alpha !== undefined) ctx.globalAlpha = opts.alpha;
-    ctx.translate(Math.round(x), Math.round(y));
+    ctx.translate(Math.round(x * D) / D, Math.round(y * D) / D);
     if (opts.rotation) ctx.rotate(opts.rotation);
     ctx.scale(opts.flipX ? -1 : 1, opts.flipY ? -1 : 1);
-    ctx.drawImage(opts.flash ? this.flashImage : this.image, sx, sy, this.frameW, this.frameH, -ax, -ay, this.frameW, this.frameH);
+    ctx.drawImage(opts.flash ? this.flashImage : this.image, sx, sy, this.frameW, this.frameH, -ax / D, -ay / D, this.frameW / D, this.frameH / D);
     ctx.restore();
   }
 }

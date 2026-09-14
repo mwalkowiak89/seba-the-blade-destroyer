@@ -4,6 +4,7 @@ import { clamp } from '../../core/MathUtil';
 import { Sfx } from '../../render/Audio';
 import { PlaceholderVisual, SpriteSheetVisual, type Visual } from '../../render/Visual';
 import { Sheets } from '../../assets/AssetLoader';
+import { D } from '../../assets/SpriteSheet';
 import { MANIFEST } from '../../assets/manifest.generated';
 import { fullySupported, moveAndCollide } from '../../world/Physics';
 import { Entity } from '../Entity';
@@ -189,7 +190,7 @@ export class PlayerController extends Entity {
     const pv = this.state.name === 'prone' || this.isDead ? (pivots.prone ?? pivots.crouch)
       : this.animName() === 'shoot_up' ? (pivots.up ?? pivots.stand)
       : pivots.stand;
-    return { x: this.cx + pv.x * this.facing, y: this.bottom + pv.y };
+    return { x: this.cx + (pv.x / D) * this.facing, y: this.bottom + pv.y / D };
   }
 
   private updateWeaponPose(): void {
@@ -197,8 +198,8 @@ export class PlayerController extends Entity {
     const o = this.orientation;
     const pv = MAKITA.pivots[o], mz = MAKITA.muzzle[o];
     const flipY = this.aim.y > 0.3;
-    this.muzzle.x = hand.x + (mz.x - pv.x) * this.facing;
-    this.muzzle.y = hand.y + (mz.y - pv.y) * (flipY ? -1 : 1);
+    this.muzzle.x = hand.x + ((mz.x - pv.x) / D) * this.facing;
+    this.muzzle.y = hand.y + ((mz.y - pv.y) / D) * (flipY ? -1 : 1);
   }
 
   private fire(world: WorldContext): void {

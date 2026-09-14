@@ -26,10 +26,10 @@ export class Parallax {
   constructor(private layers: ParallaxLayer[]) {}
 
   draw(ctx: CanvasRenderingContext2D, camX: number, time = 0): void {
-    const W = CONFIG.view.width;
+    const W = CONFIG.view.width * CONFIG.view.pixelScale;
     for (const l of this.layers) {
       const w = l.sheet ? l.sheet.frameW : l.image.width;
-      const shift = Math.round(camX * l.scroll) - (l.offsetX ?? 0);
+      const shift = Math.round(camX * CONFIG.view.pixelScale * l.scroll) - (l.offsetX ?? 0);
       ctx.globalAlpha = l.alpha ?? 1;
       if (l.repeat === false) { ctx.drawImage(l.image, -shift, l.y); continue; }
       let x = -(((shift % w) + w) % w);

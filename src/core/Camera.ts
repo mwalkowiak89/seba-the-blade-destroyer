@@ -62,7 +62,10 @@ export class Camera {
     return x + w > this.x - margin && x < this.right + margin && y + h > this.y - margin && y < this.y + this.height + margin;
   }
 
+  /** Transformacja świat → canvas: skala gęstości pikseli + przewinięcie zaokrąglone do pełnych pikseli canvasu. */
   applyTransform(ctx: CanvasRenderingContext2D): void {
-    ctx.translate(-Math.round(this.x) + this.shakeX, -Math.round(this.y) + this.shakeY);
+    const D = CONFIG.view.pixelScale;
+    ctx.scale(D, D);
+    ctx.translate(-Math.round(this.x * D) / D + this.shakeX, -Math.round(this.y * D) / D + this.shakeY);
   }
 }

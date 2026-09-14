@@ -147,7 +147,7 @@ export class BulletPool {
         if (b.kind === 'bolt') { drawBolt(ctx, b); return; }
         if (b.kind === 'shard') { drawShard(ctx, b); return; }
         if (b.kind === 'mine') { drawMine(ctx, b); return; }
-        if (saw) { saw.drawAnchored(ctx, saw.frameAt('spin', b.age), b.x, b.y, 5, 5, { rotation: b.age * 14 }); return; }
+        if (saw) { saw.drawAnchored(ctx, saw.frameAt('spin', b.age), b.x, b.y, saw.def.anchorX ?? 10, saw.def.anchorY ?? 10, { rotation: b.age * 14 }); return; }
       }
       ctx.fillStyle = b.color;
       if (b.owner === 'player') {
