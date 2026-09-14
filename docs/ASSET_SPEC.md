@@ -24,8 +24,8 @@ przewijane z zadanym `scroll` względem kamery. Kolejność od tyłu:
 
 | Warstwa | Plik | Rozmiar | Scroll | Zawartość | Linia ziemi (y ekranu) |
 |---|---|---|---|---|---|
-| Niebo | `sky.png` | **384 × 216**, bez alfy (kryjąca) | 0.05 | gradient zachodu, słońce, chmury, wzgórza/pola, **przygaszona daleka wieża** (≤ 30 px u podstawy, wtopiona w gradient), wieże małych turbin **bez łopat** | horyzont **166** |
-| Łopaty turbin (animacja) | `sky-blades.png` | pasek klatek: **N × (384 × 70)** obok siebie (np. 6 klatek = 2304 × 70) | 0.05 | same łopaty, obrócone o 1/N pełnego obrotu (3 łopaty → 120°/N) | góra paska na y = **106** |
+| Niebo | `sky.png` (lub `sky-source.png`) | **384 × 216**, bez alfy (kryjąca) | 0.05 | gradient zachodu, słońce, chmury, wzgórza/pola, **przygaszona daleka wieża** (≤ 30 px u podstawy, wtopiona w gradient). **Bez turbin** – są osobną warstwą | horyzont **166** |
+| Odległe turbiny (animacja) | `sky-blades.png` | pasek klatek: **N × (384 × 70)** obok siebie (np. 6 klatek = 2304 × 70) | 0.05 | wieże (statyczne w każdej klatce) + łopaty obrócone o 1/N pełnego obrotu (3 łopaty → 120°/N) | góra paska na y = **106** |
 | Plan średni | `site-mid.png` | **576–768 × 150**, alfa | 0.3 | czerwony żuraw gąsienicowy, stawiana turbina, sekcje masztów, zaplecze, maszt oświetleniowy | stopy obiektów na **172** |
 | Plan bliski | `site-near.png` | **768 × 72**, alfa | 0.7 | płot, barierki, kontenery, szpule, znaki – **bez łopaty i sekcji wieży** (są grywalne, patrz §3) | stopy obiektów na **178** |
 
@@ -101,6 +101,11 @@ ostrzegawcze: #f2c230 #d9a72c #8a6a1a (żółty), #c0392b #e03b2c (czerwony), #f
 kontenery:    #2e86c1/#1f5f8a/#5dade2  #c0392b/#7d2318/#e07b6c  #27ae60/#186e3d/#58d68d  #e67e22/#9c4f0c/#f5b041
 hi-vis Seby:  #e6ff3d #9bb800 ; kask #eef1f5 #b9c0c9 ; kontur #2b2f36
 ```
+
+## 5a. Nadpisywanie warstw gotową grafiką
+Pipeline (`npm run assets`) najpierw szuka plików w `assets/raw/art/backgrounds/`: `sky-source.png` lub `sky.png`,
+`site-mid.png`, `site-near.png`. Jeśli plik istnieje – jest używany zamiast wersji proceduralnej (ostrzeżenie przy złym
+rozmiarze). Przykład generatora nieba: `tools/art/gen-sky.py` (PIL) i jego port `tools/art/gen-sky.mjs` (Node, bez zależności).
 
 ## 6. Format plików i zasady techniczne
 

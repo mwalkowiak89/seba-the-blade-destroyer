@@ -463,16 +463,20 @@ if (manifest.sebaSource === 'seba-ai') {
 // Tła parallax – plac budowy farmy wiatrowej o świcie (generowane, tools/site-backgrounds.mjs)
 // ---------------------------------------------------------------------------
 {
-  const sky = drawSky(); save(sky, 'assets/backgrounds/sky.png');
+  // Zewnętrzna grafika ma pierwszeństwo: assets/raw/art/backgrounds/{sky-source|sky,site-mid,site-near}.png (PNG, natywna skala)
+  const ART = 'assets/raw/art/backgrounds';
+  const external = (names) => { for (const n of names) if (fs.existsSync(`${ART}/${n}.png`)) return load(`${ART}/${n}.png`); return null; };
+  const sky = external(['sky-source', 'sky']) ?? drawSky(); save(sky, 'assets/backgrounds/sky.png');
+  if (sky.width !== 384 || sky.height !== 216) console.warn(`UWAGA: sky.png ma ${sky.width}x${sky.height}, oczekiwano 384x216`);
   manifest.images.sky = { file: 'assets/backgrounds/sky.png', w: sky.width, h: sky.height };
   // animowane łopaty turbin: 6 klatek obrotu w jednym pasku
   const BF = 6; const blades = Array.from({ length: BF }, (_, i) => drawSkyBlades(i, BF));
   const pb = pack(blades, BF); save(pb.sheet, 'assets/backgrounds/sky-blades.png');
   // uwaga: tła są już w gęstości canvasu – bez podbijania (nie przez emitSheet)
   manifest.sheets.skyBlades = { file: 'assets/backgrounds/sky-blades.png', frameW: pb.frameW, frameH: pb.frameH, cols: BF, clips: { spin: { frames: [0, 1, 2, 3, 4, 5], fps: 5, loop: true } }, anchor: 'center', anchorX: 0, anchorY: 0, density: D, y: SKY_HORIZON - 60 };
-  const mid = drawSiteMid(); save(mid, 'assets/backgrounds/site-mid.png');
+  const mid = external(['site-mid']) ?? drawSiteMid(); save(mid, 'assets/backgrounds/site-mid.png');
   manifest.images.siteMid = { file: 'assets/backgrounds/site-mid.png', w: mid.width, h: mid.height };
-  const near = drawSiteNear(); save(near, 'assets/backgrounds/site-near.png');
+  const near = external(['site-near']) ?? drawSiteNear(); save(near, 'assets/backgrounds/site-near.png');
   manifest.images.siteNear = { file: 'assets/backgrounds/site-near.png', w: near.width, h: near.height };
 }
 

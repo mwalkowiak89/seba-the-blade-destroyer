@@ -1023,7 +1023,7 @@
 
   // src/assets/manifest.generated.ts
   var MANIFEST = {
-    "version": "mu150yui",
+    "version": "mu16sewj",
     "sheets": {
       "seba": {
         "file": "assets/sprites/player/seba.png",

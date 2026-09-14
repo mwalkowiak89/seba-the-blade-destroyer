@@ -51,8 +51,7 @@ export function drawSky(W = 384, H = 216, horizon = SKY_HORIZON) {
   }
   rect(im, 0, horizon, W, H - horizon, '#7d9a72');
   hline(im, 0, horizon, W, '#5f8a66');
-  // farma wiatrowa na horyzoncie – wieże (łopaty w animowanej nakładce drawSkyBlades)
-  for (const [x, h] of SKY_TURBINES) { const base = horizon - 4 - (x % 5); vline(im, x, base - h, h, WHITE_D); px(im, x, base - h, WHITE_DD); }
+  // farma wiatrowa: wieże + łopaty w osobnej warstwie (drawSkyBlades)
   return im;
 }
 

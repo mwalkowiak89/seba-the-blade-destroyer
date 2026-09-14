@@ -1,6 +1,6 @@
 /* WYGENEROWANE przez tools/build-assets.mjs – nie edytuj ręcznie. */
 export const MANIFEST = {
-  "version": "mu150yui",
+  "version": "mu16sewj",
   "sheets": {
     "seba": {
       "file": "assets/sprites/player/seba.png",
