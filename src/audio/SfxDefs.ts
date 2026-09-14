@@ -20,6 +20,13 @@ export const SFX_DEFS = {
   game_over:  { wave: 'square', duty: 0.5, freq: 660, duration: 1.0, arp: [1, 0.75, 0.63, 0.5], arpStep: 0.25, decay: 0.2, gain: 0.45 },
   victory:    { wave: 'square', duty: 0.5, freq: 330, duration: 0.9, arp: [1, 1.25, 1.5, 2, 2, 2], arpStep: 0.15, decay: 0.2, gain: 0.45 },
   charge:     { wave: 'saw', freq: 90, freqEnd: 420, duration: 0.45, decay: 0.1, gain: 0.35 },
+  ricochet:   { wave: 'square', duty: 0.5, freq: 2400, freqEnd: 900, duration: 0.09, decay: 0.07, vibratoDepth: 0.15, vibratoRate: 90, gain: 0.3 },
+  zap:        { wave: 'noise', noiseRate: 9000, freq: 1, duration: 0.18, lowpass: 6000, lowpassEnd: 1200, decay: 0.12, gain: 0.35 },
+  gust:       { wave: 'noise', freq: 1, duration: 1.2, lowpass: 400, lowpassEnd: 1800, attack: 0.3, decay: 0.5, gain: 0.35 },
+  slam:       { wave: 'noise', freq: 1, duration: 0.5, lowpass: 900, lowpassEnd: 80, decay: 0.4, gain: 0.8 },
+  quake:      { wave: 'triangle', freq: 60, freqEnd: 30, duration: 0.7, decay: 0.5, vibratoDepth: 0.3, vibratoRate: 18, gain: 0.5 },
+  laser:      { wave: 'square', duty: 0.5, freq: 900, freqEnd: 1800, duration: 0.7, attack: 0.05, decay: 0.2, vibratoDepth: 0.02, vibratoRate: 40, gain: 0.25 },
+  crack:      { wave: 'noise', noiseRate: 3000, freq: 1, duration: 0.35, lowpass: 2500, lowpassEnd: 300, decay: 0.3, gain: 0.6 },
   ui:         { wave: 'square', duty: 0.5, freq: 880, freqEnd: 1320, duration: 0.08, decay: 0.05, gain: 0.3 },
 } satisfies Record<string, SfxDef>;
 

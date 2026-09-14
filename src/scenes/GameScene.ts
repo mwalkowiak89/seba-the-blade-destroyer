@@ -11,7 +11,7 @@ import { FxSystem } from '../render/Fx';
 import { Parallax } from '../render/Parallax';
 import { TileRenderer } from '../render/TileRenderer';
 import { Images, Sheets } from '../assets/AssetLoader';
-import { impactSparks } from '../entities/weapons/Bullet';
+import { impactSparks, type BulletKind } from '../entities/weapons/Bullet';
 import { Level, Tile, type Marker } from '../world/Level';
 import { TEST_LEVEL } from '../world/TestLevel';
 import { BulletPool } from '../entities/weapons/Bullet';
@@ -58,6 +58,8 @@ export class GameScene implements WorldContext {
   private bossTriggered = false;
   private endTimer = 0;
   private debug = false;
+  private hitStopTimer = 0;
+  arenaFloorY = 0;
 
   constructor(private input: Input) {
     const start = this.level.findMarker('player') ?? { x: 32, y: 160 };
@@ -71,7 +73,11 @@ export class GameScene implements WorldContext {
       if (from >= 0) this.hud.showBanner(`FAZA ${to + 1}${to === 2 ? ' – ENRAGE!' : ''}`);
     });
     this.events.on('boss:spawned', () => Jukebox.play('boss'));
-    this.events.on('boss:died', () => { this.state = 'victory'; this.endTimer = 0; Sfx.stopAllLoops(); Jukebox.play('victory'); });
+    this.events.on('boss:died', () => {
+      this.state = 'victory'; this.endTimer = 0; Sfx.stopAllLoops(); Jukebox.play('victory');
+      for (const e of this.enemies) if (e.alive) e.die(this);
+      this.enemyBullets.clear();
+    });
     this.events.on('player:died', () => { this.state = 'gameover'; this.endTimer = 0; Sfx.stopAllLoops(); Jukebox.play('gameover'); });
     Jukebox.play('level');
   }
@@ -123,13 +129,15 @@ export class GameScene implements WorldContext {
     this.enemies = alive;
   }
 
-  fireEnemyBullet(x: number, y: number, dirX: number, dirY: number, speed: number, damage: number, opts: { gravity?: number; radius?: number; color?: string } = {}): void {
+  fireEnemyBullet(x: number, y: number, dirX: number, dirY: number, speed: number, damage: number, opts: { gravity?: number; radius?: number; color?: string; kind?: BulletKind; hitsTerrain?: boolean; life?: number } = {}): void {
     const d = normalize(dirX, dirY);
     this.enemyBullets.spawn({
       owner: 'enemy', x, y, vx: d.x * speed, vy: d.y * speed, damage,
-      radius: opts.radius ?? CONFIG.bullets.enemyRadius, life: 4, gravity: opts.gravity, hitsTerrain: false, color: opts.color,
+      radius: opts.radius ?? CONFIG.bullets.enemyRadius, life: opts.life ?? 4, gravity: opts.gravity, hitsTerrain: opts.hitsTerrain ?? false, color: opts.color, kind: opts.kind,
     });
   }
+
+  hitStop(seconds: number): void { this.hitStopTimer = Math.max(this.hitStopTimer, seconds); }
 
   // ---- Update ------------------------------------------------------------
   update(dt: number): void {
@@ -139,6 +147,13 @@ export class GameScene implements WorldContext {
     this.camera.update(dt);
     if (this.input.justPressed('mute')) { AudioEngine.toggleMute(); Sfx.play('ui'); }
     if (this.input.justPressed('debug')) this.debug = !this.debug;
+    // hit-stop: świat zamiera, żyją tylko kamera, cząstki i FX
+    if (this.hitStopTimer > 0) {
+      this.hitStopTimer -= dt;
+      this.particles.update(dt);
+      this.fx.update(dt);
+      return;
+    }
     if (this.state !== 'playing') {
       this.endTimer += dt;
       this.particles.update(dt);
@@ -173,6 +188,7 @@ export class GameScene implements WorldContext {
       this.camera.lock(this.arenaX);
       const bm = this.level.findMarker('boss');
       const floorY = this.findFloorY(bm ? bm.col : Math.floor((this.arenaX + 200) / this.level.tileSize));
+      this.arenaFloorY = floorY;
       this.boss = new TurbineBoss(this.arenaX, floorY);
       this.events.emit('boss:spawned', { name: CONFIG.boss.name });
       this.hud.showBanner(CONFIG.boss.name, 2.2);
@@ -232,10 +248,23 @@ export class GameScene implements WorldContext {
           return;
         }
       }
-      if (this.boss && this.boss.alive && this.boss.overlapsCircle(b.x, b.y, b.radius)) {
-        if (this.boss.vulnerable) this.boss.takeHit(b.damage, this);
-        impactSparks(this, b.x, b.y, b.vx, b.vy);
-        b.active = false;
+      if (this.boss && this.boss.alive && !b.spent) {
+        const zone = this.boss.hitZone(b.x, b.y, b.radius);
+        if (zone === 'none') return;
+        if ((zone === 'weak' || zone === 'core') && this.boss.vulnerable) {
+          this.boss.takeHit(b.damage * (zone === 'core' ? 1.5 : 1), this);
+          impactSparks(this, b.x, b.y, b.vx, b.vy);
+          b.active = false;
+        } else {
+          // pancerz: rykoszet – pocisk odbija się bez obrażeń
+          b.spent = true;
+          b.vx = -b.vx * 0.6 + (Math.random() - 0.5) * 80;
+          b.vy = -Math.abs(b.vy) * 0.5 - 90 - Math.random() * 60;
+          b.gravity = 500;
+          b.life = Math.min(b.life, 0.6);
+          Sfx.play('ricochet', 0.7);
+          this.particles.emit({ x: b.x, y: b.y, count: 5, color: ['#ffe36b', '#ffffff'], speed: [40, 120], life: [0.1, 0.25], size: [1, 1.5] });
+        }
       }
     });
 
@@ -250,7 +279,7 @@ export class GameScene implements WorldContext {
 
     // kontakt z wrogami / bossem
     for (const e of this.enemies) if (e.alive && e.overlaps(player)) e.onTouchPlayer(this);
-    if (this.boss && this.boss.alive && !this.boss.isIntro && this.boss.overlaps(player)) this.boss.onTouchPlayer(this);
+    if (this.boss && this.boss.alive && !this.boss.isIntro && !this.boss.isDying && this.boss.overlaps(player)) this.boss.onTouchPlayer(this);
   }
 
   // ---- Render ------------------------------------------------------------
@@ -282,6 +311,10 @@ export class GameScene implements WorldContext {
     this.particles.draw(ctx);
     ctx.restore();
 
+    if (this.hitStopTimer > 0) {
+      ctx.fillStyle = `rgba(255,255,255,${(0.5 * this.hitStopTimer / CONFIG.boss.finale.hitStop).toFixed(3)})`;
+      ctx.fillRect(0, 0, W, H);
+    }
     this.hud.draw(ctx, this.player, this.score, this.boss, this.time);
     this.hud.drawAudioState(ctx, AudioEngine.muted, AudioEngine.running || !AudioEngine.available);
     if (this.time < 6) this.hud.drawHint(ctx, Math.min(1, 6 - this.time), this.input.gamepadConnected);

@@ -6,6 +6,7 @@ import type { FxSystem } from '../render/Fx';
 import type { BulletPool } from '../entities/weapons/Bullet';
 import type { PlayerController } from '../entities/player/PlayerController';
 import type { EnemyBase } from '../entities/enemies/EnemyBase';
+import type { BulletKind } from '../entities/weapons/Bullet';
 
 export interface GameEvents extends Record<string, unknown> {
   'score': { total: number; delta: number };
@@ -35,5 +36,9 @@ export interface WorldContext {
   addScore(points: number): void;
   spawnEnemy(enemy: EnemyBase): void;
   /** Wygodny strzał wroga w zadanym kierunku (znormalizowany wewnętrznie). */
-  fireEnemyBullet(x: number, y: number, dirX: number, dirY: number, speed: number, damage: number, opts?: { gravity?: number; radius?: number; color?: string }): void;
+  fireEnemyBullet(x: number, y: number, dirX: number, dirY: number, speed: number, damage: number, opts?: { gravity?: number; radius?: number; color?: string; kind?: BulletKind; hitsTerrain?: boolean; life?: number }): void;
+  /** Zatrzymanie akcji (hit-stop) na czas w sekundach – działa tylko kamera, cząstki i FX. */
+  hitStop(seconds: number): void;
+  /** Podłoga areny bossa (y górnej krawędzi) – do drgań podłoża. */
+  readonly arenaFloorY: number;
 }

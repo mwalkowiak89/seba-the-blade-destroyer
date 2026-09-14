@@ -135,34 +135,32 @@
       hoverOffsetX: 320 - 56,
       hoverCenterY: 110,
       hoverAmplitude: 52,
+      /** Długość wrażliwej końcówki skrzydła (winglet) – px od czubka. */
+      wingletLength: 28,
+      /** Rdzeń odsłonięty w fazie 3 (px). */
+      coreSize: 14,
       phase1: {
         hoverHz: 0.35,
-        attackCooldown: 1.6,
-        burstCount: 3,
-        burstInterval: 0.16,
-        bulletSpeed: 140
+        attackCooldown: 1.4,
+        gust: { telegraph: 0.5, duration: 1.4, push: 150, pronePush: 60 },
+        lightning: { count: 3, interval: 0.18, speed: 190, spreadDeg: 14 },
+        sweep: { telegraph: 0.45, speed: 260, height: 18 }
       },
       phase2: {
-        hoverHz: 0.65,
+        hoverHz: 0.6,
         attackCooldown: 1.1,
-        burstCount: 4,
-        burstInterval: 0.14,
-        bulletSpeed: 165,
-        sweepTelegraph: 0.5,
-        sweepSpeed: 230,
-        sweepHeight: 18
+        slam: { telegraph: 0.55, fallSpeed: 620, rest: 0.6, shards: 7, shardSpeed: 170, shardDamage: 10 },
+        serviceDrones: 2
       },
       phase3: {
-        hoverHz: 1,
-        attackCooldown: 0.75,
-        fanCount: 5,
-        fanSpreadDeg: 56,
-        bulletSpeed: 180,
-        chargeTelegraph: 0.45,
-        chargeSpeed: 420,
-        chargeRest: 0.35,
+        hoverHz: 0.9,
+        attackCooldown: 0.9,
+        charge: { telegraph: 0.8, speed: 540, rest: 0.4, returnSpeed: 220 },
+        quake: { interval: 2.8, telegraph: 0.5, damage: 10, knockUp: -220 },
+        lightning: { count: 5, interval: 0.12, speed: 210, spreadDeg: 24 },
         smokeRate: 30
-      }
+      },
+      finale: { hitStop: 1.5, explosionsDuration: 1.2, fallDuration: 1.3 }
     }
   };
 
@@ -539,6 +537,13 @@
     game_over: { wave: "square", duty: 0.5, freq: 660, duration: 1, arp: [1, 0.75, 0.63, 0.5], arpStep: 0.25, decay: 0.2, gain: 0.45 },
     victory: { wave: "square", duty: 0.5, freq: 330, duration: 0.9, arp: [1, 1.25, 1.5, 2, 2, 2], arpStep: 0.15, decay: 0.2, gain: 0.45 },
     charge: { wave: "saw", freq: 90, freqEnd: 420, duration: 0.45, decay: 0.1, gain: 0.35 },
+    ricochet: { wave: "square", duty: 0.5, freq: 2400, freqEnd: 900, duration: 0.09, decay: 0.07, vibratoDepth: 0.15, vibratoRate: 90, gain: 0.3 },
+    zap: { wave: "noise", noiseRate: 9e3, freq: 1, duration: 0.18, lowpass: 6e3, lowpassEnd: 1200, decay: 0.12, gain: 0.35 },
+    gust: { wave: "noise", freq: 1, duration: 1.2, lowpass: 400, lowpassEnd: 1800, attack: 0.3, decay: 0.5, gain: 0.35 },
+    slam: { wave: "noise", freq: 1, duration: 0.5, lowpass: 900, lowpassEnd: 80, decay: 0.4, gain: 0.8 },
+    quake: { wave: "triangle", freq: 60, freqEnd: 30, duration: 0.7, decay: 0.5, vibratoDepth: 0.3, vibratoRate: 18, gain: 0.5 },
+    laser: { wave: "square", duty: 0.5, freq: 900, freqEnd: 1800, duration: 0.7, attack: 0.05, decay: 0.2, vibratoDepth: 0.02, vibratoRate: 40, gain: 0.25 },
+    crack: { wave: "noise", noiseRate: 3e3, freq: 1, duration: 0.35, lowpass: 2500, lowpassEnd: 300, decay: 0.3, gain: 0.6 },
     ui: { wave: "square", duty: 0.5, freq: 880, freqEnd: 1320, duration: 0.08, decay: 0.05, gain: 0.3 }
   };
 
@@ -2014,6 +2019,9 @@
       this.hitsTerrain = true;
       this.color = "#fff";
       this.age = 0;
+      this.kind = "default";
+      /** Po rykoszecie pocisk gracza nie zadaje obrażeń. */
+      this.spent = false;
     }
   };
   function impactSparks(world, x, y, vx, vy) {
@@ -2031,6 +2039,49 @@
       gravity: 380,
       angle: [back - 0.9, back + 0.9]
     });
+  }
+  function drawBolt(ctx, b) {
+    const n = Math.hypot(b.vx, b.vy) || 1, dx = b.vx / n, dy = b.vy / n;
+    const seg = 4, segs = 4;
+    ctx.strokeStyle = Math.floor(b.age * 40) % 2 ? "#dff6ff" : "#5ec8ff";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    let x = b.x - dx * seg * segs / 2, y = b.y - dy * seg * segs / 2;
+    ctx.moveTo(Math.round(x), Math.round(y));
+    for (let i = 1; i <= segs; i++) {
+      const off = (i % 2 ? 1 : -1) * 2 * Math.sin(b.age * 60 + i);
+      x += dx * seg;
+      y += dy * seg;
+      ctx.lineTo(Math.round(x - dy * off), Math.round(y + dx * off));
+    }
+    ctx.stroke();
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(Math.round(b.x) - 1, Math.round(b.y) - 1, 2, 2);
+  }
+  function drawShard(ctx, b) {
+    ctx.save();
+    ctx.translate(Math.round(b.x), Math.round(b.y));
+    ctx.rotate(b.age * 9);
+    ctx.fillStyle = "#e5e9ef";
+    ctx.fillRect(-4, -2, 8, 4);
+    ctx.fillStyle = "#7d8794";
+    ctx.fillRect(-4, 1, 8, 1);
+    ctx.fillStyle = "#2b2f36";
+    ctx.fillRect(2, -2, 2, 1);
+    ctx.restore();
+  }
+  function drawMine(ctx, b) {
+    const r = b.radius + Math.sin(b.age * 18) * 1;
+    ctx.fillStyle = "rgba(94,200,255,0.35)";
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, r + 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = Math.floor(b.age * 12) % 2 ? "#5ec8ff" : "#dff6ff";
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#2b2f36";
+    ctx.fillRect(Math.round(b.x) - 1, Math.round(b.y) - 1, 2, 2);
   }
   var BulletPool = class {
     constructor(size) {
@@ -2051,6 +2102,8 @@
       b.hitsTerrain = s.hitsTerrain ?? s.owner === "player";
       b.color = s.color ?? (s.owner === "player" ? "#ffe36b" : "#ff6b6b");
       b.age = 0;
+      b.kind = s.kind ?? (s.owner === "enemy" ? "saw" : "default");
+      b.spent = false;
       return b;
     }
     update(dt, world) {
@@ -2080,9 +2133,23 @@
           screw.drawAnchored(ctx, screw.frameAt("spin", b.age), b.x, b.y, screw.def.anchorX ?? 10, screw.def.anchorY ?? 3, { rotation: Math.atan2(b.vy, b.vx) });
           return;
         }
-        if (b.owner === "enemy" && saw) {
-          saw.drawAnchored(ctx, saw.frameAt("spin", b.age), b.x, b.y, 5, 5, { rotation: b.age * 14 });
-          return;
+        if (b.owner === "enemy") {
+          if (b.kind === "bolt") {
+            drawBolt(ctx, b);
+            return;
+          }
+          if (b.kind === "shard") {
+            drawShard(ctx, b);
+            return;
+          }
+          if (b.kind === "mine") {
+            drawMine(ctx, b);
+            return;
+          }
+          if (saw) {
+            saw.drawAnchored(ctx, saw.frameAt("spin", b.age), b.x, b.y, 5, 5, { rotation: b.age * 14 });
+            return;
+          }
         }
         ctx.fillStyle = b.color;
         if (b.owner === "player") {
@@ -2234,7 +2301,7 @@
       "####################",
       "####################"
     ],
-    // Ekran 7 – arena bossa
+    // Ekran 7 – arena bossa (górne kratownice = ucieczka przed drganiami podłoża w fazie 3)
     [
       "B...................",
       "....................",
@@ -2242,10 +2309,10 @@
       "....................",
       "..............X.....",
       "....................",
+      ".....====...........",
       "....................",
       "....................",
-      "....................",
-      "....................",
+      ".====.....====......",
       "....................",
       "....................",
       "....................",
@@ -2764,6 +2831,8 @@
       this.weapon = new MakitaGun();
       this.state = IDLE;
       this.aim = { x: 1, y: 0 };
+      /** Zewnętrzna siła pozioma (np. podmuch bossa) – ustawiana co klatkę przez świat, zerowana po użyciu. */
+      this.pushVx = 0;
       /** Punkt wylotu tarczy/lufy w świecie – źródło pocisków, błysku i iskier. */
       this.muzzle = { x: 0, y: 0 };
       // dane stanów
@@ -2842,7 +2911,8 @@
       if (this.recoil > 0) this.recoil = Math.max(0, this.recoil - dt * 40);
       this.state.update(this, dt, world);
       this.vy = Math.min(this.vy + CONFIG.physics.gravity * dt, CONFIG.physics.maxFallSpeed);
-      const res = moveAndCollide(this, world.level, this.vx * dt, this.vy * dt, { dropThrough: this.dropThroughTimer > 0 });
+      const res = moveAndCollide(this, world.level, (this.vx + this.pushVx) * dt, this.vy * dt, { dropThrough: this.dropThroughTimer > 0 });
+      this.pushVx = 0;
       this.onGround = res.onGround;
       if (res.onGround) {
         if (this.vy > 0) this.vy = 0;
@@ -3226,6 +3296,9 @@
       this.attackTimer = D.attackInterval;
       this.chargeTimer = 0;
       this.chargeDir = { x: 0, y: 0 };
+      /** Dron serwisowy (wsparcie bossa): krąży w arenie i ostrzeliwuje gracza wyładowaniami. */
+      this.service = false;
+      this.serviceTimer = 1.2;
       this.w = D.width;
       this.h = D.height;
       this.originX = x;
@@ -3241,6 +3314,13 @@
       this.patrolT = 0;
       this.attackTimer = D.attackInterval;
       this.facing = -1;
+      this.service = false;
+      this.serviceTimer = 1.2;
+    }
+    /** Włącza tryb serwisowy: brak despawnu, ostrzał zamiast min/szarż. */
+    setService() {
+      this.service = true;
+      this.despawnOffscreen = false;
     }
     update(dt, world) {
       const player = world.player;
@@ -3252,6 +3332,16 @@
           this.facing = px < this.x ? -1 : 1;
           this.x = px;
           this.y = py + Math.sin(this.age * 9) * 1.5;
+          if (this.service) {
+            this.serviceTimer -= dt;
+            if (this.serviceTimer <= 0 && !player.isDead) {
+              this.serviceTimer = 2.2;
+              const d = normalize(player.cx - this.cx, player.cy - this.cy);
+              world.fireEnemyBullet(this.cx, this.bottom, d.x, d.y, 170, 10, { kind: "bolt", radius: 3 });
+              Sfx.play("zap", 0.6);
+            }
+            break;
+          }
           this.attackTimer -= dt;
           if (this.attackTimer <= 0 && world.camera.isVisible(this.x, this.y, this.w, this.h) && !player.isDead) {
             this.attackTimer = D.attackInterval;
@@ -3292,7 +3382,7 @@
     }
     dropBomb(world) {
       Sfx.play("drone_bomb");
-      world.fireEnemyBullet(this.cx, this.bottom + 2, 0, 1, D.bombSpeed * 0.4, D.bombDamage, { gravity: 500, radius: 4, color: "#f39c12" });
+      world.fireEnemyBullet(this.cx, this.bottom + 2, 0, 1, D.bombSpeed * 0.4, D.bombDamage, { gravity: 260, radius: 4, kind: "mine", hitsTerrain: true, life: 5 });
     }
     startCharge(world) {
       const p = world.player;
@@ -3353,12 +3443,56 @@
 
   // src/entities/boss/BossPhases.ts
   var B = CONFIG.boss;
-  var BurstShot = class {
-    constructor(count, interval, speed) {
-      this.count = count;
-      this.interval = interval;
-      this.speed = speed;
-      this.name = "burst";
+  var WindGust = class {
+    constructor(cfg = B.phase1.gust) {
+      this.cfg = cfg;
+      this.name = "gust";
+      this.t = 0;
+      this.stage = "telegraph";
+    }
+    start(boss) {
+      this.t = 0;
+      this.stage = "telegraph";
+      boss.telegraphing = true;
+      boss.tilt = 0;
+    }
+    update(boss, dt, world) {
+      this.t += dt;
+      if (this.stage === "telegraph") {
+        boss.tilt = -Math.sin(this.t / this.cfg.telegraph * Math.PI / 2) * 0.25;
+        if (this.t >= this.cfg.telegraph) {
+          this.stage = "blow";
+          this.t = 0;
+          boss.telegraphing = false;
+          boss.tilt = 0.35;
+          Sfx.play("gust");
+        }
+        return false;
+      }
+      const p = world.player;
+      if (!p.isDead) p.pushVx = -(p.state.name === "prone" ? this.cfg.pronePush : this.cfg.push);
+      world.particles.emit({
+        x: boss.arenaRight - 4,
+        y: 30 + Math.random() * (boss.floorY - 40),
+        count: 2,
+        color: ["#ffffff", "#dff6ff"],
+        speed: [260, 340],
+        life: [0.3, 0.4],
+        size: [1, 2],
+        angle: [Math.PI - 0.05, Math.PI + 0.05]
+      });
+      boss.tilt = 0.35 * (1 - this.t / this.cfg.duration);
+      if (this.t >= this.cfg.duration) {
+        boss.tilt = 0;
+        return true;
+      }
+      return false;
+    }
+  };
+  var Lightning = class {
+    constructor(cfg = B.phase1.lightning) {
+      this.cfg = cfg;
+      this.name = "lightning";
       this.fired = 0;
       this.timer = 0;
     }
@@ -3369,80 +3503,63 @@
     update(boss, dt, world) {
       this.timer -= dt;
       if (this.timer <= 0) {
-        boss.shootAtPlayer(world, this.speed);
+        const p = world.player;
+        const origin = boss.leadingEdgePoint(this.fired / Math.max(1, this.cfg.count - 1));
+        const base = Math.atan2(p.cy - origin.y, p.cx - origin.x);
+        const a = base + degToRad((Math.random() * 2 - 1) * this.cfg.spreadDeg);
+        world.fireEnemyBullet(origin.x, origin.y, Math.cos(a), Math.sin(a), this.cfg.speed, B.bulletDamage, { kind: "bolt", radius: 3 });
+        world.particles.emit({ x: origin.x, y: origin.y, count: 4, color: ["#dff6ff", "#5ec8ff"], speed: [30, 90], life: [0.1, 0.2] });
+        Sfx.play("zap");
         this.fired++;
-        this.timer = this.interval;
+        this.timer = this.cfg.interval;
       }
-      return this.fired >= this.count;
+      return this.fired >= this.cfg.count;
     }
   };
-  var FanShot = class {
-    constructor(count, spreadDeg, speed) {
-      this.count = count;
-      this.spreadDeg = spreadDeg;
-      this.speed = speed;
-      this.name = "fan";
-    }
-    start(boss, world) {
-      const p = world.player;
-      const base = Math.atan2(p.cy - boss.cy, p.cx - boss.cx);
-      const spread = degToRad(this.spreadDeg);
-      for (let i = 0; i < this.count; i++) {
-        const t = this.count === 1 ? 0 : i / (this.count - 1) - 0.5;
-        const a = base + t * spread;
-        world.fireEnemyBullet(boss.cx, boss.cy, Math.cos(a), Math.sin(a), this.speed, B.bulletDamage);
-      }
-    }
-    update() {
-      return true;
-    }
-  };
-  var SweepAttack = class {
-    constructor(telegraph, speed, height) {
-      this.telegraph = telegraph;
-      this.speed = speed;
-      this.height = height;
+  var LowSweep = class {
+    constructor(cfg = B.phase1.sweep) {
+      this.cfg = cfg;
       this.name = "sweep";
       this.stage = "telegraph";
       this.timer = 0;
     }
     start(boss) {
       this.stage = "telegraph";
-      this.timer = this.telegraph;
+      this.timer = this.cfg.telegraph;
       boss.movementLocked = true;
       boss.telegraphing = true;
     }
     update(boss, dt, world) {
-      const floorTopY = boss.floorY - this.height;
+      const floorTopY = boss.floorY - this.cfg.height;
       switch (this.stage) {
         case "telegraph":
           this.timer -= dt;
           if (this.timer <= 0) {
             boss.telegraphing = false;
-            boss.setHorizontal(this.height);
+            boss.setHorizontal(this.cfg.height);
             this.stage = "descend";
           }
           return false;
         case "descend":
-          if (boss.moveTowards(boss.x, floorTopY, this.speed * 1.2, dt)) {
+          if (boss.moveTowards(boss.x, floorTopY, this.cfg.speed * 1.3, dt)) {
             this.stage = "sweepLeft";
-            Sfx.play("explosion", 0.6);
+            Sfx.play("slam", 0.5);
             world.camera.shake(CONFIG.vfx.shake.sweepLand, 0.2);
-            world.particles.emit({ x: boss.cx, y: boss.bottom, count: 12, color: ["#8a94a3", "#c3c8d1", "#ffb300"], speed: [30, 110], life: [0.2, 0.5], gravity: 300, angle: [-Math.PI, 0], spreadX: boss.w / 2 });
+            world.particles.emit({ x: boss.cx, y: boss.bottom, count: 10, color: ["#8a94a3", "#c3c8d1", "#ffb300"], speed: [30, 110], life: [0.2, 0.4], gravity: 300, angle: [-Math.PI, 0], spreadX: boss.w / 2 });
           }
           return false;
         case "sweepLeft":
-          if (boss.moveTowards(boss.arenaX + 4, floorTopY, this.speed, dt)) this.stage = "sweepRight";
+          if (boss.moveTowards(boss.arenaX + 4, floorTopY, this.cfg.speed * 1.6, dt)) this.stage = "sweepRight";
           return false;
         case "sweepRight":
-          if (boss.moveTowards(boss.arenaRight - boss.w - 4, floorTopY, this.speed, dt)) {
+          if (boss.moveTowards(boss.arenaRight - boss.w - 4, floorTopY, this.cfg.speed, dt)) {
             boss.setVertical();
             this.stage = "return";
           }
           return false;
         case "return": {
           const t = boss.hoverTarget();
-          if (boss.moveTowards(t.x, t.y, this.speed, dt)) {
+          if (boss.moveTowards(t.x, t.y, this.cfg.speed, dt)) {
             boss.movementLocked = false;
             return true;
           }
@@ -3451,53 +3568,112 @@
       }
     }
   };
-  var ChargeAttack = class {
-    constructor(telegraph, speed, rest) {
-      this.telegraph = telegraph;
-      this.speed = speed;
-      this.rest = rest;
+  var PitchSlam = class {
+    constructor(cfg = B.phase2.slam) {
+      this.cfg = cfg;
+      this.name = "slam";
+      this.stage = "aim";
+      this.timer = 0;
+      this.targetX = 0;
+    }
+    start(boss, world) {
+      this.stage = "aim";
+      this.timer = this.cfg.telegraph;
+      boss.movementLocked = true;
+      boss.telegraphing = true;
+      boss.setHorizontal(20);
+      this.targetX = clamp(world.player.cx - boss.w / 2, boss.arenaX + 2, boss.arenaRight - boss.w - 2);
+    }
+    update(boss, dt, world) {
+      switch (this.stage) {
+        case "aim":
+          this.timer -= dt;
+          boss.moveTowards(this.targetX, 30, 320, dt);
+          boss.shakeOffset = Math.sin(boss.age * 50) * 1.5;
+          if (this.timer <= 0) {
+            this.stage = "fall";
+            boss.telegraphing = false;
+            boss.shakeOffset = 0;
+          }
+          return false;
+        case "fall":
+          if (boss.moveTowards(boss.x, boss.floorY - boss.h, this.cfg.fallSpeed, dt)) {
+            this.stage = "rest";
+            this.timer = this.cfg.rest;
+            Sfx.play("slam");
+            world.camera.shake(6, 0.35);
+            for (let i = 0; i < this.cfg.shards; i++) {
+              const a = -Math.PI * (0.15 + 0.7 * (i / (this.cfg.shards - 1)));
+              const sp = this.cfg.shardSpeed * (0.8 + Math.random() * 0.4);
+              world.fireEnemyBullet(boss.x + Math.random() * boss.w, boss.y, Math.cos(a), Math.sin(a), sp, this.cfg.shardDamage, { kind: "shard", radius: 3, gravity: 520, hitsTerrain: true, life: 3 });
+            }
+            world.particles.emit({ x: boss.cx, y: boss.bottom, count: 15, color: ["#b9b19f", "#8f8a7d", "#e5e9ef"], speed: [40, 140], life: [0.25, 0.4], gravity: 300, angle: [-Math.PI, 0], spreadX: boss.w / 2 });
+          }
+          return false;
+        case "rest":
+          this.timer -= dt;
+          if (this.timer <= 0) this.stage = "rise";
+          return false;
+        case "rise": {
+          boss.setVertical();
+          const t = boss.hoverTarget();
+          if (boss.moveTowards(t.x, t.y, 260, dt)) {
+            boss.movementLocked = false;
+            return true;
+          }
+          return false;
+        }
+      }
+    }
+  };
+  var HorizontalCharge = class {
+    constructor(cfg = B.phase3.charge) {
+      this.cfg = cfg;
       this.name = "charge";
       this.stage = "telegraph";
       this.timer = 0;
-      this.target = { x: 0, y: 0 };
     }
-    start(boss) {
+    start(boss, world) {
       this.stage = "telegraph";
-      this.timer = this.telegraph;
+      this.timer = this.cfg.telegraph;
       boss.movementLocked = true;
-      boss.telegraphing = true;
+      boss.setHorizontal(22);
+      const y = clamp(world.player.cy - boss.h / 2, 12, boss.floorY - boss.h - 2);
+      boss.y = y;
+      boss.laserY = boss.cy;
+      Sfx.play("laser");
     }
     update(boss, dt, world) {
       switch (this.stage) {
         case "telegraph":
           this.timer -= dt;
-          boss.shakeOffset = Math.sin(boss.age * 60) * 2;
+          boss.shakeOffset = Math.sin(boss.age * 70) * 1.5;
           if (this.timer <= 0) {
-            boss.shakeOffset = 0;
-            boss.telegraphing = false;
-            const p = world.player;
-            this.target = {
-              x: clamp(p.cx - boss.w / 2, boss.arenaX + 2, boss.arenaRight - boss.w - 2),
-              y: clamp(p.cy - boss.h / 2, 8, boss.floorY - boss.h)
-            };
             this.stage = "dash";
+            boss.laserY = null;
+            boss.shakeOffset = 0;
             Sfx.play("charge");
           }
           return false;
         case "dash":
-          if (boss.moveTowards(this.target.x, this.target.y, this.speed, dt)) {
+          world.particles.emit({ x: boss.x + boss.w, y: boss.cy, count: 2, color: ["#ff9a90", "#ffffff"], speed: [60, 120], life: [0.15, 0.3], angle: [-0.3, 0.3], spreadY: boss.h / 2 });
+          if (boss.moveTowards(boss.arenaX + 2, boss.y, this.cfg.speed, dt)) {
             this.stage = "rest";
-            this.timer = this.rest;
-            world.particles.emit({ x: boss.cx, y: boss.bottom, count: 10, color: ["#bdc3c7", "#7f8c8d"], speed: [20, 80], life: [0.2, 0.5] });
+            this.timer = this.cfg.rest;
+            world.camera.shake(4, 0.25);
+            Sfx.play("slam", 0.6);
           }
           return false;
         case "rest":
           this.timer -= dt;
-          if (this.timer <= 0) this.stage = "return";
+          if (this.timer <= 0) {
+            this.stage = "return";
+            boss.setVertical();
+          }
           return false;
         case "return": {
           const t = boss.hoverTarget();
-          if (boss.moveTowards(t.x, t.y, this.speed * 0.55, dt)) {
+          if (boss.moveTowards(t.x, t.y, this.cfg.returnSpeed, dt)) {
             boss.movementLocked = false;
             return true;
           }
@@ -3510,12 +3686,13 @@
     return {
       name,
       startsAt,
-      enter(boss) {
+      enter(boss, world) {
         boss.hoverHz = cfg.hoverHz;
         boss.attackCooldown = cfg.attackCooldown;
         boss.tint = cfg.tint;
         boss.setPatterns(patterns());
-        boss.resetAttackTimer(0.8);
+        boss.resetAttackTimer(0.9);
+        hooks.enter?.(boss, world);
       },
       update(boss, dt, world) {
         boss.runAttackCycle(dt, world);
@@ -3529,59 +3706,69 @@
   function createTurbinePhases() {
     const p1 = B.phase1, p2 = B.phase2, p3 = B.phase3;
     return [
-      // Faza 1 – powolny hover, podstawowe serie.
+      // Faza 1 – podmuch, wyładowania, niski zamach; wrażliwy tylko winglet.
       makePhase(
         "Faza 1",
         B.phaseThresholds[0],
         { hoverHz: p1.hoverHz, attackCooldown: p1.attackCooldown, tint: "#95a5a6" },
-        () => [new BurstShot(p1.burstCount, p1.burstInterval, p1.bulletSpeed)]
+        () => [new WindGust(), new Lightning(p1.lightning), new LowSweep(), new Lightning(p1.lightning)]
       ),
-      // Faza 2 – szybciej + zamach po podłodze.
+      // Faza 2 – Pitch Slam z odłamkami + 2 drony serwisowe.
       makePhase(
         "Faza 2",
         B.phaseThresholds[1],
         { hoverHz: p2.hoverHz, attackCooldown: p2.attackCooldown, tint: "#e67e22" },
-        () => [
-          new BurstShot(p2.burstCount, p2.burstInterval, p2.bulletSpeed),
-          new SweepAttack(p2.sweepTelegraph, p2.sweepSpeed, p2.sweepHeight)
-        ]
+        () => [new PitchSlam(), new Lightning(p1.lightning), new WindGust(), new PitchSlam()],
+        {
+          enter(boss, world) {
+            for (let i = 0; i < p2.serviceDrones; i++) {
+              const d = new Drone(boss.arenaX + 90 + i * 110, 50 + i * 20);
+              d.setService();
+              world.spawnEnemy(d);
+            }
+          }
+        }
       ),
-      // Faza 3 – enrage: czerwony, dym, szarże i wachlarze.
+      // Faza 3 – rezonans: rdzeń odsłonięty, drgania podłoża, szarże z laserem, gęstsze wyładowania.
       makePhase(
         "Faza 3 (ENRAGE)",
         B.phaseThresholds[2],
         { hoverHz: p3.hoverHz, attackCooldown: p3.attackCooldown, tint: "#e74c3c" },
-        () => [
-          new FanShot(p3.fanCount, p3.fanSpreadDeg, p3.bulletSpeed),
-          new ChargeAttack(p3.chargeTelegraph, p3.chargeSpeed, p3.chargeRest),
-          new FanShot(p3.fanCount, p3.fanSpreadDeg, p3.bulletSpeed),
-          new SweepAttack(p2.sweepTelegraph * 0.7, p2.sweepSpeed * 1.3, p2.sweepHeight)
-        ],
+        () => [new HorizontalCharge(), new Lightning(p3.lightning), new HorizontalCharge(), new Lightning(p3.lightning)],
         {
+          enter(boss, world) {
+            boss.coreExposed = true;
+            Sfx.play("crack");
+            world.camera.shake(5, 0.4);
+            world.particles.emit({ x: boss.cx, y: boss.cy, count: 15, color: ["#e5e9ef", "#7d8794", "#ff2a2a"], speed: [60, 160], life: [0.3, 0.4], gravity: 200 });
+          },
           update(boss, dt, world) {
+            boss.quakeTimer -= dt;
+            if (boss.quakeTimer < p3.quake.telegraph && boss.quakeTimer > 0) {
+              world.camera.shake(1, 0.1);
+              if (Math.random() < 0.5) world.particles.emit({ x: boss.arenaX + Math.random() * 320, y: boss.floorY, count: 1, color: ["#b9b19f", "#8f8a7d"], speed: [20, 60], life: [0.2, 0.4], angle: [-Math.PI * 0.8, -Math.PI * 0.2] });
+            }
+            if (boss.quakeTimer <= 0) {
+              boss.quakeTimer = p3.quake.interval;
+              Sfx.play("quake");
+              world.camera.shake(3, 0.3);
+              const p = world.player;
+              if (p.onGround && p.bottom >= boss.floorY - 1 && !p.isDead) {
+                p.takeDamage(p3.quake.damage, p.cx - 1, world);
+                p.vy = p3.quake.knockUp;
+                p.onGround = false;
+              }
+              world.particles.emit({ x: boss.arenaX + 160, y: boss.floorY, count: 15, color: ["#b9b19f", "#8f8a7d", "#e5e9ef"], speed: [40, 120], life: [0.25, 0.4], gravity: 300, angle: [-Math.PI * 0.9, -Math.PI * 0.1], spreadX: 160 });
+            }
             boss.smokeAcc += dt * p3.smokeRate;
             while (boss.smokeAcc >= 1) {
               boss.smokeAcc -= 1;
-              world.particles.emit({
-                x: boss.cx,
-                y: boss.y + 4,
-                count: 1,
-                color: ["#2d3436", "#636e72", "#b33939"],
-                speed: [10, 30],
-                life: [0.5, 1],
-                size: [2, 5],
-                angle: [-Math.PI * 0.75, -Math.PI * 0.25],
-                spreadX: boss.w / 2
-              });
+              world.particles.emit({ x: boss.cx, y: boss.y + 4, count: 1, color: ["#2d3436", "#636e72", "#b33939"], speed: [10, 30], life: [0.3, 0.4], size: [2, 4], angle: [-Math.PI * 0.75, -Math.PI * 0.25], spreadX: boss.w / 2 });
             }
           }
         }
       )
     ];
-  }
-  function aimAtPlayer(boss, world) {
-    const p = world.player;
-    return normalize(p.cx - boss.cx, p.cy - boss.cy);
   }
 
   // src/entities/boss/TurbineBoss.ts
@@ -3592,7 +3779,7 @@
       this.arenaX = arenaX;
       this.floorY = floorY;
       this.visual = new PlaceholderVisual({ color: "#95a5a6", accent: "#ecf0f1", faceMarker: false, outline: "#2c3e50" });
-      // parametry ustawiane przez fazy
+      // parametry ustawiane przez fazy / ataki
       this.hoverHz = B2.phase1.hoverHz;
       this.attackCooldown = B2.phase1.attackCooldown;
       this.tint = "#95a5a6";
@@ -3600,6 +3787,13 @@
       this.telegraphing = false;
       this.shakeOffset = 0;
       this.smokeAcc = 0;
+      /** Odchylenie skrzydła (rad) – Wind Gust. */
+      this.tilt = 0;
+      /** Y promienia celowniczego szarży (świat) lub null. */
+      this.laserY = null;
+      /** Faza 3: pęknięty korpus, odsłonięty rdzeń – jedyny wrażliwy punkt. */
+      this.coreExposed = false;
+      this.quakeTimer = B2.phase3.quake.interval;
       this.hoverT = 0;
       this.attackTimer = 1.5;
       this.patterns = [];
@@ -3611,6 +3805,11 @@
       /** Ostatnie przejście fazy – `update` odczytuje je i emituje event `boss:phase`. */
       this.lastPhaseChange = null;
       this.pendingShake = 0;
+      // finał
+      this.dyingStage = "none";
+      this.dyingTimer = 0;
+      this.fallVy = 0;
+      this.fallRot = 0;
       this.arenaRight = arenaX + CONFIG.view.width;
       this.w = B2.width;
       this.h = B2.height;
@@ -3628,6 +3827,36 @@
     }
     get isIntro() {
       return this.introTimer > 0;
+    }
+    get isDying() {
+      return this.dyingStage !== "none";
+    }
+    get vertical() {
+      return this.w < this.h;
+    }
+    // ---- Geometria / strefy trafień ------------------------------------------
+    /** Prostokąt końcówki skrzydła (winglet) – dół w pionie, lewy koniec w poziomie. */
+    wingletRect() {
+      const L = B2.wingletLength;
+      return this.vertical ? { x: this.x, y: this.bottom - L, w: this.w, h: L } : { x: this.x, y: this.y, w: L, h: this.h };
+    }
+    coreRect() {
+      const s = B2.coreSize;
+      return { x: this.cx - s / 2, y: this.cy - s / 2, w: s, h: s };
+    }
+    /** Klasyfikuje trafienie pocisku (okrąg) w strefę. */
+    hitZone(px, py, r) {
+      if (!this.overlapsCircle(px, py, r)) return "none";
+      if (this.coreExposed) {
+        const c = this.coreRect();
+        return rectsOverlap(px - r, py - r, r * 2, r * 2, c.x, c.y, c.w, c.h) ? "core" : "armor";
+      }
+      const wl = this.wingletRect();
+      return rectsOverlap(px - r, py - r, r * 2, r * 2, wl.x, wl.y, wl.w, wl.h) ? "weak" : "armor";
+    }
+    /** Punkt na krawędzi natarcia (0..1 wzdłuż skrzydła) – receptory odgromowe. */
+    leadingEdgePoint(t) {
+      return this.vertical ? { x: this.facing < 0 ? this.x - 1 : this.x + this.w + 1, y: this.y + 8 + (this.h - 16) * t } : { x: this.x + 8 + (this.w - 16) * t, y: this.bottom + 1 };
     }
     // ---- API dla wzorców ataków --------------------------------------------
     hoverTarget() {
@@ -3650,7 +3879,7 @@
       this.y += dy / dist * step;
       return false;
     }
-    /** Skrzydło ułożone poziomo (zamach przy podłodze) – zachowuje środek. */
+    /** Skrzydło ułożone poziomo (zamach, slam, szarża) – zachowuje środek. */
     setHorizontal(height) {
       const cx = this.cx, cy = this.cy;
       this.w = B2.height;
@@ -3669,10 +3898,6 @@
       this.prevX = this.x;
       this.prevY = this.y;
     }
-    shootAtPlayer(world, speed) {
-      const d = aimAtPlayer(this, world);
-      world.fireEnemyBullet(this.cx + d.x * 6, this.cy + d.y * 6, d.x, d.y, speed, B2.bulletDamage);
-    }
     setPatterns(patterns) {
       this.patterns = patterns;
       this.patternIndex = 0;
@@ -3685,6 +3910,8 @@
       this.movementLocked = false;
       this.telegraphing = false;
       this.shakeOffset = 0;
+      this.tilt = 0;
+      this.laserY = null;
       this.setVertical();
     }
     /** Cykl: cooldown → kolejny wzorzec z listy → aż do jego zakończenia. */
@@ -3714,39 +3941,85 @@
       }
       this.lastPhaseChange = { from, to };
     }
+    /** Finał: hit-stop → kaskada eksplozji → skrzydło łamie się i odpada → boss:died. */
     die(world) {
-      if (!this.alive) return;
-      super.die(world);
+      if (this.dyingStage !== "none") return;
+      this.dyingStage = "hitstop";
+      this.dyingTimer = B2.finale.hitStop;
+      this.vulnerable = false;
+      this.cancelAttack();
+      this.laserY = null;
+      this.hitFlash = 0.3;
       Sfx.play("boss_die");
-      Sfx.play("boss_rumble");
+      world.hitStop(B2.finale.hitStop);
+      world.camera.shake(CONFIG.vfx.shake.bossDeath, 0.5);
+    }
+    finishDeath(world) {
+      this.dyingStage = "done";
+      this.alive = false;
+      world.addScore(this.scoreValue);
+      world.events.emit("enemy:died", { enemy: this });
       world.events.emit("boss:died", void 0);
     }
-    deathEffect(world) {
-      world.camera.shake(CONFIG.vfx.shake.bossDeath, 0.9);
-      for (let i = 0; i < 6; i++) {
-        world.fx.spawn("explosion", this.x + Math.random() * this.w, this.y + Math.random() * this.h);
-        world.particles.emit({
-          x: this.x + Math.random() * this.w,
-          y: this.y + Math.random() * this.h,
-          count: 20,
-          color: ["#ff9f43", "#ffdd59", "#ffffff", "#e74c3c", "#2d3436"],
-          speed: [30, 200],
-          life: [0.4, 1.2],
-          size: [2, 6],
-          gravity: 200
-        });
+    updateDying(dt, world) {
+      this.dyingTimer -= dt;
+      switch (this.dyingStage) {
+        case "hitstop":
+          if (this.dyingTimer <= 0) {
+            this.dyingStage = "explosions";
+            this.dyingTimer = B2.finale.explosionsDuration;
+            Sfx.play("boss_rumble");
+          }
+          break;
+        case "explosions":
+          if (Math.floor(this.dyingTimer * 8) !== Math.floor((this.dyingTimer + dt) * 8)) {
+            world.fx.spawn("explosion", this.x + Math.random() * this.w, this.y + Math.random() * this.h);
+            world.camera.shake(3, 0.15);
+            Sfx.play("explosion", 0.5);
+            world.particles.emit({ x: this.cx, y: this.cy, count: 8, color: ["#ff9f43", "#ffdd59", "#e5e9ef", "#2d3436"], speed: [40, 160], life: [0.25, 0.4], gravity: 200, spreadX: this.w / 2, spreadY: this.h / 2 });
+          }
+          if (this.dyingTimer <= 0) {
+            this.dyingStage = "fall";
+            this.dyingTimer = B2.finale.fallDuration;
+            this.fallVy = -60;
+            Sfx.play("crack");
+            world.camera.shake(5, 0.3);
+          }
+          break;
+        case "fall":
+          this.fallVy += CONFIG.physics.gravity * 0.6 * dt;
+          this.y += this.fallVy * dt;
+          this.x -= 20 * dt;
+          this.fallRot += 1.8 * dt;
+          if (Math.random() < 0.3) world.particles.emit({ x: this.x + Math.random() * this.w, y: this.y + Math.random() * this.h, count: 2, color: ["#2d3436", "#636e72", "#ff9f43"], speed: [10, 40], life: [0.3, 0.4], size: [2, 3] });
+          if (this.dyingTimer <= 0 || this.y > this.floorY + 40) {
+            for (let i = 0; i < 4; i++) world.fx.spawn("explosion", this.arenaX + 120 + i * 50, this.floorY - 10 - Math.random() * 30);
+            world.camera.shake(7, 0.6);
+            Sfx.play("explosion");
+            this.finishDeath(world);
+          }
+          break;
+        default:
+          break;
       }
+    }
+    deathEffect() {
     }
     // ---- Update / draw -----------------------------------------------------
     update(dt, world) {
       this.prevX = this.x;
       this.prevY = this.y;
+      this.age += dt;
+      if (this.hitFlash > 0) this.hitFlash -= dt;
+      if (this.dyingStage !== "none") {
+        this.updateDying(dt, world);
+        return;
+      }
       if (this.introTimer > 0) {
         this.introTimer -= dt;
         const t = this.hoverTarget();
         this.moveTowards(t.x, t.y, 120, dt);
         if (this.introTimer <= 0) this.fsm.forcePhase(0, this, world);
-        this.postUpdate(dt, world);
         return;
       }
       this.hoverT += dt;
@@ -3765,15 +4038,22 @@
         this.pendingShake = 0;
       }
       this.facing = world.player.cx < this.cx ? -1 : 1;
-      this.postUpdate(dt, world);
     }
     draw(ctx) {
       const flash = this.hitFlash > 0 || this.telegraphing && Math.floor(this.age * 20) % 2 === 0;
       const pal = BOSS_PALETTES[Math.max(0, Math.min(2, this.phaseIndex))];
       const K = "#050912";
-      const x = Math.round(this.x) + Math.round(this.shakeOffset), y = Math.round(this.y), w = this.w, h = this.h;
+      const w = this.w, h = this.h;
       const vertical = w < h;
       ctx.save();
+      if (this.laserY !== null) {
+        ctx.globalAlpha = 0.5 + 0.4 * Math.abs(Math.sin(this.age * 25));
+        ctx.fillStyle = "#ff2a2a";
+        ctx.fillRect(this.arenaX, Math.round(this.laserY) - 1, this.arenaRight - this.arenaX, 2);
+        ctx.fillStyle = "#ffb3b3";
+        ctx.fillRect(this.arenaX, Math.round(this.laserY), this.arenaRight - this.arenaX, 1);
+        ctx.globalAlpha = 1;
+      }
       const speed = Math.hypot(this.x - this.prevX, this.y - this.prevY);
       if (speed > 3) {
         ctx.globalAlpha = 0.3;
@@ -3781,6 +4061,10 @@
         ctx.fillRect(Math.round(this.prevX), Math.round(this.prevY), w, h);
         ctx.globalAlpha = 1;
       }
+      ctx.translate(Math.round(this.cx) + Math.round(this.shakeOffset), Math.round(this.cy));
+      if (this.tilt) ctx.rotate(this.tilt * this.facing);
+      if (this.dyingStage === "fall") ctx.rotate(this.fallRot);
+      const x = -Math.round(w / 2), y = -Math.round(h / 2);
       ctx.fillStyle = K;
       ctx.fillRect(x, y, w, h);
       ctx.fillStyle = flash ? "#ffffff" : pal.m;
@@ -3792,41 +4076,67 @@
         ctx.fillStyle = pal.d;
         ctx.fillRect(x + 1, y + h - 2, w - 2, 1);
         ctx.fillRect(x + w - 2, y + 1, 1, h - 2);
-        ctx.fillStyle = K;
         const len = vertical ? h : w;
         for (let k = 10; k < len - 6; k += 12) {
+          ctx.fillStyle = K;
           if (vertical) {
             ctx.fillRect(x + 2, y + k, w - 4, 1);
             ctx.fillStyle = pal.l;
             ctx.fillRect(x + 4, y + k + 3, 1, 1);
             ctx.fillRect(x + w - 5, y + k + 3, 1, 1);
-            ctx.fillStyle = K;
           } else {
             ctx.fillRect(x + k, y + 2, 1, h - 4);
             ctx.fillStyle = pal.l;
             ctx.fillRect(x + k + 3, y + 3, 1, 1);
-            ctx.fillStyle = K;
           }
         }
-        ctx.fillStyle = pal.l;
-        for (let k = 4; k < len - 4; k += 6) {
+        ctx.fillStyle = "#5ec8ff";
+        for (let k = 8; k < len - 6; k += 16) {
           if (vertical) ctx.fillRect(this.facing < 0 ? x - 1 : x + w, y + k, 1, 2);
           else ctx.fillRect(x + k, y + h, 2, 1);
         }
+        if (!this.coreExposed) {
+          const L = B2.wingletLength;
+          ctx.fillStyle = pal.l;
+          if (vertical) ctx.fillRect(x + 2, y + h - L, w - 4, L - 2);
+          else ctx.fillRect(x + 2, y + 2, L - 2, h - 4);
+          ctx.fillStyle = Math.floor(this.age * 6) % 2 ? "#ffb300" : "#ffe36b";
+          if (vertical) ctx.fillRect(x + w / 2 - 2, y + h - L / 2 - 2, 4, 4);
+          else ctx.fillRect(x + L / 2 - 2, y + h / 2 - 2, 4, 4);
+        }
       }
-      const cx = Math.round(this.cx) + Math.round(this.shakeOffset), cy = Math.round(this.cy);
       ctx.fillStyle = K;
-      ctx.fillRect(cx - 5, cy - 5, 10, 10);
+      ctx.fillRect(-5, -5, 10, 10);
       ctx.fillStyle = pal.d;
-      ctx.fillRect(cx - 4, cy - 4, 8, 8);
-      ctx.fillStyle = this.phaseIndex >= 2 ? Math.floor(this.age * 6) % 2 ? "#ff2a2a" : "#ff8a80" : pal.l;
-      ctx.fillRect(cx - 2, cy - 2, 4, 4);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(cx - 1, cy - 1, 1, 1);
-      if (this.phaseIndex >= 2 && !flash) {
-        ctx.globalAlpha = 0.25 + 0.15 * Math.sin(this.age * 8);
-        ctx.fillStyle = "#ff2a2a";
-        ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+      ctx.fillRect(-4, -4, 8, 8);
+      if (this.coreExposed) {
+        ctx.fillStyle = K;
+        for (let i = 0; i < 6; i++) {
+          const a = i / 6 * Math.PI * 2;
+          ctx.fillRect(Math.round(Math.cos(a) * 9), Math.round(Math.sin(a) * 9), 2, 2);
+          ctx.fillRect(Math.round(Math.cos(a) * 14), Math.round(Math.sin(a) * 14), 1, 1);
+        }
+        const r = 5 + Math.sin(this.age * 10) * 1.5;
+        ctx.fillStyle = "rgba(255,42,42,0.4)";
+        ctx.beginPath();
+        ctx.arc(0, 0, r + 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = Math.floor(this.age * 10) % 2 ? "#ff2a2a" : "#ff8a80";
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(-1, -1, 2, 2);
+      } else {
+        ctx.fillStyle = pal.l;
+        ctx.fillRect(-2, -2, 4, 4);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(-1, -1, 1, 1);
+      }
+      if (this.dyingStage === "hitstop") {
+        ctx.globalAlpha = 0.6;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(x, y, w, h);
       }
       ctx.restore();
     }
@@ -4042,6 +4352,8 @@
       this.bossTriggered = false;
       this.endTimer = 0;
       this.debug = false;
+      this.hitStopTimer = 0;
+      this.arenaFloorY = 0;
       const start = this.level.findMarker("player") ?? { x: 32, y: 160 };
       this.player = new PlayerController(input, start.x, start.y + CONFIG.view.tile - CONFIG.player.standHeight);
       this.camera.maxX = this.level.widthPx - this.camera.width;
@@ -4057,6 +4369,8 @@
         this.endTimer = 0;
         Sfx.stopAllLoops();
         Jukebox.play("victory");
+        for (const e of this.enemies) if (e.alive) e.die(this);
+        this.enemyBullets.clear();
       });
       this.events.on("player:died", () => {
         this.state = "gameover";
@@ -4131,11 +4445,15 @@
         vy: d.y * speed,
         damage,
         radius: opts.radius ?? CONFIG.bullets.enemyRadius,
-        life: 4,
+        life: opts.life ?? 4,
         gravity: opts.gravity,
-        hitsTerrain: false,
-        color: opts.color
+        hitsTerrain: opts.hitsTerrain ?? false,
+        color: opts.color,
+        kind: opts.kind
       });
+    }
+    hitStop(seconds) {
+      this.hitStopTimer = Math.max(this.hitStopTimer, seconds);
     }
     // ---- Update ------------------------------------------------------------
     update(dt) {
@@ -4147,6 +4465,12 @@
         Sfx.play("ui");
       }
       if (this.input.justPressed("debug")) this.debug = !this.debug;
+      if (this.hitStopTimer > 0) {
+        this.hitStopTimer -= dt;
+        this.particles.update(dt);
+        this.fx.update(dt);
+        return;
+      }
       if (this.state !== "playing") {
         this.endTimer += dt;
         this.particles.update(dt);
@@ -4176,6 +4500,7 @@
         this.camera.lock(this.arenaX);
         const bm = this.level.findMarker("boss");
         const floorY = this.findFloorY(bm ? bm.col : Math.floor((this.arenaX + 200) / this.level.tileSize));
+        this.arenaFloorY = floorY;
         this.boss = new TurbineBoss(this.arenaX, floorY);
         this.events.emit("boss:spawned", { name: CONFIG.boss.name });
         this.hud.showBanner(CONFIG.boss.name, 2.2);
@@ -4234,10 +4559,22 @@
             return;
           }
         }
-        if (this.boss && this.boss.alive && this.boss.overlapsCircle(b.x, b.y, b.radius)) {
-          if (this.boss.vulnerable) this.boss.takeHit(b.damage, this);
-          impactSparks(this, b.x, b.y, b.vx, b.vy);
-          b.active = false;
+        if (this.boss && this.boss.alive && !b.spent) {
+          const zone = this.boss.hitZone(b.x, b.y, b.radius);
+          if (zone === "none") return;
+          if ((zone === "weak" || zone === "core") && this.boss.vulnerable) {
+            this.boss.takeHit(b.damage * (zone === "core" ? 1.5 : 1), this);
+            impactSparks(this, b.x, b.y, b.vx, b.vy);
+            b.active = false;
+          } else {
+            b.spent = true;
+            b.vx = -b.vx * 0.6 + (Math.random() - 0.5) * 80;
+            b.vy = -Math.abs(b.vy) * 0.5 - 90 - Math.random() * 60;
+            b.gravity = 500;
+            b.life = Math.min(b.life, 0.6);
+            Sfx.play("ricochet", 0.7);
+            this.particles.emit({ x: b.x, y: b.y, count: 5, color: ["#ffe36b", "#ffffff"], speed: [40, 120], life: [0.1, 0.25], size: [1, 1.5] });
+          }
         }
       });
       if (player.isDead) return;
@@ -4247,7 +4584,7 @@
         }
       });
       for (const e of this.enemies) if (e.alive && e.overlaps(player)) e.onTouchPlayer(this);
-      if (this.boss && this.boss.alive && !this.boss.isIntro && this.boss.overlaps(player)) this.boss.onTouchPlayer(this);
+      if (this.boss && this.boss.alive && !this.boss.isIntro && !this.boss.isDying && this.boss.overlaps(player)) this.boss.onTouchPlayer(this);
     }
     // ---- Render ------------------------------------------------------------
     draw(ctx, fps = 0) {
@@ -4275,6 +4612,10 @@
       this.fx.draw(ctx);
       this.particles.draw(ctx);
       ctx.restore();
+      if (this.hitStopTimer > 0) {
+        ctx.fillStyle = `rgba(255,255,255,${(0.5 * this.hitStopTimer / CONFIG.boss.finale.hitStop).toFixed(3)})`;
+        ctx.fillRect(0, 0, W, H);
+      }
       this.hud.draw(ctx, this.player, this.score, this.boss, this.time);
       this.hud.drawAudioState(ctx, AudioEngine.muted, AudioEngine.running || !AudioEngine.available);
       if (this.time < 6) this.hud.drawHint(ctx, Math.min(1, 6 - this.time), this.input.gamepadConnected);

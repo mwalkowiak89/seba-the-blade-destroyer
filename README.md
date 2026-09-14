@@ -24,17 +24,18 @@ npm test             # headless smoke test: bot przechodzi poziom i pokonuje bos
 | Ruch / celowanie | Strzałki lub WASD |
 | Skok (koziołek) | Z / K / Spacja |
 | Ogień (auto) | X / J |
-| Kucanie | Dół |
+| Leżenie / czołganie (hurtbox 50%) | Dół (+ lewo/prawo) |
 | Zeskok przez platformę | Dół + Skok |
 | Restart | R / Enter |
 | Wycisz | M (pad: Select) |
+| Debug (FPS) | F3 |
 
 **Gamepad** (standard mapping, np. Xbox / Steam Deck): D-pad lub lewa gałka – ruch/celowanie,
 **A** – skok, **B / X / RT** – ogień, **Start** – restart. Mapowanie w `GAMEPAD_BINDINGS` (`src/core/Input.ts`).
 Chrome zgłasza pad dopiero po pierwszym naciśnięciu dowolnego przycisku.
 
 Celowanie 8-kierunkowe wg reguł Contry: stojąc – prosto lub w górę; w biegu – prosto,
-skos góra/dół; w kuckach – prosto; w powietrzu – dowolny z 8 kierunków.
+skos góra/dół; leżąc – prosto tuż nad ziemią; w powietrzu – dowolny z 8 kierunków.
 
 ## Zasoby i pipeline
 
@@ -93,9 +94,20 @@ rozwiązuje sheet z manifestu leniwie – gdy zasoby nie są załadowane (headle
 Broń gracza to osobna nakładka (`makita`) obracana do 8 kierunków przez 3 orientacje bazowe + odbicia X/Y.
 Dźwięk: `Sfx.register('shoot', 'assets/sfx/makita.wav')` — wywołania `Sfx.play(...)` są już w kodzie.
 
-### Boss — dodawanie ataków
-`BossPhases.ts`: nowy atak = klasa implementująca `AttackPattern<TurbineBoss>` (`start`, `update → done`),
-dopisana do listy wzorców fazy w `createTurbinePhases()`. Przejścia faz emitują `boss:phase` na `EventBus`.
+### Boss „Skrzydło Turbiny"
+`BossPhases.ts`: atak = klasa `AttackPattern<TurbineBoss>` (`start`, `update → done`) dopisana do listy fazy w `createTurbinePhases()`.
+- **Faza 1** (100–66%): `WindGust` (odepchnięcie w lewo – leżąc słabsze), `Lightning` (3 wyładowania z receptorów), `LowSweep`.
+  Wrażliwy tylko **winglet** (końcówka) – trafienia w korpus **rykoszetują** (`GameScene.resolveCollisions`, `boss.hitZone`).
+- **Faza 2** (66–33%): `PitchSlam` (obrót + uderzenie o ziemię, screen shake, odłamki po łuku) + 2 drony serwisowe (`Drone.setService()`).
+- **Faza 3** (33–0%): pęknięcie i **rdzeń** (jedyny hitbox, ×1.5 obrażeń), okresowe **drgania podłoża** (bezpieczne są górne
+  kratownice w arenie), `HorizontalCharge` z czerwonym laserem telegrafującym tor, gęstsze wyładowania.
+- **Finał**: hit-stop 1,5 s (`world.hitStop`), kaskada eksplozji, skrzydło łamie się i odpada → `boss:died` → wyjście z poziomu.
+Przejścia faz emitują `boss:phase` na `EventBus`.
+
+### Wydajność
+Plansza (kafle + dekoracje + platformy) jest prerenderowana raz do offscreen canvasu (`TileRenderer`), pociski, FX, cząstki
+i przeciwnicy używają object poolingu, cząstki mają limity (`CONFIG.vfx.maxParticlesPerEmit`, `maxParticleLife`).
+**F3** – nakładka debug (FPS, liczniki).
 
 ### Poziom
 `world/TestLevel.ts` — 8 ekranów po 20×15 znaków (`#` blok, `=` platforma one-way, `P/S/D/R/B/X` markery).

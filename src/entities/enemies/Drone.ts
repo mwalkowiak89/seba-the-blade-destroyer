@@ -23,6 +23,9 @@ export class Drone extends EnemyBase {
   private attackTimer = D.attackInterval;
   private chargeTimer = 0;
   private chargeDir = { x: 0, y: 0 };
+  /** Dron serwisowy (wsparcie bossa): krąży w arenie i ostrzeliwuje gracza wyładowaniami. */
+  service = false;
+  private serviceTimer = 1.2;
 
   constructor(x: number, y: number) {
     super('drone', D.hp, D.contactDamage, D.score);
@@ -37,7 +40,11 @@ export class Drone extends EnemyBase {
 
   protected override onReset(): void {
     this.originX = this.x; this.originY = this.y; this.mode = 'patrol'; this.patrolT = 0; this.attackTimer = D.attackInterval; this.facing = -1;
+    this.service = false; this.serviceTimer = 1.2;
   }
+
+  /** Włącza tryb serwisowy: brak despawnu, ostrzał zamiast min/szarż. */
+  setService(): void { this.service = true; this.despawnOffscreen = false; }
 
   update(dt: number, world: WorldContext): void {
     const player = world.player;
@@ -50,6 +57,16 @@ export class Drone extends EnemyBase {
         this.x = px;
         this.y = py + Math.sin(this.age * 9) * 1.5; // delikatny bobbing lewitacji
 
+        if (this.service) {
+          this.serviceTimer -= dt;
+          if (this.serviceTimer <= 0 && !player.isDead) {
+            this.serviceTimer = 2.2;
+            const d = normalize(player.cx - this.cx, player.cy - this.cy);
+            world.fireEnemyBullet(this.cx, this.bottom, d.x, d.y, 170, 10, { kind: 'bolt', radius: 3 });
+            Sfx.play('zap', 0.6);
+          }
+          break;
+        }
         this.attackTimer -= dt;
         if (this.attackTimer <= 0 && world.camera.isVisible(this.x, this.y, this.w, this.h) && !player.isDead) {
           this.attackTimer = D.attackInterval;
@@ -84,7 +101,8 @@ export class Drone extends EnemyBase {
 
   private dropBomb(world: WorldContext): void {
     Sfx.play('drone_bomb');
-    world.fireEnemyBullet(this.cx, this.bottom + 2, 0, 1, D.bombSpeed * 0.4, D.bombDamage, { gravity: 500, radius: 4, color: '#f39c12' });
+    // pionowa mina energetyczna – opada wolno, znika na terenie
+    world.fireEnemyBullet(this.cx, this.bottom + 2, 0, 1, D.bombSpeed * 0.4, D.bombDamage, { gravity: 260, radius: 4, kind: 'mine', hitsTerrain: true, life: 5 });
   }
 
   private startCharge(world: WorldContext): void {

@@ -106,8 +106,9 @@ if (bossSpawned) {
   setAction('right', false);
   let f2 = 0;
   const boss = () => (scene as any).boss;
-  while (f2 < 60 * 180 && scene.state === 'playing') {
+  while (f2 < 60 * 240 && scene.state === 'playing') {
     const b = boss();
+    if (b && f2 % 20 === 0 && b.vulnerable && !b.isDying) b.takeHit(25, scene); // bot nie celuje w winglet – symulujemy trafienia
     if (b) {
       const dx = b.cx - scene.player.cx;
       setAction('right', dx > 40); setAction('left', dx < -40 && scene.player.x > scene.camera.x + 20);

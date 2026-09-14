@@ -34,6 +34,8 @@ export class PlayerController extends Entity {
   weapon: WeaponBase = new MakitaGun();
   state: PlayerState = IDLE;
   aim = { x: 1, y: 0 };
+  /** Zewnętrzna siła pozioma (np. podmuch bossa) – ustawiana co klatkę przez świat, zerowana po użyciu. */
+  pushVx = 0;
   /** Punkt wylotu tarczy/lufy w świecie – źródło pocisków, błysku i iskier. */
   muzzle = { x: 0, y: 0 };
 
@@ -123,7 +125,8 @@ export class PlayerController extends Entity {
     // grawitacja
     this.vy = Math.min(this.vy + CONFIG.physics.gravity * dt, CONFIG.physics.maxFallSpeed);
 
-    const res = moveAndCollide(this, world.level, this.vx * dt, this.vy * dt, { dropThrough: this.dropThroughTimer > 0 });
+    const res = moveAndCollide(this, world.level, (this.vx + this.pushVx) * dt, this.vy * dt, { dropThrough: this.dropThroughTimer > 0 });
+    this.pushVx = 0;
     this.onGround = res.onGround;
     if (res.onGround) {
       if (this.vy > 0) this.vy = 0;

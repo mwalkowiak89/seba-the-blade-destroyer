@@ -1,23 +1,27 @@
 import { CONFIG } from '../../core/Config';
 import { Sfx } from '../../render/Audio';
 import { PlaceholderVisual } from '../../render/Visual';
+import { rectsOverlap } from '../../core/MathUtil';
 import { EnemyBase } from '../enemies/EnemyBase';
 import type { WorldContext } from '../../scenes/WorldContext';
 import { BossFSM, type AttackPattern } from './BossFSM';
-import { aimAtPlayer, createTurbinePhases } from './BossPhases';
+import { createTurbinePhases } from './BossPhases';
 
 const B = CONFIG.boss;
 
+export type BossHitZone = 'weak' | 'core' | 'armor' | 'none';
+type DyingStage = 'none' | 'hitstop' | 'explosions' | 'fall' | 'done';
+
 /**
  * Boss "Skrzydło Turbiny Wiatrowej".
- * Encja trzyma stan fizyczny i prymitywy ruchu (hover, moveTowards, orientacja),
- * a zachowanie definiują fazy/wzorce w BossPhases.ts.
+ * Encja trzyma stan fizyczny i prymitywy ruchu (hover, moveTowards, orientacja), zachowanie definiują
+ * fazy/wzorce w BossPhases.ts. Słaby punkt: końcówka skrzydła (winglet); w fazie 3 – odsłonięty rdzeń.
  */
 export class TurbineBoss extends EnemyBase {
   visual = new PlaceholderVisual({ color: '#95a5a6', accent: '#ecf0f1', faceMarker: false, outline: '#2c3e50' });
   readonly fsm: BossFSM<TurbineBoss>;
 
-  // parametry ustawiane przez fazy
+  // parametry ustawiane przez fazy / ataki
   hoverHz = B.phase1.hoverHz;
   attackCooldown = B.phase1.attackCooldown;
   tint = '#95a5a6';
@@ -25,6 +29,13 @@ export class TurbineBoss extends EnemyBase {
   telegraphing = false;
   shakeOffset = 0;
   smokeAcc = 0;
+  /** Odchylenie skrzydła (rad) – Wind Gust. */
+  tilt = 0;
+  /** Y promienia celowniczego szarży (świat) lub null. */
+  laserY: number | null = null;
+  /** Faza 3: pęknięty korpus, odsłonięty rdzeń – jedyny wrażliwy punkt. */
+  coreExposed = false;
+  quakeTimer = B.phase3.quake.interval;
 
   readonly arenaRight: number;
   private hoverT = 0;
@@ -38,6 +49,12 @@ export class TurbineBoss extends EnemyBase {
   /** Ostatnie przejście fazy – `update` odczytuje je i emituje event `boss:phase`. */
   lastPhaseChange: { from: number; to: number } | null = null;
   private pendingShake = 0;
+
+  // finał
+  private dyingStage: DyingStage = 'none';
+  private dyingTimer = 0;
+  private fallVy = 0;
+  private fallRot = 0;
 
   constructor(public readonly arenaX: number, public readonly floorY: number) {
     super('boss', B.hp, B.contactDamage, B.score);
@@ -56,6 +73,40 @@ export class TurbineBoss extends EnemyBase {
 
   get phaseIndex(): number { return this.fsm.phaseIndex; }
   get isIntro(): boolean { return this.introTimer > 0; }
+  get isDying(): boolean { return this.dyingStage !== 'none'; }
+  get vertical(): boolean { return this.w < this.h; }
+
+  // ---- Geometria / strefy trafień ------------------------------------------
+  /** Prostokąt końcówki skrzydła (winglet) – dół w pionie, lewy koniec w poziomie. */
+  wingletRect(): { x: number; y: number; w: number; h: number } {
+    const L = B.wingletLength;
+    return this.vertical
+      ? { x: this.x, y: this.bottom - L, w: this.w, h: L }
+      : { x: this.x, y: this.y, w: L, h: this.h };
+  }
+
+  coreRect(): { x: number; y: number; w: number; h: number } {
+    const s = B.coreSize;
+    return { x: this.cx - s / 2, y: this.cy - s / 2, w: s, h: s };
+  }
+
+  /** Klasyfikuje trafienie pocisku (okrąg) w strefę. */
+  hitZone(px: number, py: number, r: number): BossHitZone {
+    if (!this.overlapsCircle(px, py, r)) return 'none';
+    if (this.coreExposed) {
+      const c = this.coreRect();
+      return rectsOverlap(px - r, py - r, r * 2, r * 2, c.x, c.y, c.w, c.h) ? 'core' : 'armor';
+    }
+    const wl = this.wingletRect();
+    return rectsOverlap(px - r, py - r, r * 2, r * 2, wl.x, wl.y, wl.w, wl.h) ? 'weak' : 'armor';
+  }
+
+  /** Punkt na krawędzi natarcia (0..1 wzdłuż skrzydła) – receptory odgromowe. */
+  leadingEdgePoint(t: number): { x: number; y: number } {
+    return this.vertical
+      ? { x: this.facing < 0 ? this.x - 1 : this.x + this.w + 1, y: this.y + 8 + (this.h - 16) * t }
+      : { x: this.x + 8 + (this.w - 16) * t, y: this.bottom + 1 };
+  }
 
   // ---- API dla wzorców ataków --------------------------------------------
   hoverTarget(): { x: number; y: number } {
@@ -76,35 +127,22 @@ export class TurbineBoss extends EnemyBase {
     return false;
   }
 
-  /** Skrzydło ułożone poziomo (zamach przy podłodze) – zachowuje środek. */
+  /** Skrzydło ułożone poziomo (zamach, slam, szarża) – zachowuje środek. */
   setHorizontal(height: number): void {
     const cx = this.cx, cy = this.cy;
-    this.w = B.height;
-    this.h = height;
-    this.x = cx - this.w / 2;
-    this.y = cy - this.h / 2;
-    this.prevX = this.x; this.prevY = this.y; // bez fałszywej smugi ruchu przy zmianie orientacji
+    this.w = B.height; this.h = height;
+    this.x = cx - this.w / 2; this.y = cy - this.h / 2;
+    this.prevX = this.x; this.prevY = this.y;
   }
 
   setVertical(): void {
     const cx = this.cx, cy = this.cy;
-    this.w = B.width;
-    this.h = B.height;
-    this.x = cx - this.w / 2;
-    this.y = cy - this.h / 2;
+    this.w = B.width; this.h = B.height;
+    this.x = cx - this.w / 2; this.y = cy - this.h / 2;
     this.prevX = this.x; this.prevY = this.y;
   }
 
-  shootAtPlayer(world: WorldContext, speed: number): void {
-    const d = aimAtPlayer(this, world);
-    world.fireEnemyBullet(this.cx + d.x * 6, this.cy + d.y * 6, d.x, d.y, speed, B.bulletDamage);
-  }
-
-  setPatterns(patterns: AttackPattern<TurbineBoss>[]): void {
-    this.patterns = patterns;
-    this.patternIndex = 0;
-  }
-
+  setPatterns(patterns: AttackPattern<TurbineBoss>[]): void { this.patterns = patterns; this.patternIndex = 0; }
   resetAttackTimer(t: number): void { this.attackTimer = t; }
 
   cancelAttack(): void {
@@ -112,6 +150,8 @@ export class TurbineBoss extends EnemyBase {
     this.movementLocked = false;
     this.telegraphing = false;
     this.shakeOffset = 0;
+    this.tilt = 0;
+    this.laserY = null;
     this.setVertical();
   }
 
@@ -144,44 +184,83 @@ export class TurbineBoss extends EnemyBase {
     this.lastPhaseChange = { from, to };
   }
 
+  /** Finał: hit-stop → kaskada eksplozji → skrzydło łamie się i odpada → boss:died. */
   override die(world: WorldContext): void {
-    if (!this.alive) return;
-    super.die(world);
+    if (this.dyingStage !== 'none') return;
+    this.dyingStage = 'hitstop';
+    this.dyingTimer = B.finale.hitStop;
+    this.vulnerable = false;
+    this.cancelAttack();
+    this.laserY = null;
+    this.hitFlash = 0.3;
     Sfx.play('boss_die');
-    Sfx.play('boss_rumble');
+    world.hitStop(B.finale.hitStop);
+    world.camera.shake(CONFIG.vfx.shake.bossDeath, 0.5);
+  }
+
+  private finishDeath(world: WorldContext): void {
+    this.dyingStage = 'done';
+    this.alive = false;
+    world.addScore(this.scoreValue);
+    world.events.emit('enemy:died', { enemy: this });
     world.events.emit('boss:died', undefined);
   }
 
-  protected override deathEffect(world: WorldContext): void {
-    world.camera.shake(CONFIG.vfx.shake.bossDeath, 0.9);
-    for (let i = 0; i < 6; i++) {
-      world.fx.spawn('explosion', this.x + Math.random() * this.w, this.y + Math.random() * this.h);
-      world.particles.emit({
-        x: this.x + Math.random() * this.w, y: this.y + Math.random() * this.h, count: 20,
-        color: ['#ff9f43', '#ffdd59', '#ffffff', '#e74c3c', '#2d3436'],
-        speed: [30, 200], life: [0.4, 1.2], size: [2, 6], gravity: 200,
-      });
+  private updateDying(dt: number, world: WorldContext): void {
+    this.dyingTimer -= dt;
+    switch (this.dyingStage) {
+      case 'hitstop':
+        if (this.dyingTimer <= 0) { this.dyingStage = 'explosions'; this.dyingTimer = B.finale.explosionsDuration; Sfx.play('boss_rumble'); }
+        break;
+      case 'explosions':
+        if (Math.floor(this.dyingTimer * 8) !== Math.floor((this.dyingTimer + dt) * 8)) {
+          world.fx.spawn('explosion', this.x + Math.random() * this.w, this.y + Math.random() * this.h);
+          world.camera.shake(3, 0.15);
+          Sfx.play('explosion', 0.5);
+          world.particles.emit({ x: this.cx, y: this.cy, count: 8, color: ['#ff9f43', '#ffdd59', '#e5e9ef', '#2d3436'], speed: [40, 160], life: [0.25, 0.4], gravity: 200, spreadX: this.w / 2, spreadY: this.h / 2 });
+        }
+        if (this.dyingTimer <= 0) { this.dyingStage = 'fall'; this.dyingTimer = B.finale.fallDuration; this.fallVy = -60; Sfx.play('crack'); world.camera.shake(5, 0.3); }
+        break;
+      case 'fall':
+        this.fallVy += CONFIG.physics.gravity * 0.6 * dt;
+        this.y += this.fallVy * dt;
+        this.x -= 20 * dt;
+        this.fallRot += 1.8 * dt;
+        if (Math.random() < 0.3) world.particles.emit({ x: this.x + Math.random() * this.w, y: this.y + Math.random() * this.h, count: 2, color: ['#2d3436', '#636e72', '#ff9f43'], speed: [10, 40], life: [0.3, 0.4], size: [2, 3] });
+        if (this.dyingTimer <= 0 || this.y > this.floorY + 40) {
+          for (let i = 0; i < 4; i++) world.fx.spawn('explosion', this.arenaX + 120 + i * 50, this.floorY - 10 - Math.random() * 30);
+          world.camera.shake(7, 0.6);
+          Sfx.play('explosion');
+          this.finishDeath(world);
+        }
+        break;
+      default:
+        break;
     }
   }
+
+  protected override deathEffect(): void { /* finał obsługuje updateDying */ }
 
   // ---- Update / draw -----------------------------------------------------
   update(dt: number, world: WorldContext): void {
     this.prevX = this.x;
     this.prevY = this.y;
+    this.age += dt;
+    if (this.hitFlash > 0) this.hitFlash -= dt;
+
+    if (this.dyingStage !== 'none') { this.updateDying(dt, world); return; }
 
     if (this.introTimer > 0) {
       this.introTimer -= dt;
       const t = this.hoverTarget();
       this.moveTowards(t.x, t.y, 120, dt);
       if (this.introTimer <= 0) this.fsm.forcePhase(0, this, world);
-      this.postUpdate(dt, world);
       return;
     }
 
     this.hoverT += dt;
     if (!this.movementLocked) {
       const t = this.hoverTarget();
-      // wygładzone dążenie do pozycji hover (po powrocie z ataku)
       this.x += (t.x - this.x) * Math.min(1, dt * 6);
       this.y += (t.y - this.y) * Math.min(1, dt * 6);
     }
@@ -195,58 +274,79 @@ export class TurbineBoss extends EnemyBase {
     if (this.pendingShake > 0) { world.camera.shake(this.pendingShake, 0.4); this.pendingShake = 0; }
 
     this.facing = world.player.cx < this.cx ? -1 : 1;
-    this.postUpdate(dt, world);
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
     const flash = this.hitFlash > 0 || (this.telegraphing && Math.floor(this.age * 20) % 2 === 0);
     const pal = BOSS_PALETTES[Math.max(0, Math.min(2, this.phaseIndex))];
     const K = '#050912';
-    const x = Math.round(this.x) + Math.round(this.shakeOffset), y = Math.round(this.y), w = this.w, h = this.h;
+    const w = this.w, h = this.h;
     const vertical = w < h;
 
     ctx.save();
-    // smuga ruchu przy szarży / zamachu
-    const speed = Math.hypot(this.x - this.prevX, this.y - this.prevY);
-    if (speed > 3) {
-      ctx.globalAlpha = 0.3;
-      ctx.fillStyle = pal.m;
-      ctx.fillRect(Math.round(this.prevX), Math.round(this.prevY), w, h);
+    // promień celowniczy szarży
+    if (this.laserY !== null) {
+      ctx.globalAlpha = 0.5 + 0.4 * Math.abs(Math.sin(this.age * 25));
+      ctx.fillStyle = '#ff2a2a';
+      ctx.fillRect(this.arenaX, Math.round(this.laserY) - 1, this.arenaRight - this.arenaX, 2);
+      ctx.fillStyle = '#ffb3b3';
+      ctx.fillRect(this.arenaX, Math.round(this.laserY), this.arenaRight - this.arenaX, 1);
       ctx.globalAlpha = 1;
     }
+    // smuga ruchu
+    const speed = Math.hypot(this.x - this.prevX, this.y - this.prevY);
+    if (speed > 3) { ctx.globalAlpha = 0.3; ctx.fillStyle = pal.m; ctx.fillRect(Math.round(this.prevX), Math.round(this.prevY), w, h); ctx.globalAlpha = 1; }
+
+    // transformacja: środek + drgania + odchylenie (gust) + obrót przy upadku
+    ctx.translate(Math.round(this.cx) + Math.round(this.shakeOffset), Math.round(this.cy));
+    if (this.tilt) ctx.rotate(this.tilt * this.facing);
+    if (this.dyingStage === 'fall') ctx.rotate(this.fallRot);
+    const x = -Math.round(w / 2), y = -Math.round(h / 2);
+
     // korpus: obrys, wypełnienie, krawędź światła i cienia
     ctx.fillStyle = K; ctx.fillRect(x, y, w, h);
     ctx.fillStyle = flash ? '#ffffff' : pal.m; ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
     if (!flash) {
       ctx.fillStyle = pal.l; ctx.fillRect(x + 1, y + 1, w - 2, 1); ctx.fillRect(x + 1, y + 1, 1, h - 2);
       ctx.fillStyle = pal.d; ctx.fillRect(x + 1, y + h - 2, w - 2, 1); ctx.fillRect(x + w - 2, y + 1, 1, h - 2);
-      // płyty pancerne wzdłuż dłuższej osi + nity
-      ctx.fillStyle = K;
+      // płyty pancerne + nity wzdłuż dłuższej osi
       const len = vertical ? h : w;
       for (let k = 10; k < len - 6; k += 12) {
-        if (vertical) { ctx.fillRect(x + 2, y + k, w - 4, 1); ctx.fillStyle = pal.l; ctx.fillRect(x + 4, y + k + 3, 1, 1); ctx.fillRect(x + w - 5, y + k + 3, 1, 1); ctx.fillStyle = K; }
-        else { ctx.fillRect(x + k, y + 2, 1, h - 4); ctx.fillStyle = pal.l; ctx.fillRect(x + k + 3, y + 3, 1, 1); ctx.fillStyle = K; }
+        ctx.fillStyle = K;
+        if (vertical) { ctx.fillRect(x + 2, y + k, w - 4, 1); ctx.fillStyle = pal.l; ctx.fillRect(x + 4, y + k + 3, 1, 1); ctx.fillRect(x + w - 5, y + k + 3, 1, 1); }
+        else { ctx.fillRect(x + k, y + 2, 1, h - 4); ctx.fillStyle = pal.l; ctx.fillRect(x + k + 3, y + 3, 1, 1); }
       }
-      // ostrza na krawędzi natarcia (ząbki)
-      ctx.fillStyle = pal.l;
-      for (let k = 4; k < len - 4; k += 6) {
+      // receptory odgromowe na krawędzi natarcia
+      ctx.fillStyle = '#5ec8ff';
+      for (let k = 8; k < len - 6; k += 16) {
         if (vertical) ctx.fillRect(this.facing < 0 ? x - 1 : x + w, y + k, 1, 2);
         else ctx.fillRect(x + k, y + h, 2, 1);
       }
+      // winglet – wrażliwa końcówka (jaśniejsza, z pulsującym znacznikiem) dopóki rdzeń nie jest odsłonięty
+      if (!this.coreExposed) {
+        const L = B.wingletLength;
+        ctx.fillStyle = pal.l;
+        if (vertical) ctx.fillRect(x + 2, y + h - L, w - 4, L - 2); else ctx.fillRect(x + 2, y + 2, L - 2, h - 4);
+        ctx.fillStyle = Math.floor(this.age * 6) % 2 ? '#ffb300' : '#ffe36b';
+        if (vertical) ctx.fillRect(x + w / 2 - 2, y + h - L / 2 - 2, 4, 4); else ctx.fillRect(x + L / 2 - 2, y + h / 2 - 2, 4, 4);
+      }
     }
-    // piasta + oko (czerwone i pulsujące w Enrage)
-    const cx = Math.round(this.cx) + Math.round(this.shakeOffset), cy = Math.round(this.cy);
-    ctx.fillStyle = K; ctx.fillRect(cx - 5, cy - 5, 10, 10);
-    ctx.fillStyle = pal.d; ctx.fillRect(cx - 4, cy - 4, 8, 8);
-    ctx.fillStyle = this.phaseIndex >= 2 ? (Math.floor(this.age * 6) % 2 ? '#ff2a2a' : '#ff8a80') : pal.l;
-    ctx.fillRect(cx - 2, cy - 2, 4, 4);
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(cx - 1, cy - 1, 1, 1);
-    // dym z korpusu w Enrage – emisja w BossPhases; tutaj lekka poświata
-    if (this.phaseIndex >= 2 && !flash) {
-      ctx.globalAlpha = 0.25 + 0.15 * Math.sin(this.age * 8);
-      ctx.fillStyle = '#ff2a2a';
-      ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+    // piasta
+    ctx.fillStyle = K; ctx.fillRect(-5, -5, 10, 10);
+    ctx.fillStyle = pal.d; ctx.fillRect(-4, -4, 8, 8);
+    if (this.coreExposed) {
+      // pęknięcia + pulsujący rdzeń (nowy hitbox)
+      ctx.fillStyle = K;
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; ctx.fillRect(Math.round(Math.cos(a) * 9), Math.round(Math.sin(a) * 9), 2, 2); ctx.fillRect(Math.round(Math.cos(a) * 14), Math.round(Math.sin(a) * 14), 1, 1); }
+      const r = 5 + Math.sin(this.age * 10) * 1.5;
+      ctx.fillStyle = 'rgba(255,42,42,0.4)'; ctx.beginPath(); ctx.arc(0, 0, r + 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = Math.floor(this.age * 10) % 2 ? '#ff2a2a' : '#ff8a80'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(-1, -1, 2, 2);
+    } else {
+      ctx.fillStyle = pal.l; ctx.fillRect(-2, -2, 4, 4);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(-1, -1, 1, 1);
     }
+    if (this.dyingStage === 'hitstop') { ctx.globalAlpha = 0.6; ctx.fillStyle = '#ffffff'; ctx.fillRect(x, y, w, h); }
     ctx.restore();
   }
 }
