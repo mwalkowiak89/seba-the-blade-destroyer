@@ -1013,7 +1013,7 @@
 
   // src/assets/manifest.generated.ts
   var MANIFEST = {
-    "version": "mu10cpen",
+    "version": "mu112axz",
     "sheets": {
       "seba": {
         "file": "assets/sprites/player/seba.png",
@@ -1081,51 +1081,42 @@
             "fps": 8,
             "loop": true
           },
-          "kneel": {
+          "prone": {
             "frames": [
               30,
               31,
               32
-            ],
-            "fps": 8,
-            "loop": true
-          },
-          "prone": {
-            "frames": [
-              33,
-              34,
-              35
             ],
             "fps": 6,
             "loop": true
           },
           "jump": {
             "frames": [
-              36
+              33
             ],
             "fps": 1,
             "loop": false
           },
           "spin": {
             "frames": [
-              37,
-              38,
-              39,
-              40
+              34,
+              35,
+              36,
+              37
             ],
             "fps": 12,
             "loop": true
           },
           "hurt": {
             "frames": [
-              41
+              38
             ],
             "fps": 1,
             "loop": true
           },
           "dead": {
             "frames": [
-              42
+              39
             ],
             "fps": 1,
             "loop": true
@@ -1137,6 +1128,10 @@
           "stand": {
             "x": 5,
             "y": -27
+          },
+          "up": {
+            "x": 9,
+            "y": -19
           },
           "crouch": {
             "x": 9,
@@ -2967,7 +2962,7 @@
     /** Punkt dłoni w świecie (kotwica nakładki broni). */
     handPoint() {
       const pivots = MANIFEST.sheets.seba.pivots;
-      const pv = this.state.name === "prone" || this.isDead ? pivots.prone ?? pivots.crouch : pivots.stand;
+      const pv = this.state.name === "prone" || this.isDead ? pivots.prone ?? pivots.crouch : this.animName() === "shoot_up" ? pivots.up ?? pivots.stand : pivots.stand;
       return { x: this.cx + pv.x * this.facing, y: this.bottom + pv.y };
     }
     updateWeaponPose() {

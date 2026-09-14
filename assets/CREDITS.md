@@ -11,7 +11,7 @@ ale kredytujemy z wdzięczności.
 ## Seba – docelowy sprite (assets/raw/seba-ai/source.jpeg)
 
 Wygenerowany sheet postaci (dostarczony przez autora projektu, green screen). `tools/extract-seba.mjs` wycina klatki
-(chroma-key, segmentacja po lukach kolumn, usunięcie błysków i plamek), skaluje do ~48 px z kwantyzacją do wspólnej
+(chroma-key, segmentacja po lukach kolumn, usunięcie błysków, plamek i **karabinu** – jedyną bronią jest nakładka Makity), skaluje do ~48 px z kwantyzacją do wspólnej
 palety i pakuje w `assets/sprites/player/seba.png`; portret HUD to twarz z tego samego sheetu. Klipy: idle, run,
 run_shoot, shoot, shoot_up, crouch (klęk), jump, spin (koziołek), hurt, dead.
 

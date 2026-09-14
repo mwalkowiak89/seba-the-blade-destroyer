@@ -1,6 +1,6 @@
 /* WYGENEROWANE przez tools/build-assets.mjs – nie edytuj ręcznie. */
 export const MANIFEST = {
-  "version": "mu10cpen",
+  "version": "mu112axz",
   "sheets": {
     "seba": {
       "file": "assets/sprites/player/seba.png",
@@ -68,51 +68,42 @@ export const MANIFEST = {
           "fps": 8,
           "loop": true
         },
-        "kneel": {
+        "prone": {
           "frames": [
             30,
             31,
             32
-          ],
-          "fps": 8,
-          "loop": true
-        },
-        "prone": {
-          "frames": [
-            33,
-            34,
-            35
           ],
           "fps": 6,
           "loop": true
         },
         "jump": {
           "frames": [
-            36
+            33
           ],
           "fps": 1,
           "loop": false
         },
         "spin": {
           "frames": [
-            37,
-            38,
-            39,
-            40
+            34,
+            35,
+            36,
+            37
           ],
           "fps": 12,
           "loop": true
         },
         "hurt": {
           "frames": [
-            41
+            38
           ],
           "fps": 1,
           "loop": true
         },
         "dead": {
           "frames": [
-            42
+            39
           ],
           "fps": 1,
           "loop": true
@@ -124,6 +115,10 @@ export const MANIFEST = {
         "stand": {
           "x": 5,
           "y": -27
+        },
+        "up": {
+          "x": 9,
+          "y": -19
         },
         "crouch": {
           "x": 9,

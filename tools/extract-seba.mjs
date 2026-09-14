@@ -42,7 +42,8 @@ for (let i = 0; i < W * H; i++) {
   const r = img.data[i * 4], g = img.data[i * 4 + 1], b = img.data[i * 4 + 2];
   const isGreen = (g > 150 && g - Math.max(r, b) > 55) || (g > 200 && r > 150 && Math.abs(r - b) < 30 && g - Math.max(r, b) > 25); // tło + jasnozielone pola etykiet
   // błyski wylotu (pomarańcz) usuwamy – gra ma własny muzzle flash, a błyski sklejają klatki
-  const isFlash = r > 200 && r >= g - 5 && b < 170; // pomarańcz/żółć (kurtka hi-vis ma G > R)
+  const isFlash = (r > 200 && r >= g - 5 && b < 170)      // pomarańcz/żółć (kurtka hi-vis ma G > R)
+    || (r > 220 && g > 200 && b < 240 && r - b > 20);      // kremowy środek błysku (kask jest neutralnie biały: r ≈ b)
   alpha[i] = isGreen || isFlash ? 0 : 255;
 }
 // despill: zielona obwódka na krawędziach → przyciągnij G do max(R,B)
@@ -96,6 +97,43 @@ function blobs(rect) {
   return out;
 }
 
+// --- wymazanie karabinu ------------------------------------------------------
+/**
+ * Usuwa karabin z klatki: w każdym wierszu piksele "metalu" (ciemne, nisko nasycone) leżące poza obrysem ciała
+ * wyznaczonym przez jasne piksele (kurtka hi-vis, skóra, kask) są wycinane. Broń gracza to wyłącznie nakładka Makity.
+ */
+function eraseRifle(b, margin = 2) {
+  const isMetal = (i) => { const r = img.data[i * 4], g = img.data[i * 4 + 1], bl = img.data[i * 4 + 2]; const mx = Math.max(r, g, bl), mn = Math.min(r, g, bl); return mx < 190 && mx - mn < 45; };
+  const isBright = (i) => { const r = img.data[i * 4], g = img.data[i * 4 + 1], bl = img.data[i * 4 + 2];
+    return (g > 170 && r > 140 && bl < 130 && g - r > 15) || (r > 170 && g > 110 && g < 205 && bl > 70 && bl < 175 && r > g) || (r > 190 && g > 190 && bl > 190); };
+  // karabin uniesiony nad głowę (strzał w górę): wiersze powyżej najwyższego jasnego piksela – metal do usunięcia
+  let topBright = b.y1;
+  for (let y = b.y0; y <= b.y1 && topBright === b.y1; y++) for (let x = b.x0; x <= b.x1; x++) { const i = y * W + x; if (alpha[i] && isBright(i)) { topBright = y; break; } }
+  for (let y = b.y0; y < topBright; y++) for (let x = b.x0; x <= b.x1; x++) { const i = y * W + x; if (alpha[i] && isMetal(i)) alpha[i] = 0; }
+  for (let y = b.y0; y <= b.y1; y++) {
+    let left = Infinity, right = -Infinity;
+    for (let x = b.x0; x <= b.x1; x++) {
+      const i = y * W + x;
+      if (!alpha[i]) continue;
+      const r = img.data[i * 4], g = img.data[i * 4 + 1], bl = img.data[i * 4 + 2];
+      const bright = (g > 170 && r > 140 && bl < 130 && g - r > 15) // hi-vis (G wyraźnie > R; żółć błysku ma R ≥ G)
+        || (r > 170 && g > 110 && g < 205 && bl > 70 && bl < 175 && r > g) // skóra
+        || (r > 190 && g > 190 && bl > 190);                       // kask / biel
+      if (bright) { left = Math.min(left, x); right = Math.max(right, x); }
+    }
+    if (right < 0) continue; // wiersz bez ciała (np. same nogawki) – nie ruszamy
+    // tylko przód postaci (wszystkie klatki źródłowe patrzą w prawo) – z tyłu są nogi/plecak, których nie ruszamy
+    for (let x = right + margin + 1; x <= b.x1; x++) {
+      const i = y * W + x;
+      if (!alpha[i]) continue;
+      const r = img.data[i * 4], g = img.data[i * 4 + 1], bl = img.data[i * 4 + 2];
+      const mx = Math.max(r, g, bl), mn = Math.min(r, g, bl);
+      if (mx < 190 && mx - mn < 45) alpha[i] = 0; // metal / czerń karabinu
+    }
+  }
+}
+const RIFLE_ROWS = new Set(['fire', 'prone']);
+
 // --- downscale z progiem alfa -------------------------------------------------
 function downscale(b, k) {
   const sw = b.x1 - b.x0 + 1, sh = b.y1 - b.y0 + 1;
@@ -133,6 +171,7 @@ const nearest = (pal, s) => { let bi = 0, bd = Infinity; for (let c = 0; c < pal
 
 // --- główny przebieg ------------------------------------------------------------
 const rowBlobs = Object.fromEntries(Object.entries(ROWS).map(([k, r]) => [k, blobs(r)]));
+for (const [row, list] of Object.entries(rowBlobs)) if (RIFLE_ROWS.has(row)) for (const b of list) eraseRifle(b);
 const idleH = Math.max(...rowBlobs.idle.map((b) => b.y1 - b.y0 + 1));
 const K = idleH / TARGET_HEIGHT;
 console.log('klatki per wiersz:', Object.fromEntries(Object.entries(rowBlobs).map(([k, v]) => [k, v.length])), '| skala 1/' + K.toFixed(2));
@@ -151,7 +190,6 @@ const CLIPS = {
   run_shoot: { row: 'run', idx: [0, 1, 2, 3, 4, 5, 6, 7, 8], fps: 14, loop: true },
   shoot:     { row: 'fire', idx: [0, 1, 2, 3], fps: 10, loop: true },
   shoot_up:  { row: 'fire', idx: [4, 5], fps: 8, loop: true },
-  kneel:     { row: 'kneel', idx: [0, 1, 2], fps: 8, loop: true },
   prone:     { row: 'prone', idx: [0, 1, 2], fps: 6, loop: true },
   jump:      { row: 'jump', idx: [1], fps: 1, loop: false },
   spin:      { row: 'jump', idx: [2, 3, 4, 5], fps: 12, loop: true },
@@ -194,7 +232,7 @@ const meta = {
   file: OUT_SHEET, frameW: FW, frameH: FH, cols, clips,
   anchor: 'bottom', anchorX: Math.floor(FW / 2),
   // dłoń (względem środek-stopy): stojąc ~60% wysokości, w klęku niżej – korekta ręczna po podglądzie
-  pivots: { stand: { x: 5, y: -27 }, crouch: { x: 9, y: -22 }, prone: { x: 24, y: -7 } },
+  pivots: { stand: { x: 5, y: -27 }, up: { x: 9, y: -19 }, crouch: { x: 9, y: -22 }, prone: { x: 24, y: -7 } },
 };
 fs.writeFileSync(OUT_JSON, JSON.stringify(meta, null, 2));
 console.log(`OK: ${list.length} klatek ${FW}x${FH}, paleta ${palette.length}`);
