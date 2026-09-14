@@ -8,6 +8,7 @@
 import fs from 'node:fs';
 import { load, save, create, blit, bbox } from './png.mjs';
 import { px, rect, hline, vline, line, circle, recolor, flipX, rotate45, rotate90ccw, hex } from './pixel.mjs';
+import { drawSky, drawSiteMid, drawSiteNear } from './site-backgrounds.mjs';
 
 const RAW = 'assets/raw/warped-city';
 const manifest = { version: Date.now().toString(36), sheets: {}, images: {}, tiles: {} };
@@ -305,56 +306,15 @@ const RUNNER_PALETTE = {
 }
 
 // ---------------------------------------------------------------------------
-// Tła parallax (kopie 1:1) + generowana warstwa rusztowań
+// Tła parallax – plac budowy farmy wiatrowej o świcie (generowane, tools/site-backgrounds.mjs)
 // ---------------------------------------------------------------------------
 {
-  const a = load(`${RAW}/background/skyline-a.png`), b = load(`${RAW}/background/skyline-b.png`);
-  const sky = create(a.width + b.width, a.height); blit(sky, a, 0, 0); blit(sky, b, a.width, 0);
-  save(sky, 'assets/backgrounds/skyline.png');
-  manifest.images.skyline = { file: 'assets/backgrounds/skyline.png', w: sky.width, h: sky.height };
-  for (const [name, f] of [['buildingsFar', 'buildings-bg.png'], ['buildingsNear', 'near-buildings-bg.png']]) {
-    const im = load(`${RAW}/background/${f}`);
-    if (name === 'buildingsFar') drawTurbines(im); // farma wiatrowa za miastem
-    save(im, `assets/backgrounds/${f}`);
-    manifest.images[name] = { file: `assets/backgrounds/${f}`, w: im.width, h: im.height };
-  }
-
-  // Warstwa 3: rusztowania, siatka ogrodzenia, kable + propsy z fasad Warped City
-  const W = 320, H = 240; const im = create(W, H);
-  const C = { K: '#050912', D: '#0a2737', M: '#07465b', L: '#0d7b89' };
-  for (let x = 8; x < W; x += 64) { rect(im, x, 60, 3, H - 60, C.D); vline(im, x, 60, H - 60, C.M); vline(im, x + 2, 60, H - 60, C.K); }
-  for (const y of [96, 152]) { hline(im, 0, y, W, C.M); hline(im, 0, y + 1, W, C.K); }
-  for (let x = 8; x < W; x += 64) { line(im, x + 3, 152, x + 63, 96, C.D); line(im, x + 3, 96, x + 63, 152, C.D); }
-  // siatka ogrodzenia w dolnej części
-  for (let y = 162; y < 206; y += 8) for (let x = 0; x < W; x += 8) { px(im, x + (y % 16 === 2 ? 0 : 4), y, C.D); }
-  hline(im, 0, 158, W, C.L); hline(im, 0, 159, W, C.K); hline(im, 0, 208, W, C.L); hline(im, 0, 209, W, C.K);
-  // kable zwisające między słupami
-  for (let x = 8; x < W; x += 64) for (let i = 0; i < 64; i++) { const t = i / 64; const yy = 62 + Math.round(Math.sin(t * Math.PI) * 10); px(im, (x + i) % W, yy, C.K); px(im, (x + i) % W, yy + 1, C.D); }
-  // propsy z fasady (rury, skrzynki)
-  const facade = load(`${RAW}/facade.png`);
-  blit(im, facade, 40, 100, 160, 96, 48, 32);   // rury
-  blit(im, facade, 200, 96, 176, 144, 32, 32);  // panel
-  const box1 = load(`${RAW}/control-box-1.png`), box3 = load(`${RAW}/control-box-3.png`), ant = load(`${RAW}/antenna.png`);
-  blit(im, box1, 140, 178); blit(im, box3, 236, 178); blit(im, ant, 292, 0);
-  save(im, 'assets/backgrounds/scaffold.png');
-  manifest.images.scaffold = { file: 'assets/backgrounds/scaffold.png', w: W, h: H };
-}
-
-/** Sylwetki turbin wiatrowych (wieża + 3 łopaty) w tle – motyw przewodni. */
-function drawTurbines(im) {
-  const C = { tower: '#1b2140', blade: '#2a3160', hub: '#3a4480' };
-  // rysuj tylko na niebie (przezroczyste piksele) – turbiny stoją ZA miastem
-  const layer = create(im.width, im.height);
-  for (const [x, top, r] of [[22, 40, 14], [112, 28, 18], [70, 56, 10]]) {
-    const groundY = im.height - 1;
-    vline(layer, x, top, groundY - top, C.tower); vline(layer, x + 1, top + Math.floor(r / 2), groundY - top - Math.floor(r / 2), C.tower);
-    for (let k = 0; k < 3; k++) {
-      const a = -Math.PI / 2 + (k * Math.PI * 2) / 3 + (x % 7) * 0.2;
-      line(layer, x, top, Math.round(x + Math.cos(a) * r), Math.round(top + Math.sin(a) * r), C.blade);
-    }
-    px(layer, x, top, C.hub);
-  }
-  for (let i = 0; i < im.data.length; i += 4) if (im.data[i + 3] === 0 && layer.data[i + 3] !== 0) im.data.set(layer.data.subarray(i, i + 4), i);
+  const sky = drawSky(); save(sky, 'assets/backgrounds/sky.png');
+  manifest.images.sky = { file: 'assets/backgrounds/sky.png', w: sky.width, h: sky.height };
+  const mid = drawSiteMid(); save(mid, 'assets/backgrounds/site-mid.png');
+  manifest.images.siteMid = { file: 'assets/backgrounds/site-mid.png', w: mid.width, h: mid.height };
+  const near = drawSiteNear(); save(near, 'assets/backgrounds/site-near.png');
+  manifest.images.siteNear = { file: 'assets/backgrounds/site-near.png', w: near.width, h: near.height };
 }
 
 // ---------------------------------------------------------------------------

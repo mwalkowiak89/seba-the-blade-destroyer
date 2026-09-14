@@ -38,13 +38,15 @@ skos góra/dół; w kuckach – prosto; w powietrzu – dowolny z 8 kierunków.
 
 ## Zasoby i pipeline
 
-Grafika: paczka **Warped City** (ansimuz, CC0) + czcionki **Kenney** (CC0) – szczegóły w `assets/CREDITS.md`.
+Grafika: paczka **Warped City** (ansimuz, CC0) na postać/wrogów/VFX + czcionki **Kenney** (CC0); tła i tileset generowane
+proceduralnie (plac budowy farmy wiatrowej o świcie) – szczegóły w `assets/CREDITS.md`.
 Surowe pliki leżą w `assets/raw/`, a `npm run assets` (`tools/build-assets.mjs`) generuje z nich:
 
 - `assets/sprites/player/seba.png` (palette swap → Seba), `makita.png` (3 orientacje × 2 klatki tarczy),
 - `assets/sprites/enemies/{runner,drone,turret}.png`, `assets/sprites/fx/{shot,shot-hit,explosion,muzzle,saw}.png`,
 - `assets/tilesets/industrial.png` (płyty z nitami, kraty one-way, słupy, rury – autotiling po sąsiadach w `TileRenderer`),
-- `assets/backgrounds/` (4 warstwy parallax: 0.1 / 0.25 / 0.4 / 0.7),
+- `assets/backgrounds/` (3 warstwy parallax generowane w `tools/site-backgrounds.mjs`: niebo o świcie z farmą wiatrową 0.1,
+  żurawie i stawiana turbina 0.4, kontenery/łopaty/ogrodzenie 0.7),
 - `src/assets/manifest.generated.ts` – rozmiary klatek, klipy (nazwa → indeksy + fps), kotwice, punkty dłoni/wylotu broni.
 
 **Podmiana grafiki 1:1**: podmień PNG w `assets/raw/...` (te same nazwy i liczba klatek) i odpal `npm run assets`.

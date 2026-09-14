@@ -12,6 +12,9 @@ export function rect(img, x, y, w, h, color) {
 export function hline(img, x, y, w, color) { rect(img, x, y, w, 1, color); }
 export function vline(img, x, y, h, color) { rect(img, x, y, 1, h, color); }
 export function line(img, x0, y0, x1, y1, color) {
+  // Bresenham wymaga liczb całkowitych – zaokrąglamy, żeby warunek stopu zawsze zaszedł
+  x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+  if ([x0, y0, x1, y1].some((v) => !Number.isFinite(v))) return;
   let dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, err = dx + dy;
   for (;;) { px(img, x0, y0, color); if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 >= dy) { err += dy; x0 += sx; } if (e2 <= dx) { err += dx; y0 += sy; } }
 }

@@ -24,6 +24,13 @@ export class HUD {
     if (this.phaseBannerTimer > 0) this.phaseBannerTimer -= dt;
   }
 
+  /** Tekst z 1-px cieniem – czytelny na jasnym niebie. */
+  private label(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color: string): void {
+    const t = ascii(text);
+    ctx.fillStyle = C.K; ctx.fillText(t, x + 1, y + 1);
+    ctx.fillStyle = color; ctx.fillText(t, x, y);
+  }
+
   /** Metalowa obudowa: obrys, płyta, krawędź światła/cienia. */
   private panel(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
     ctx.fillStyle = C.K; ctx.fillRect(x, y, w, h);
@@ -65,17 +72,13 @@ export class HUD {
       if (on) { ctx.fillStyle = colDark; ctx.fillRect(sx, sy + segH - 2, segW, 2); ctx.fillStyle = '#ffffff'; ctx.fillRect(sx + 1, sy + 1, 1, 1); }
     }
     // etykieta i wartość
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(ascii('SEBA'), bx, by + barH + 1);
-    ctx.fillStyle = C.R;
-    ctx.fillText(ascii(`${Math.ceil(player.health.current)}`), bx + 40, by + barH + 1);
+    this.label(ctx, 'SEBA', bx, by + barH + 1, '#ffffff');
+    this.label(ctx, `${Math.ceil(player.health.current)}`, bx + 40, by + barH + 1, C.R);
 
     // --- punkty ---
     ctx.textAlign = 'right';
-    ctx.fillStyle = C.Y;
-    ctx.fillText(ascii('SCORE'), W - 8, 6);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(score.toString().padStart(6, '0'), W - 8, 18);
+    this.label(ctx, 'SCORE', W - 8, 6, C.Y);
+    this.label(ctx, score.toString().padStart(6, '0'), W - 8, 18, '#ffffff');
     ctx.textAlign = 'left';
 
     // --- boss ---
@@ -88,8 +91,7 @@ export class HUD {
       ctx.fillStyle = '#ffffff';
       for (const t of CONFIG.boss.phaseThresholds.slice(1)) ctx.fillRect(Math.round(bxx + bw * t), byy - 1, 1, bh + 2);
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#ff9a90';
-      ctx.fillText(ascii(CONFIG.boss.name), W / 2, byy + bh + 4);
+      this.label(ctx, CONFIG.boss.name, W / 2, byy + bh + 4, '#ff9a90');
       ctx.textAlign = 'left';
     }
 
@@ -127,12 +129,9 @@ export class HUD {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = FONT(16);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(ascii(
-      gamepad
-        ? 'D-PAD/GAŁKA: RUCH   A: SKOK   B/X/RT: OGIEŃ   DÓŁ+A: ZESKOK'
-        : 'STRZAŁKI: RUCH   Z: SKOK   X: OGIEŃ   DÓŁ+Z: ZESKOK',
-    ), W / 2, H - 14);
+    this.label(ctx, gamepad
+      ? 'D-PAD/GAŁKA: RUCH   A: SKOK   B/X/RT: OGIEŃ   DÓŁ+A: ZESKOK'
+      : 'STRZAŁKI: RUCH   Z: SKOK   X: OGIEŃ   DÓŁ+Z: ZESKOK', W / 2, H - 14, '#ffffff');
     ctx.restore();
   }
 
@@ -147,8 +146,8 @@ export class HUD {
     if (muted || !unlocked) { ctx.fillStyle = '#ff3b3b'; ctx.fillRect(x + 7, y + 1, 1, 1); ctx.fillRect(x + 8, y + 2, 1, 1); ctx.fillRect(x + 9, y + 3, 1, 1); ctx.fillRect(x + 9, y + 1, 1, 1); ctx.fillRect(x + 7, y + 3, 1, 1); }
     else { ctx.fillRect(x + 7, y + 2, 1, 4); ctx.fillRect(x + 9, y + 1, 1, 6); }
     if (!unlocked) {
-      ctx.font = FONT(16); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillStyle = '#c3c8d1';
-      ctx.fillText(ascii('DOWOLNY KLAWISZ: DŹWIĘK'), x - 4, H - 2);
+      ctx.font = FONT(16); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+      this.label(ctx, 'DOWOLNY KLAWISZ: DŹWIĘK', x - 4, H - 2, '#ffffff');
     }
     ctx.restore();
   }

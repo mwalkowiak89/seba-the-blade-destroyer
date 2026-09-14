@@ -998,7 +998,7 @@
 
   // src/assets/manifest.generated.ts
   var MANIFEST = {
-    "version": "mu0x7cbp",
+    "version": "mu0y19f9",
     "sheets": {
       "seba": {
         "file": "assets/sprites/player/seba.png",
@@ -1390,25 +1390,20 @@
         "w": 20,
         "h": 20
       },
-      "skyline": {
-        "file": "assets/backgrounds/skyline.png",
+      "sky": {
+        "file": "assets/backgrounds/sky.png",
         "w": 256,
         "h": 240
       },
-      "buildingsFar": {
-        "file": "assets/backgrounds/buildings-bg.png",
-        "w": 144,
-        "h": 124
+      "siteMid": {
+        "file": "assets/backgrounds/site-mid.png",
+        "w": 480,
+        "h": 200
       },
-      "buildingsNear": {
-        "file": "assets/backgrounds/near-buildings-bg.png",
-        "w": 493,
-        "h": 209
-      },
-      "scaffold": {
-        "file": "assets/backgrounds/scaffold.png",
-        "w": 320,
-        "h": 240
+      "siteNear": {
+        "file": "assets/backgrounds/site-near.png",
+        "w": 480,
+        "h": 72
       }
     },
     "tiles": {
@@ -3596,6 +3591,14 @@
     update(dt) {
       if (this.phaseBannerTimer > 0) this.phaseBannerTimer -= dt;
     }
+    /** Tekst z 1-px cieniem – czytelny na jasnym niebie. */
+    label(ctx, text, x, y, color) {
+      const t = ascii(text);
+      ctx.fillStyle = C.K;
+      ctx.fillText(t, x + 1, y + 1);
+      ctx.fillStyle = color;
+      ctx.fillText(t, x, y);
+    }
     /** Metalowa obudowa: obrys, płyta, krawędź światła/cienia. */
     panel(ctx, x, y, w, h) {
       ctx.fillStyle = C.K;
@@ -3647,15 +3650,11 @@
           ctx.fillRect(sx + 1, sy + 1, 1, 1);
         }
       }
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText(ascii("SEBA"), bx, by + barH + 1);
-      ctx.fillStyle = C.R;
-      ctx.fillText(ascii(`${Math.ceil(player.health.current)}`), bx + 40, by + barH + 1);
+      this.label(ctx, "SEBA", bx, by + barH + 1, "#ffffff");
+      this.label(ctx, `${Math.ceil(player.health.current)}`, bx + 40, by + barH + 1, C.R);
       ctx.textAlign = "right";
-      ctx.fillStyle = C.Y;
-      ctx.fillText(ascii("SCORE"), W - 8, 6);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText(score.toString().padStart(6, "0"), W - 8, 18);
+      this.label(ctx, "SCORE", W - 8, 6, C.Y);
+      this.label(ctx, score.toString().padStart(6, "0"), W - 8, 18, "#ffffff");
       ctx.textAlign = "left";
       if (boss && boss.alive) {
         const bw = 96, bh = 8, bxx = Math.round((W - bw) / 2) + 6, byy = 6;
@@ -3669,8 +3668,7 @@
         ctx.fillStyle = "#ffffff";
         for (const t of CONFIG.boss.phaseThresholds.slice(1)) ctx.fillRect(Math.round(bxx + bw * t), byy - 1, 1, bh + 2);
         ctx.textAlign = "center";
-        ctx.fillStyle = "#ff9a90";
-        ctx.fillText(ascii(CONFIG.boss.name), W / 2, byy + bh + 4);
+        this.label(ctx, CONFIG.boss.name, W / 2, byy + bh + 4, "#ff9a90");
         ctx.textAlign = "left";
       }
       if (this.phaseBannerTimer > 0 && Math.floor(time * 8) % 2 === 0) {
@@ -3708,10 +3706,7 @@
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.font = FONT(16);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText(ascii(
-        gamepad ? "D-PAD/GA\u0141KA: RUCH   A: SKOK   B/X/RT: OGIE\u0143   D\xD3\u0141+A: ZESKOK" : "STRZA\u0141KI: RUCH   Z: SKOK   X: OGIE\u0143   D\xD3\u0141+Z: ZESKOK"
-      ), W / 2, H - 14);
+      this.label(ctx, gamepad ? "D-PAD/GA\u0141KA: RUCH   A: SKOK   B/X/RT: OGIE\u0143   D\xD3\u0141+A: ZESKOK" : "STRZA\u0141KI: RUCH   Z: SKOK   X: OGIE\u0143   D\xD3\u0141+Z: ZESKOK", W / 2, H - 14, "#ffffff");
       ctx.restore();
     }
     /** Ikona głośnika (prawy dolny róg) + podpowiedź, gdy przeglądarka czeka na gest użytkownika. */
@@ -3739,8 +3734,7 @@
         ctx.font = FONT(16);
         ctx.textAlign = "right";
         ctx.textBaseline = "bottom";
-        ctx.fillStyle = "#c3c8d1";
-        ctx.fillText(ascii("DOWOLNY KLAWISZ: D\u0179WI\u0118K"), x - 4, H - 2);
+        this.label(ctx, "DOWOLNY KLAWISZ: D\u0179WI\u0118K", x - 4, H - 2, "#ffffff");
       }
       ctx.restore();
     }
@@ -3808,18 +3802,16 @@
     }
     /** Warstwy tła i tileset – tylko gdy zasoby są załadowane (headless test rysuje placeholdery). */
     setupRendering() {
-      const sky = Images.tryGet("skyline"), far = Images.tryGet("buildingsFar"), near = Images.tryGet("buildingsNear"), scaffold = Images.tryGet("scaffold");
-      if (sky && far && near && scaffold) {
+      const sky = Images.tryGet("sky"), mid = Images.tryGet("siteMid"), near = Images.tryGet("siteNear");
+      if (sky && mid && near) {
         const H = CONFIG.view.height;
         this.parallax = new Parallax([
           { image: sky, scroll: 0.1, y: 0 },
-          // niebo + daleka sylwetka miasta
-          { image: far, scroll: 0.25, y: H - 32 - far.height },
-          // dalekie budynki
-          { image: near, scroll: 0.4, y: H - 32 - near.height, alpha: 0.8 },
-          // ciężka infrastruktura
-          { image: scaffold, scroll: 0.7, y: 0, alpha: 0.6 }
-          // rusztowania, siatka, kable
+          // świt, pola, farma wiatrowa na horyzoncie
+          { image: mid, scroll: 0.4, y: H - 40 - mid.height },
+          // żurawie, stawiana turbina, sekcje wieży
+          { image: near, scroll: 0.7, y: H - 30 - near.height }
+          // kontenery, łopata, ogrodzenie
         ]);
       }
       if (Images.tryGet("tileset")) this.tiles = new TileRenderer(this.level);
@@ -3964,7 +3956,7 @@
       const W = CONFIG.view.width, H = CONFIG.view.height;
       if (this.parallax) {
         this.parallax.draw(ctx, this.camera.x);
-        ctx.fillStyle = "rgba(5,9,18,0.28)";
+        ctx.fillStyle = "rgba(230,236,245,0.12)";
         ctx.fillRect(0, 0, W, H);
       } else {
         ctx.fillStyle = "#141826";

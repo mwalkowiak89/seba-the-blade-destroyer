@@ -1,6 +1,6 @@
 /* WYGENEROWANE przez tools/build-assets.mjs – nie edytuj ręcznie. */
 export const MANIFEST = {
-  "version": "mu0x7cbp",
+  "version": "mu0y19f9",
   "sheets": {
     "seba": {
       "file": "assets/sprites/player/seba.png",
@@ -392,25 +392,20 @@ export const MANIFEST = {
       "w": 20,
       "h": 20
     },
-    "skyline": {
-      "file": "assets/backgrounds/skyline.png",
+    "sky": {
+      "file": "assets/backgrounds/sky.png",
       "w": 256,
       "h": 240
     },
-    "buildingsFar": {
-      "file": "assets/backgrounds/buildings-bg.png",
-      "w": 144,
-      "h": 124
+    "siteMid": {
+      "file": "assets/backgrounds/site-mid.png",
+      "w": 480,
+      "h": 200
     },
-    "buildingsNear": {
-      "file": "assets/backgrounds/near-buildings-bg.png",
-      "w": 493,
-      "h": 209
-    },
-    "scaffold": {
-      "file": "assets/backgrounds/scaffold.png",
-      "w": 320,
-      "h": 240
+    "siteNear": {
+      "file": "assets/backgrounds/site-near.png",
+      "w": 480,
+      "h": 72
     }
   },
   "tiles": {

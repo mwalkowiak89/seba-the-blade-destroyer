@@ -5,7 +5,7 @@ ale kredytujemy z wdzięczności.
 
 | Zasób | Autor / źródło | Licencja | Użycie |
 |---|---|---|---|
-| **Warped City** (postać, dron, wieżyczka, pociski, eksplozja, tła parallax, fasady/propsy) | ansimuz — https://ansimuz.itch.io/warped-city | CC0 | `assets/raw/warped-city/` → pipeline → `assets/sprites`, `assets/backgrounds` |
+| **Warped City** (postać, dron, wieżyczka, pociski, eksplozja) | ansimuz — https://ansimuz.itch.io/warped-city | CC0 | `assets/raw/warped-city/` → pipeline → `assets/sprites`, `assets/backgrounds` |
 | **Kenney Fonts** (Kenney Pixel, Kenney Mini) | Kenney — https://kenney.nl/assets/kenney-fonts | CC0 | `assets/fonts/` (HUD) |
 
 ## Modyfikacje (tools/build-assets.mjs)
@@ -13,7 +13,8 @@ ale kredytujemy z wdzięczności.
 - **Seba** = postać z Warped City przerobiona proceduralnie na technika turbin wiatrowych (`paintHelmet` + `SEBA_PALETTE`
   w pipeline): fryzura → biały kask wspinaczkowy z czołówką, kurtka → hi-vis limonka z pasami odblaskowymi,
   uda → długie ciemne spodnie robocze, buty czarne, detal → pomarańczowy karabińczyk uprzęży. Twarz pozostaje widoczna.
-- Na dalekiej warstwie tła dorysowane sylwetki turbin wiatrowych (tylko na niebie, za miastem).
+- **Tła parallax** (niebo o świcie, farma wiatrowa, żurawie gąsienicowe, stawiana turbina, sekcje wieży, kontenery, łopata
+  na stojakach, ogrodzenie budowlane) – rysowane proceduralnie w `tools/site-backgrounds.mjs`.
 - **Biegacz („blaszak")** = klatki biegu tej samej postaci w palecie metalu z czerwonym wizjerem.
 - **Makita DIY** (wkrętarka z tarczą), **piła** (pocisk wroga), **muzzle flash**, **portret**, **tileset industrialny 16×16**
   (płyty pancerne z nitami, kraty pomostowe, słupy, rury) oraz **warstwa rusztowań** – narysowane proceduralnie w pipeline,

@@ -75,14 +75,13 @@ export class GameScene implements WorldContext {
 
   /** Warstwy tła i tileset – tylko gdy zasoby są załadowane (headless test rysuje placeholdery). */
   private setupRendering(): void {
-    const sky = Images.tryGet('skyline'), far = Images.tryGet('buildingsFar'), near = Images.tryGet('buildingsNear'), scaffold = Images.tryGet('scaffold');
-    if (sky && far && near && scaffold) {
+    const sky = Images.tryGet('sky'), mid = Images.tryGet('siteMid'), near = Images.tryGet('siteNear');
+    if (sky && mid && near) {
       const H = CONFIG.view.height;
       this.parallax = new Parallax([
-        { image: sky, scroll: 0.1, y: 0 },                      // niebo + daleka sylwetka miasta
-        { image: far, scroll: 0.25, y: H - 32 - far.height },   // dalekie budynki
-        { image: near, scroll: 0.4, y: H - 32 - near.height, alpha: 0.8 },  // ciężka infrastruktura
-        { image: scaffold, scroll: 0.7, y: 0, alpha: 0.6 },                 // rusztowania, siatka, kable
+        { image: sky, scroll: 0.1, y: 0 },                        // świt, pola, farma wiatrowa na horyzoncie
+        { image: mid, scroll: 0.4, y: H - 40 - mid.height },      // żurawie, stawiana turbina, sekcje wieży
+        { image: near, scroll: 0.7, y: H - 30 - near.height },    // kontenery, łopata, ogrodzenie
       ]);
     }
     if (Images.tryGet('tileset')) this.tiles = new TileRenderer(this.level);
@@ -230,8 +229,8 @@ export class GameScene implements WorldContext {
     const W = CONFIG.view.width, H = CONFIG.view.height;
     if (this.parallax) {
       this.parallax.draw(ctx, this.camera.x);
-      // lekkie przyciemnienie planu gry – kontrast postaci względem tła
-      ctx.fillStyle = 'rgba(5,9,18,0.28)';
+      // delikatna mgiełka poranna – lekko odsuwa tło od planu gry
+      ctx.fillStyle = 'rgba(230,236,245,0.12)';
       ctx.fillRect(0, 0, W, H);
     } else {
       ctx.fillStyle = '#141826';
