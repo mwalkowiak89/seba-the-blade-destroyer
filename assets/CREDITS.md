@@ -10,8 +10,10 @@ ale kredytujemy z wdzięczności.
 
 ## Modyfikacje (tools/build-assets.mjs)
 
-- **Seba** = postać z Warped City po *palette swapie* (kurtka i skóra → niebieski kombinezon z rękawicami, buty) oraz
-  proceduralnym **hełmie**: piksele fryzury → zamknięty hełm, twarz → wizjer ze świecącą szczeliną (`paintHelmet` w pipeline).
+- **Seba** = postać z Warped City przerobiona proceduralnie na technika turbin wiatrowych (`paintHelmet` + `SEBA_PALETTE`
+  w pipeline): fryzura → biały kask wspinaczkowy z czołówką, kurtka → hi-vis limonka z pasami odblaskowymi,
+  uda → długie ciemne spodnie robocze, buty czarne, detal → pomarańczowy karabińczyk uprzęży. Twarz pozostaje widoczna.
+- Na dalekiej warstwie tła dorysowane sylwetki turbin wiatrowych (tylko na niebie, za miastem).
 - **Biegacz („blaszak")** = klatki biegu tej samej postaci w palecie metalu z czerwonym wizjerem.
 - **Makita DIY** (wkrętarka z tarczą), **piła** (pocisk wroga), **muzzle flash**, **portret**, **tileset industrialny 16×16**
   (płyty pancerne z nitami, kraty pomostowe, słupy, rury) oraz **warstwa rusztowań** – narysowane proceduralnie w pipeline,

@@ -998,6 +998,7 @@
 
   // src/assets/manifest.generated.ts
   var MANIFEST = {
+    "version": "mu0x7cbp",
     "sheets": {
       "seba": {
         "file": "assets/sprites/player/seba.png",
@@ -1541,14 +1542,15 @@
     const total = sheetEntries.length + imageEntries.length + 1;
     let done = 0;
     const tick = () => onProgress?.(++done, total);
+    const url = (file) => `${file}?v=${MANIFEST.version}`;
     await Promise.all([
       ...sheetEntries.map(async ([name, def]) => {
-        const img = await Assets.loadImage(`sheet:${name}`, def.file);
+        const img = await Assets.loadImage(`sheet:${name}`, url(def.file));
         Sheets.set(name, new SpriteSheet(img, def));
         tick();
       }),
       ...imageEntries.map(async ([name, def]) => {
-        await Assets.loadImage(name, def.file);
+        await Assets.loadImage(name, url(def.file));
         tick();
       }),
       loadFont().then(tick)

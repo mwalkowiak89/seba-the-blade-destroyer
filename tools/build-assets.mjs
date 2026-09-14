@@ -10,7 +10,7 @@ import { load, save, create, blit, bbox } from './png.mjs';
 import { px, rect, hline, vline, line, circle, recolor, flipX, rotate45, rotate90ccw, hex } from './pixel.mjs';
 
 const RAW = 'assets/raw/warped-city';
-const manifest = { sheets: {}, images: {}, tiles: {} };
+const manifest = { version: Date.now().toString(36), sheets: {}, images: {}, tiles: {} };
 
 const frames = (dir, prefix, n) => Array.from({ length: n }, (_, i) => load(`${RAW}/${dir}/${prefix}-${i + 1}.png`));
 const single = (path) => [load(`${RAW}/${path}`)];
@@ -39,13 +39,14 @@ function emitSheet(name, file, packed, clips, extra = {}) {
 // Palety
 // ---------------------------------------------------------------------------
 /** Kolory-znaczniki hełmu malowanego przez paintHelmet (potem mapowane paletą postaci). */
-const H = { base: '#5b6577', hi: '#8f9db0', visor: '#101822', glow: '#2fb9b0' };
+const H = { base: '#5b6577', hi: '#8f9db0', visor: '#101822', glow: '#2fb9b0', lamp: '#ffe36b', stripe: '#c8ccd0', pants: '#3a3f4a' };
 const HAIR = new Set(['93278f', 'c51aea']);
 const SKIN = new Set(['ffb164', 'b15c51']);
+const JACKET = new Set(['ffd800', 'ec7809']);
 
 /**
- * Zamienia fryzurę na zamknięty hełm z wizjerem: piksele włosów → hełm (z rozjaśnioną górną krawędzią),
- * skóra twarzy w obrębie głowy → wizjer z podświetloną linią z przodu. Działa na każdej klatce niezależnie.
+ * Seba – technik turbin: fryzura → biały kask wspinaczkowy z czołówką z przodu (twarz zostaje widoczna),
+ * na kurtce poziomy pas odblaskowy. Działa na każdej klatce niezależnie (kierunek twarzy z położenia skóry).
  */
 function paintHelmet(img) {
   const out = { width: img.width, height: img.height, data: Buffer.from(img.data) };
@@ -55,45 +56,48 @@ function paintHelmet(img) {
   for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) if (HAIR.has(key(x, y))) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
   if (x1 < 0) return out;
   const set = (x, y, c) => out.data.set(hex(c), (y * W + x) * 4);
-  // hełm
+  // kask: włosy → biała skorupa, górna krawędź jaśniejsza, dolna krawędź (rant) ciemniejsza
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
     if (!HAIR.has(key(x, y))) continue;
-    set(x, y, HAIR.has(key(x, y - 1)) || SKIN.has(key(x, y - 1)) ? H.base : H.hi);
+    const top = !HAIR.has(key(x, y - 1)) && !SKIN.has(key(x, y - 1));
+    const bottom = !HAIR.has(key(x, y + 1));
+    set(x, y, top ? H.hi : bottom ? H.visor : H.base);
   }
-  // wizjer: skóra w obrębie głowy (bbox włosów poszerzony o 1 w bok i 3 w dół)
-  const visor = [];
-  for (let y = y0; y <= y1 + 3; y++) for (let x = x0 - 1; x <= x1 + 1; x++) if (SKIN.has(key(x, y))) visor.push([x, y]);
-  for (const [x, y] of visor) set(x, y, H.visor);
-  // kierunek twarzy: po której stronie środka hełmu jest skóra
+  // kierunek twarzy = strona, po której jest skóra
   const cx = (x0 + x1) / 2;
-  const faceRight = visor.length === 0 || visor.reduce((a, [x]) => a + (x > cx ? 1 : -1), 0) >= 0;
-  // szczelina wizjera przez przód hełmu: 2 rzędy w środku wysokości, 6 pikseli od strony twarzy, z poświatą na krawędzi
-  const isHead = (x, y) => HAIR.has(key(x, y)) || SKIN.has(key(x, y)) || key(x, y) === '050912' || key(x, y) === 'ff2245';
-  const yMid = y0 + Math.floor((y1 - y0) / 2);
-  for (const y of [yMid, yMid + 1]) {
-    const xs = [];
-    for (let x = x0 - 1; x <= x1 + 1; x++) if (isHead(x, y)) xs.push(x);
-    if (!xs.length) continue;
-    const front = faceRight ? xs.slice(-6) : xs.slice(0, 6);
-    for (const x of front) set(x, y, H.visor);
-    set(faceRight ? front[front.length - 1] : front[0], y, H.glow);
-    if (y === yMid) set(faceRight ? front[front.length - 2] : front[1], y, H.glow);
+  let bal = 0;
+  for (let y = y0; y <= y1 + 3; y++) for (let x = x0 - 1; x <= x1 + 1; x++) if (SKIN.has(key(x, y))) bal += x > cx ? 1 : -1;
+  const faceRight = bal >= 0;
+  // czołówka: 2 piksele na przedniej krawędzi kasku w 1/3 wysokości
+  const yl = y0 + Math.max(1, Math.floor((y1 - y0) / 3));
+  const xs = [];
+  for (let x = x0; x <= x1; x++) if (HAIR.has(key(x, yl))) xs.push(x);
+  if (xs.length >= 3) {
+    const fx = faceRight ? xs[xs.length - 1] : xs[0];
+    set(fx, yl, H.lamp); set(faceRight ? fx - 1 : fx + 1, yl, H.glow);
   }
+  // pas odblaskowy: rząd pikseli kurtki ~6 px pod kaskiem (klatka piersiowa) + drugi 3 px niżej
+  for (const dy of [6, 9]) {
+    const y = y1 + dy;
+    for (let x = 0; x < W; x++) if (JACKET.has(key(x, y))) set(x, y, H.stripe);
+  }
+  // długie spodnie: skóra poniżej kurtki (uda) → materiał spodni
+  for (let y = y1 + 22; y < Hh; y++) for (let x = 0; x < W; x++) if (SKIN.has(key(x, y))) set(x, y, H.pants);
   return out;
 }
 
-/** Warped City player → Seba: mechanik w niebieskim kombinezonie, rękawice, buty, zamknięty hełm. */
+/** Warped City player → Seba, technik turbin: kurtka hi-vis, ciemne spodnie robocze, czarne buty, biały kask. */
 const SEBA_PALETTE = {
-  '#ffd800': '#4f8fd6', // kurtka → kombinezon jasny
-  '#ec7809': '#2c5aa0', // kurtka cień → kombinezon cień
-  '#ffb164': '#3b6fb0', // skóra (ręce, uda) → kombinezon / rękawice
-  '#b15c51': '#24487f', // skóra cień
-  '#442b61': '#242a38', // rajstopy → ciemne spodnie / nakolanniki
-  '#81709a': '#55607a',
-  '#a096d1': '#3a4250', // buty
-  '#fcfcfc': '#6b7a90', // buty highlight
-  '#ff2245': '#101822', // oko → wizjer
-  [H.base]: '#5b6577', [H.hi]: '#8f9db0', [H.visor]: '#101822', [H.glow]: '#2fb9b0',
+  '#ffd800': '#e6ff3d', // kurtka → hi-vis limonka
+  '#ec7809': '#9bb800', // kurtka cień
+  '#ffb164': '#f1c9a5', // skóra (jasna karnacja)
+  '#b15c51': '#b98868', // skóra cień
+  '#442b61': '#2f333b', // rajstopy → spodnie robocze
+  '#81709a': '#4a505c', // nakolanniki / cień spodni
+  '#a096d1': '#1c1f27', // buty czarne
+  '#fcfcfc': '#6b7280', // podeszwa / szew
+  '#ff2245': '#ff7a1a', // detal → karabińczyk uprzęży
+  [H.base]: '#eef1f5', [H.hi]: '#ffffff', [H.visor]: '#b9c0c9', [H.glow]: '#2b2f3a', [H.lamp]: '#ffe36b', [H.stripe]: '#c8ccd0', [H.pants]: '#3a3f4a',
 };
 /** Blaszak – biegacz: metal, czerwony wizjer. */
 const RUNNER_PALETTE = {
@@ -101,7 +105,7 @@ const RUNNER_PALETTE = {
   '#ffb164': '#aab3bf', '#b15c51': '#6b7482', // skóra → metal
   '#442b61': '#1c2029', '#81709a': '#3a4250', '#a096d1': '#2b3038',
   '#fcfcfc': '#d9dee5', '#ff2245': '#ff2a2a',
-  [H.base]: '#3a4250', [H.hi]: '#6b7482', [H.visor]: '#101010', [H.glow]: '#ff2a2a',
+  [H.base]: '#3a4250', [H.hi]: '#6b7482', [H.visor]: '#101010', [H.glow]: '#ff2a2a', [H.lamp]: '#ff2a2a', [H.stripe]: '#4b5563', [H.pants]: '#aab3bf',
 };
 
 // ---------------------------------------------------------------------------
@@ -289,11 +293,13 @@ const RUNNER_PALETTE = {
 // ---------------------------------------------------------------------------
 {
   const im = create(20, 20);
-  rect(im, 4, 1, 12, 14, '#5b6577'); rect(im, 3, 3, 14, 11, '#5b6577'); // hełm
-  hline(im, 5, 1, 10, '#8f9db0'); vline(im, 3, 4, 8, '#8f9db0'); // światło
-  rect(im, 5, 6, 10, 5, '#101822'); hline(im, 6, 7, 8, '#2fb9b0'); px(im, 7, 7, '#ffffff'); px(im, 12, 7, '#ffffff'); // wizjer
-  rect(im, 6, 12, 8, 2, '#3a4250'); px(im, 8, 13, '#8f9db0'); px(im, 11, 13, '#8f9db0'); // respirator
-  rect(im, 3, 15, 14, 5, '#4f8fd6'); rect(im, 3, 15, 14, 1, '#2c5aa0'); px(im, 10, 17, '#ffb300'); // kołnierz kombinezonu
+  rect(im, 4, 1, 12, 7, '#eef1f5'); rect(im, 3, 3, 14, 5, '#eef1f5'); hline(im, 5, 1, 10, '#ffffff'); // kask
+  hline(im, 3, 8, 14, '#b9c0c9'); // rant kasku
+  rect(im, 8, 3, 4, 3, '#2b2f3a'); rect(im, 9, 4, 2, 1, '#ffe36b'); // czołówka
+  rect(im, 5, 9, 10, 7, '#f1c9a5'); rect(im, 5, 14, 10, 2, '#b98868'); // twarz
+  px(im, 7, 10, '#2b2f3a'); px(im, 12, 10, '#2b2f3a'); // oczy
+  rect(im, 6, 13, 8, 2, '#8a6a52'); rect(im, 8, 13, 4, 1, '#f1c9a5'); // zarost
+  rect(im, 3, 16, 14, 4, '#e6ff3d'); hline(im, 3, 17, 14, '#c8ccd0'); px(im, 10, 19, '#ff7a1a'); // kurtka hi-vis + pas odblaskowy + karabińczyk
   save(im, 'assets/sprites/ui/portrait.png');
   manifest.images.portrait = { file: 'assets/sprites/ui/portrait.png', w: 20, h: 20 };
 }
@@ -307,7 +313,9 @@ const RUNNER_PALETTE = {
   save(sky, 'assets/backgrounds/skyline.png');
   manifest.images.skyline = { file: 'assets/backgrounds/skyline.png', w: sky.width, h: sky.height };
   for (const [name, f] of [['buildingsFar', 'buildings-bg.png'], ['buildingsNear', 'near-buildings-bg.png']]) {
-    const im = load(`${RAW}/background/${f}`); save(im, `assets/backgrounds/${f}`);
+    const im = load(`${RAW}/background/${f}`);
+    if (name === 'buildingsFar') drawTurbines(im); // farma wiatrowa za miastem
+    save(im, `assets/backgrounds/${f}`);
     manifest.images[name] = { file: `assets/backgrounds/${f}`, w: im.width, h: im.height };
   }
 
@@ -330,6 +338,23 @@ const RUNNER_PALETTE = {
   blit(im, box1, 140, 178); blit(im, box3, 236, 178); blit(im, ant, 292, 0);
   save(im, 'assets/backgrounds/scaffold.png');
   manifest.images.scaffold = { file: 'assets/backgrounds/scaffold.png', w: W, h: H };
+}
+
+/** Sylwetki turbin wiatrowych (wieża + 3 łopaty) w tle – motyw przewodni. */
+function drawTurbines(im) {
+  const C = { tower: '#1b2140', blade: '#2a3160', hub: '#3a4480' };
+  // rysuj tylko na niebie (przezroczyste piksele) – turbiny stoją ZA miastem
+  const layer = create(im.width, im.height);
+  for (const [x, top, r] of [[22, 40, 14], [112, 28, 18], [70, 56, 10]]) {
+    const groundY = im.height - 1;
+    vline(layer, x, top, groundY - top, C.tower); vline(layer, x + 1, top + Math.floor(r / 2), groundY - top - Math.floor(r / 2), C.tower);
+    for (let k = 0; k < 3; k++) {
+      const a = -Math.PI / 2 + (k * Math.PI * 2) / 3 + (x % 7) * 0.2;
+      line(layer, x, top, Math.round(x + Math.cos(a) * r), Math.round(top + Math.sin(a) * r), C.blade);
+    }
+    px(layer, x, top, C.hub);
+  }
+  for (let i = 0; i < im.data.length; i += 4) if (im.data[i + 3] === 0 && layer.data[i + 3] !== 0) im.data.set(layer.data.subarray(i, i + 4), i);
 }
 
 // ---------------------------------------------------------------------------

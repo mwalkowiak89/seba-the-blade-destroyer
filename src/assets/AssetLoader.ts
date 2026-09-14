@@ -38,13 +38,15 @@ export async function loadAllAssets(onProgress?: (done: number, total: number) =
   let done = 0;
   const tick = () => onProgress?.(++done, total);
 
+  // wersja z manifestu w query stringu – podmiana PNG nie utknie w cache przeglądarki
+  const url = (file: string) => `${file}?v=${MANIFEST.version}`;
   await Promise.all([
     ...sheetEntries.map(async ([name, def]) => {
-      const img = await Assets.loadImage(`sheet:${name}`, def.file);
+      const img = await Assets.loadImage(`sheet:${name}`, url(def.file));
       Sheets.set(name, new SpriteSheet(img, def));
       tick();
     }),
-    ...imageEntries.map(async ([name, def]) => { await Assets.loadImage(name, def.file); tick(); }),
+    ...imageEntries.map(async ([name, def]) => { await Assets.loadImage(name, url(def.file)); tick(); }),
     loadFont().then(tick),
   ]);
 }
