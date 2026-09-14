@@ -29,6 +29,7 @@ const ROWS = {
   jump:     { x: 30, y: 580, w: 860, h: 153 },
   fire:     { x: 940, y: 580, w: 860, h: 153 },   // 1-4 prosto, 5-6 w górę
   kneel:    { x: 30, y: 1074, w: 790, h: 111 },   // strzelanie z klęku → crouch
+  prone:    { x: 1010, y: 1092, w: 940, h: 90 },  // czołganie / strzał leżąc
   die:      { x: 30, y: 1279, w: 940, h: 60 },
   face:     { x: 1125, y: 1748, w: 290, h: 215 }, // spokojna twarz (dolny rząd) → portret
 };
@@ -150,7 +151,8 @@ const CLIPS = {
   run_shoot: { row: 'run', idx: [0, 1, 2, 3, 4, 5, 6, 7, 8], fps: 14, loop: true },
   shoot:     { row: 'fire', idx: [0, 1, 2, 3], fps: 10, loop: true },
   shoot_up:  { row: 'fire', idx: [4, 5], fps: 8, loop: true },
-  crouch:    { row: 'kneel', idx: [0, 1, 2], fps: 8, loop: true },
+  kneel:     { row: 'kneel', idx: [0, 1, 2], fps: 8, loop: true },
+  prone:     { row: 'prone', idx: [0, 1, 2], fps: 6, loop: true },
   jump:      { row: 'jump', idx: [1], fps: 1, loop: false },
   spin:      { row: 'jump', idx: [2, 3, 4, 5], fps: 12, loop: true },
   hurt:      { row: 'die', idx: [0], fps: 1, loop: true },
@@ -192,7 +194,7 @@ const meta = {
   file: OUT_SHEET, frameW: FW, frameH: FH, cols, clips,
   anchor: 'bottom', anchorX: Math.floor(FW / 2),
   // dłoń (względem środek-stopy): stojąc ~60% wysokości, w klęku niżej – korekta ręczna po podglądzie
-  pivots: { stand: { x: 5, y: -27 }, crouch: { x: 9, y: -22 } },
+  pivots: { stand: { x: 5, y: -27 }, crouch: { x: 9, y: -22 }, prone: { x: 24, y: -7 } },
 };
 fs.writeFileSync(OUT_JSON, JSON.stringify(meta, null, 2));
 console.log(`OK: ${list.length} klatek ${FW}x${FH}, paleta ${palette.length}`);

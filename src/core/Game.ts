@@ -15,6 +15,8 @@ export class Game {
   private accumulator = 0;
   private lastTime = 0;
   private running = false;
+  /** Wygładzone FPS (do nakładki debug F3). */
+  private fps = 60;
 
   constructor(private canvas: HTMLCanvasElement) {
     canvas.width = CONFIG.view.width;
@@ -59,6 +61,7 @@ export class Game {
     if (!this.running || !this.scene) return;
     let dt = (now - this.lastTime) / 1000;
     this.lastTime = now;
+    if (dt > 0) this.fps += (1 / dt - this.fps) * 0.1;
     if (dt > 0.25) dt = 0.25; // po powrocie z zakładki w tle
     this.accumulator += dt;
 
@@ -74,7 +77,7 @@ export class Game {
     }
     if (steps === CONFIG.view.maxStepsPerFrame) this.accumulator = 0;
 
-    this.scene.draw(this.ctx);
+    this.scene.draw(this.ctx, this.fps);
     requestAnimationFrame((t) => this.frame(t));
   }
 }

@@ -48,7 +48,7 @@ setAction('up', false);
 
 // kucanie
 setAction('down', true); tick(2);
-check(scene.player.state.name === 'crouch' && scene.player.h === CONFIG.player.crouchHeight, 'kucanie zmienia hitbox');
+check(scene.player.state.name === 'prone' && scene.player.h === CONFIG.player.proneHeight, 'leżenie obniża hurtbox do 50%');
 setAction('down', false); tick(2);
 
 // skok – stała trajektoria

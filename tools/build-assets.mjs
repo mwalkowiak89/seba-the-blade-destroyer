@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import { load, save, create, blit, bbox } from './png.mjs';
 import { px, rect, hline, vline, line, circle, recolor, flipX, rotate45, rotate90ccw, hex } from './pixel.mjs';
-import { drawSky, drawSiteMid, drawSiteNear } from './site-backgrounds.mjs';
+import { drawSky, drawSiteMid, drawSiteNear, drawSkyBlades } from './site-backgrounds.mjs';
 
 const RAW = 'assets/raw/warped-city';
 
@@ -251,6 +251,16 @@ const RUNNER_PALETTE = {
     circle(im, cx, cy, 3.5, '#c9ced6', true); circle(im, cx, cy, 3.5, '#8a909b');
     for (let t = 0; t < 8; t++) { const a = (t / 8) * Math.PI * 2 + (k ? Math.PI / 8 : 0); px(im, Math.round(cx + Math.cos(a) * 5), Math.round(cy + Math.sin(a) * 5), '#f2f4f7'); }
     px(im, cx, cy, '#ff2a2a'); return im; };
+  // wkręt montażowy (pocisk gracza): łeb sześciokątny z tyłu, trzpień z gwintem, ostry czubek; 2 klatki obrotu (gwint przesunięty)
+  const screw = (k) => { const im = create(14, 6); const cy = 3;
+    rect(im, 0, cy - 2, 3, 4, '#8a909b'); rect(im, 0, cy - 2, 3, 1, '#c3c8d1'); rect(im, 0, cy + 1, 3, 1, '#4b5563'); px(im, 1, cy - 1, '#2b2f36'); // łeb
+    rect(im, 3, cy - 1, 8, 2, '#b8bec8'); hline(im, 3, cy - 1, 8, '#e5e9ef'); // trzpień
+    for (let x = 3 + (k ? 1 : 0); x < 11; x += 2) { px(im, x, cy - 1, '#6b7280'); px(im, x + 1, cy, '#6b7280'); } // gwint
+    px(im, 11, cy - 1, '#b8bec8'); px(im, 11, cy, '#b8bec8'); px(im, 12, cy, '#e5e9ef'); px(im, 13, cy, '#ffffff'); // czubek
+    return im; };
+  const psc = pack([screw(0), screw(1)], 2);
+  emitSheet('screw', 'assets/sprites/fx/screw.png', psc, { spin: { frames: [0, 1], fps: 30, loop: true } }, { anchor: 'center', anchorX: 10, anchorY: 3 });
+
   const ps = pack([saw(0), saw(1)], 2);
   emitSheet('saw', 'assets/sprites/fx/saw.png', ps, { spin: { frames: [0, 1], fps: 24, loop: true } }, { anchor: 'center', anchorX: 5, anchorY: 5 });
 }
@@ -327,6 +337,10 @@ if (manifest.sebaSource === 'seba-ai') {
 {
   const sky = drawSky(); save(sky, 'assets/backgrounds/sky.png');
   manifest.images.sky = { file: 'assets/backgrounds/sky.png', w: sky.width, h: sky.height };
+  // animowane łopaty turbin: 6 klatek obrotu w jednym pasku
+  const BF = 6; const blades = Array.from({ length: BF }, (_, i) => drawSkyBlades(i, BF));
+  const pb = pack(blades, BF); save(pb.sheet, 'assets/backgrounds/sky-blades.png');
+  manifest.sheets.skyBlades = { file: 'assets/backgrounds/sky-blades.png', frameW: pb.frameW, frameH: pb.frameH, cols: BF, clips: { spin: { frames: [0, 1, 2, 3, 4, 5], fps: 5, loop: true } }, anchor: 'center', anchorX: 0, anchorY: 0, y: 126 };
   const mid = drawSiteMid(); save(mid, 'assets/backgrounds/site-mid.png');
   manifest.images.siteMid = { file: 'assets/backgrounds/site-mid.png', w: mid.width, h: mid.height };
   const near = drawSiteNear(); save(near, 'assets/backgrounds/site-near.png');

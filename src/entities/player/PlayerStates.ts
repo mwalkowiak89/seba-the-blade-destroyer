@@ -4,7 +4,7 @@ import { standsOnOneWayOnly } from '../../world/Physics';
 import type { PlayerController } from './PlayerController';
 import type { WorldContext } from '../../scenes/WorldContext';
 
-export type PlayerStateName = 'idle' | 'run' | 'crouch' | 'jump' | 'fall' | 'hurt' | 'dead';
+export type PlayerStateName = 'idle' | 'run' | 'prone' | 'jump' | 'fall' | 'hurt' | 'dead';
 
 /** Stan FSM gracza. Stany są bezstanowymi singletonami – dane trzyma PlayerController. */
 export interface PlayerState {
@@ -43,7 +43,7 @@ export const IDLE: PlayerState = {
   update(p, _dt, world) {
     p.vx = 0;
     if (tryGroundTransitions(p, world)) return;
-    if (p.input.held('down')) { p.setState(CROUCH, world); return; }
+    if (p.input.held('down')) { p.setState(PRONE, world); return; }
     if (p.input.axisX !== 0) { p.setState(RUN, world); return; }
   },
   exit() {},
@@ -57,19 +57,20 @@ export const RUN: PlayerState = {
     if (ax !== 0) p.facing = ax as 1 | -1;
     p.vx = ax * P.runSpeed;
     if (tryGroundTransitions(p, world)) return;
-    if (p.input.held('down')) { p.setState(CROUCH, world); return; }
+    if (p.input.held('down')) { p.setState(PRONE, world); return; }
     if (ax === 0) { p.setState(IDLE, world); return; }
   },
   exit() {},
 };
 
-export const CROUCH: PlayerState = {
-  name: 'crouch',
-  enter(p) { p.vx = 0; p.setCrouching(); },
+/** Leżenie (Contra prone) z czołganiem – hurtbox 50%, strzał tuż nad ziemią. */
+export const PRONE: PlayerState = {
+  name: 'prone',
+  enter(p) { p.vx = 0; p.setProne(); },
   update(p, _dt, world) {
-    p.vx = 0;
     const ax = p.input.axisX;
-    if (ax !== 0) p.facing = ax as 1 | -1; // obrót w kuckach bez ruchu
+    if (ax !== 0) p.facing = ax as 1 | -1;
+    p.vx = ax * P.crawlSpeed; // czołganie
     if (tryGroundTransitions(p, world)) return;
     if (!p.input.held('down')) { p.setState(IDLE, world); return; }
   },
@@ -125,7 +126,7 @@ export const HURT: PlayerState = {
 
 export const DEAD: PlayerState = {
   name: 'dead',
-  enter(p) { p.vx = 0; p.setCrouching(); },
+  enter(p) { p.vx = 0; p.setProne(); },
   update(p) { p.vx = 0; },
   exit() {},
 };

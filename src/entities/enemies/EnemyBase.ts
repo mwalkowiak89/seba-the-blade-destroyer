@@ -26,6 +26,17 @@ export abstract class EnemyBase extends Entity {
     this.health = new HealthComponent(hp);
   }
 
+  /** Ponowne użycie instancji z poola (Object Pooling – bez alokacji w locie). */
+  reset(x: number, y: number): void {
+    this.x = x; this.y = y; this.vx = 0; this.vy = 0;
+    this.alive = true; this.onGround = false; this.age = 0; this.hitFlash = 0; this.vulnerable = true;
+    this.health.reset();
+    this.onReset();
+  }
+
+  /** Stan specyficzny podklasy po resecie. */
+  protected onReset(): void {}
+
   /** Trafienie pociskiem gracza. */
   takeHit(damage: number, world: WorldContext): void {
     if (!this.vulnerable || !this.alive) return;

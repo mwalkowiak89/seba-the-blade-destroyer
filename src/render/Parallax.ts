@@ -1,4 +1,5 @@
 import { CONFIG } from '../core/Config';
+import type { SpriteSheet } from '../assets/SpriteSheet';
 
 export interface ParallaxLayer {
   image: HTMLImageElement;
@@ -12,6 +13,9 @@ export interface ParallaxLayer {
   offsetX?: number;
   /** Przezroczystość warstwy (czytelność planu gry). */
   alpha?: number;
+  /** Animowana nakładka (np. obracające się łopaty) – klatka z klipu wg czasu. */
+  sheet?: SpriteSheet;
+  clip?: string;
 }
 
 /**
@@ -21,15 +25,21 @@ export interface ParallaxLayer {
 export class Parallax {
   constructor(private layers: ParallaxLayer[]) {}
 
-  draw(ctx: CanvasRenderingContext2D, camX: number): void {
+  draw(ctx: CanvasRenderingContext2D, camX: number, time = 0): void {
     const W = CONFIG.view.width;
     for (const l of this.layers) {
-      const w = l.image.width;
+      const w = l.sheet ? l.sheet.frameW : l.image.width;
       const shift = Math.round(camX * l.scroll) - (l.offsetX ?? 0);
       ctx.globalAlpha = l.alpha ?? 1;
       if (l.repeat === false) { ctx.drawImage(l.image, -shift, l.y); continue; }
       let x = -(((shift % w) + w) % w);
-      for (; x < W; x += w) ctx.drawImage(l.image, x, Math.round(l.y));
+      for (; x < W; x += w) {
+        if (l.sheet) {
+          const f = l.sheet.frameAt(l.clip ?? 'spin', time);
+          const sx = (f % l.sheet.def.cols) * l.sheet.frameW, sy = Math.floor(f / l.sheet.def.cols) * l.sheet.frameH;
+          ctx.drawImage(l.sheet.image, sx, sy, l.sheet.frameW, l.sheet.frameH, x, Math.round(l.y), l.sheet.frameW, l.sheet.frameH);
+        } else ctx.drawImage(l.image, x, Math.round(l.y));
+      }
     }
     ctx.globalAlpha = 1;
   }

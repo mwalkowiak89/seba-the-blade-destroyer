@@ -1,10 +1,10 @@
 /* WYGENEROWANE przez tools/build-assets.mjs – nie edytuj ręcznie. */
 export const MANIFEST = {
-  "version": "mu0z40il",
+  "version": "mu10cpen",
   "sheets": {
     "seba": {
       "file": "assets/sprites/player/seba.png",
-      "frameW": 54,
+      "frameW": 70,
       "frameH": 49,
       "cols": 8,
       "clips": {
@@ -68,7 +68,7 @@ export const MANIFEST = {
           "fps": 8,
           "loop": true
         },
-        "crouch": {
+        "kneel": {
           "frames": [
             30,
             31,
@@ -77,40 +77,49 @@ export const MANIFEST = {
           "fps": 8,
           "loop": true
         },
+        "prone": {
+          "frames": [
+            33,
+            34,
+            35
+          ],
+          "fps": 6,
+          "loop": true
+        },
         "jump": {
           "frames": [
-            33
+            36
           ],
           "fps": 1,
           "loop": false
         },
         "spin": {
           "frames": [
-            34,
-            35,
-            36,
-            37
+            37,
+            38,
+            39,
+            40
           ],
           "fps": 12,
           "loop": true
         },
         "hurt": {
           "frames": [
-            38
+            41
           ],
           "fps": 1,
           "loop": true
         },
         "dead": {
           "frames": [
-            39
+            42
           ],
           "fps": 1,
           "loop": true
         }
       },
       "anchor": "bottom",
-      "anchorX": 27,
+      "anchorX": 35,
       "pivots": {
         "stand": {
           "x": 5,
@@ -119,6 +128,10 @@ export const MANIFEST = {
         "crouch": {
           "x": 9,
           "y": -22
+        },
+        "prone": {
+          "x": 24,
+          "y": -7
         }
       }
     },
@@ -379,6 +392,25 @@ export const MANIFEST = {
       "anchorX": 5,
       "anchorY": 5
     },
+    "screw": {
+      "file": "assets/sprites/fx/screw.png",
+      "frameW": 14,
+      "frameH": 6,
+      "cols": 2,
+      "clips": {
+        "spin": {
+          "frames": [
+            0,
+            1
+          ],
+          "fps": 30,
+          "loop": true
+        }
+      },
+      "anchor": "center",
+      "anchorX": 10,
+      "anchorY": 3
+    },
     "saw": {
       "file": "assets/sprites/fx/saw.png",
       "frameW": 12,
@@ -397,6 +429,30 @@ export const MANIFEST = {
       "anchor": "center",
       "anchorX": 5,
       "anchorY": 5
+    },
+    "skyBlades": {
+      "file": "assets/backgrounds/sky-blades.png",
+      "frameW": 256,
+      "frameH": 70,
+      "cols": 6,
+      "clips": {
+        "spin": {
+          "frames": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "fps": 5,
+          "loop": true
+        }
+      },
+      "anchor": "center",
+      "anchorX": 0,
+      "anchorY": 0,
+      "y": 126
     }
   },
   "images": {

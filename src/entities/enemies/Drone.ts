@@ -35,6 +35,10 @@ export class Drone extends EnemyBase {
     this.facing = -1;
   }
 
+  protected override onReset(): void {
+    this.originX = this.x; this.originY = this.y; this.mode = 'patrol'; this.patrolT = 0; this.attackTimer = D.attackInterval; this.facing = -1;
+  }
+
   update(dt: number, world: WorldContext): void {
     const player = world.player;
     switch (this.mode) {

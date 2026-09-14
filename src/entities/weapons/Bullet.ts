@@ -90,11 +90,11 @@ export class BulletPool {
   clear(): void { this.pool.clear(); }
 
   draw(ctx: CanvasRenderingContext2D): void {
-    const shot = Sheets.tryGet('shot'), saw = Sheets.tryGet('saw');
+    const screw = Sheets.tryGet('screw'), saw = Sheets.tryGet('saw');
     this.pool.forEachActive((b) => {
-      if (b.owner === 'player' && shot) {
-        // pocisk energetyczny obrócony w kierunku lotu
-        shot.drawAnchored(ctx, shot.frameAt('fly', b.age), b.x, b.y, shot.def.anchorX ?? 8, shot.def.anchorY ?? 5, { rotation: Math.atan2(b.vy, b.vx) });
+      if (b.owner === 'player' && screw) {
+        // wirujący wkręt montażowy obrócony w kierunku lotu
+        screw.drawAnchored(ctx, screw.frameAt('spin', b.age), b.x, b.y, screw.def.anchorX ?? 10, screw.def.anchorY ?? 3, { rotation: Math.atan2(b.vy, b.vx) });
         return;
       }
       if (b.owner === 'enemy' && saw) {

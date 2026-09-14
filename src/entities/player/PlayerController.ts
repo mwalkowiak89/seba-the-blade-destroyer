@@ -46,6 +46,8 @@ export class PlayerController extends Entity {
   private stateTime = 0;
   private firingTimer = 0;
   private sparkAcc = 0;
+  /** Mikro-odrzut broni (px wzdłuż kierunku celowania, zanika). */
+  private recoil = 0;
   private wasOnGround = false;
 
   constructor(public input: Input, x: number, y: number) {
@@ -75,10 +77,10 @@ export class PlayerController extends Entity {
     this.h = P.standHeight;
   }
 
-  setCrouching(): void {
-    if (this.h === P.crouchHeight) return;
-    this.y += this.h - P.crouchHeight;
-    this.h = P.crouchHeight;
+  setProne(): void {
+    if (this.h === P.proneHeight) return;
+    this.y += this.h - P.proneHeight;
+    this.h = P.proneHeight;
   }
 
   startDropThrough(): void {
@@ -114,6 +116,7 @@ export class PlayerController extends Entity {
     this.weapon.update(dt);
     if (this.dropThroughTimer > 0) this.dropThroughTimer -= dt;
     if (this.firingTimer > 0) this.firingTimer -= dt;
+    if (this.recoil > 0) this.recoil = Math.max(0, this.recoil - dt * 40);
 
     this.state.update(this, dt, world);
 
@@ -178,7 +181,8 @@ export class PlayerController extends Entity {
 
   /** Punkt dłoni w świecie (kotwica nakładki broni). */
   private handPoint(): { x: number; y: number } {
-    const pv = this.state.name === 'crouch' || this.isDead ? MANIFEST.sheets.seba.pivots.crouch : MANIFEST.sheets.seba.pivots.stand;
+    const pivots = MANIFEST.sheets.seba.pivots as { stand: { x: number; y: number }; crouch: { x: number; y: number }; prone?: { x: number; y: number } };
+    const pv = this.state.name === 'prone' || this.isDead ? (pivots.prone ?? pivots.crouch) : pivots.stand;
     return { x: this.cx + pv.x * this.facing, y: this.bottom + pv.y };
   }
 
@@ -196,6 +200,7 @@ export class PlayerController extends Entity {
     if (this.weapon.tryFire(world.playerBullets, origin.x, origin.y, this.aim.x, this.aim.y)) {
       Sfx.play('shoot');
       this.firingTimer = 0.14;
+      this.recoil = 2;
       world.fx.spawn('muzzle', origin.x, origin.y, { clip: 'flash', follow: this.weaponVisible ? () => this.muzzle : undefined });
       world.particles.emit({ x: origin.x, y: origin.y, count: 2, color: ['#ffe36b', '#ffffff'], speed: [20, 60], life: [0.05, 0.12], size: [1, 2], angle: [Math.atan2(this.aim.y, this.aim.x) - 0.4, Math.atan2(this.aim.y, this.aim.x) + 0.4] });
     }
@@ -228,7 +233,7 @@ export class PlayerController extends Entity {
     switch (this.state.name) {
       case 'idle': return this.isFiring ? (this.aim.y < -0.5 ? 'shoot_up' : 'shoot') : 'idle';
       case 'run': return this.isFiring ? 'run_shoot' : 'run';
-      case 'crouch': return 'crouch';
+      case 'prone': return 'prone';
       case 'jump': return 'spin';
       case 'fall': return 'jump';
       case 'hurt': return 'hurt';
@@ -251,7 +256,7 @@ export class PlayerController extends Entity {
       x: this.x, y: this.y, w: this.w, h: this.h,
       facing: this.facing,
       anim: this.animName(),
-      time: this.stateTime,
+      time: this.state.name === 'prone' && this.vx === 0 ? 0 : this.stateTime,
       aim: this.aim,
       rotation,
       alpha,
@@ -267,6 +272,7 @@ export class PlayerController extends Entity {
     const hand = this.handPoint();
     const pv = MAKITA.pivots[o];
     const frame = sheet.frameAt(o, this.age, 'horizontal');
-    sheet.drawAnchored(ctx, frame, hand.x, hand.y, pv.x, pv.y, { flipX: this.facing < 0, flipY: this.aim.y > 0.3, alpha });
+    const r = Math.round(this.recoil);
+    sheet.drawAnchored(ctx, frame, hand.x - this.aim.x * r, hand.y - this.aim.y * r, pv.x, pv.y, { flipX: this.facing < 0, flipY: this.aim.y > 0.3, alpha });
   }
 }

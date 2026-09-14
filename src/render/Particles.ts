@@ -1,5 +1,6 @@
 import { Pool } from '../core/Pool';
 import { randRange } from '../core/MathUtil';
+import { CONFIG } from '../core/Config';
 
 class Particle {
   active = false;
@@ -19,7 +20,10 @@ export class ParticleSystem {
     speed?: [number, number]; life?: [number, number]; size?: [number, number];
     color?: string | string[]; gravity?: number; angle?: [number, number]; spreadX?: number; spreadY?: number;
   }): void {
-    for (let i = 0; i < opts.count; i++) {
+    // limity wydajnościowe: <= maxPerEmit cząstek na emisję, czas życia <= maxLife
+    const count = Math.min(opts.count, CONFIG.vfx.maxParticlesPerEmit);
+    const maxLife = CONFIG.vfx.maxParticleLife;
+    for (let i = 0; i < count; i++) {
       const p = this.pool.spawn();
       if (!p) return;
       const [a0, a1] = opts.angle ?? [0, Math.PI * 2];
@@ -29,7 +33,8 @@ export class ParticleSystem {
       p.y = opts.y + randRange(-(opts.spreadY ?? 0), opts.spreadY ?? 0);
       p.vx = Math.cos(ang) * spd;
       p.vy = Math.sin(ang) * spd;
-      p.maxLife = p.life = randRange(...(opts.life ?? [0.2, 0.5]));
+      const [l0, l1] = opts.life ?? [0.2, 0.4];
+      p.maxLife = p.life = randRange(Math.min(l0, maxLife), Math.min(l1, maxLife));
       p.size = randRange(...(opts.size ?? [1, 3]));
       p.gravity = opts.gravity ?? 0;
       const c = opts.color ?? '#ffffff';

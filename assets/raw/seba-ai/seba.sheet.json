@@ -1,6 +1,6 @@
 {
   "file": "assets/sprites/player/seba.png",
-  "frameW": 54,
+  "frameW": 70,
   "frameH": 49,
   "cols": 8,
   "clips": {
@@ -64,7 +64,7 @@
       "fps": 8,
       "loop": true
     },
-    "crouch": {
+    "kneel": {
       "frames": [
         30,
         31,
@@ -73,40 +73,49 @@
       "fps": 8,
       "loop": true
     },
+    "prone": {
+      "frames": [
+        33,
+        34,
+        35
+      ],
+      "fps": 6,
+      "loop": true
+    },
     "jump": {
       "frames": [
-        33
+        36
       ],
       "fps": 1,
       "loop": false
     },
     "spin": {
       "frames": [
-        34,
-        35,
-        36,
-        37
+        37,
+        38,
+        39,
+        40
       ],
       "fps": 12,
       "loop": true
     },
     "hurt": {
       "frames": [
-        38
+        41
       ],
       "fps": 1,
       "loop": true
     },
     "dead": {
       "frames": [
-        39
+        42
       ],
       "fps": 1,
       "loop": true
     }
   },
   "anchor": "bottom",
-  "anchorX": 27,
+  "anchorX": 35,
   "pivots": {
     "stand": {
       "x": 5,
@@ -115,6 +124,10 @@
     "crouch": {
       "x": 9,
       "y": -22
+    },
+    "prone": {
+      "x": 24,
+      "y": -7
     }
   }
 }

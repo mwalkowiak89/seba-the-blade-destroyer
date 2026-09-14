@@ -10,7 +10,7 @@ import { ParticleSystem } from '../render/Particles';
 import { FxSystem } from '../render/Fx';
 import { Parallax } from '../render/Parallax';
 import { TileRenderer } from '../render/TileRenderer';
-import { Images } from '../assets/AssetLoader';
+import { Images, Sheets } from '../assets/AssetLoader';
 import { impactSparks } from '../entities/weapons/Bullet';
 import { Level, Tile, type Marker } from '../world/Level';
 import { TEST_LEVEL } from '../world/TestLevel';
@@ -49,12 +49,15 @@ export class GameScene implements WorldContext {
   state: GameState = 'playing';
 
   private enemies: EnemyBase[] = [];
+  /** Pool martwych instancji per rodzaj – respawn bez alokacji. */
+  private enemyPool = new Map<string, EnemyBase[]>();
   private boss: TurbineBoss | null = null;
   private pendingMarkers: Marker[];
   private runnerWaves: RunnerWave[] = [];
   private arenaX: number;
   private bossTriggered = false;
   private endTimer = 0;
+  private debug = false;
 
   constructor(private input: Input) {
     const start = this.level.findMarker('player') ?? { x: 32, y: 160 };
@@ -78,10 +81,12 @@ export class GameScene implements WorldContext {
     const sky = Images.tryGet('sky'), mid = Images.tryGet('siteMid'), near = Images.tryGet('siteNear');
     if (sky && mid && near) {
       const H = CONFIG.view.height;
+      const blades = Sheets.tryGet('skyBlades');
       this.parallax = new Parallax([
-        { image: sky, scroll: 0.1, y: 0 },                        // świt, pola, farma wiatrowa na horyzoncie
-        { image: mid, scroll: 0.4, y: H - 40 - mid.height },      // żurawie, stawiana turbina, sekcje wieży
-        { image: near, scroll: 0.7, y: H - 30 - near.height },    // kontenery, łopata, ogrodzenie
+        { image: sky, scroll: 0.05, y: 0 },                                        // zachód słońca, pola, wieże turbin
+        ...(blades ? [{ image: blades.image, sheet: blades, clip: 'spin', scroll: 0.05, y: 126 }] : []), // obracające się łopaty
+        { image: mid, scroll: 0.3, y: H - 40 - mid.height },                        // żuraw gąsienicowy, sekcje masztów
+        { image: near, scroll: 0.7, y: H - 30 - near.height },                      // kontenery, płoty, barierki
       ]);
     }
     if (Images.tryGet('tileset')) this.tiles = new TileRenderer(this.level);
@@ -94,6 +99,29 @@ export class GameScene implements WorldContext {
   }
 
   spawnEnemy(enemy: EnemyBase): void { this.enemies.push(enemy); }
+
+  /** Pobiera instancję z poola (lub tworzy) i ustawia na pozycji. */
+  private acquire(kind: 'runner' | 'sniper' | 'drone', x: number, y: number): EnemyBase {
+    const pool = this.enemyPool.get(kind);
+    const reused = pool?.pop();
+    if (reused) { reused.reset(x, y); this.spawnEnemy(reused); return reused; }
+    const e = kind === 'runner' ? new Runner(x, y) : kind === 'sniper' ? new Sniper(x, y) : new Drone(x, y);
+    this.spawnEnemy(e);
+    return e;
+  }
+
+  private recycleDead(): void {
+    const alive: EnemyBase[] = [];
+    for (const e of this.enemies) {
+      if (e.alive) { alive.push(e); continue; }
+      if (e.kind === 'runner' || e.kind === 'sniper' || e.kind === 'drone') {
+        const pool = this.enemyPool.get(e.kind) ?? [];
+        if (pool.length < 16) pool.push(e);
+        this.enemyPool.set(e.kind, pool);
+      }
+    }
+    this.enemies = alive;
+  }
 
   fireEnemyBullet(x: number, y: number, dirX: number, dirY: number, speed: number, damage: number, opts: { gravity?: number; radius?: number; color?: string } = {}): void {
     const d = normalize(dirX, dirY);
@@ -110,6 +138,7 @@ export class GameScene implements WorldContext {
 
     this.camera.update(dt);
     if (this.input.justPressed('mute')) { AudioEngine.toggleMute(); Sfx.play('ui'); }
+    if (this.input.justPressed('debug')) this.debug = !this.debug;
     if (this.state !== 'playing') {
       this.endTimer += dt;
       this.particles.update(dt);
@@ -132,7 +161,7 @@ export class GameScene implements WorldContext {
     this.fx.update(dt);
 
     this.resolveCollisions();
-    this.enemies = this.enemies.filter((e) => e.alive);
+    this.recycleDead();
     if (this.boss && !this.boss.alive) this.boss = null;
   }
 
@@ -168,8 +197,8 @@ export class GameScene implements WorldContext {
       this.pendingMarkers = this.pendingMarkers.filter((m) => !activate.includes(m));
       for (const m of activate) {
         switch (m.type) {
-          case 'sniper': this.spawnEnemy(new Sniper(m.x, m.y)); break;
-          case 'drone': this.spawnEnemy(new Drone(m.x, m.y)); break;
+          case 'sniper': this.acquire('sniper', m.x, m.y); break;
+          case 'drone': this.acquire('drone', m.x, m.y); break;
           case 'runnerSpawner':
             this.runnerWaves.push({ marker: m, remaining: CONFIG.enemies.runner.waveCount, timer: 0 });
             break;
@@ -184,7 +213,7 @@ export class GameScene implements WorldContext {
         wave.remaining--;
         wave.timer = CONFIG.enemies.runner.waveInterval;
         const x = Math.max(wave.marker.x, this.camera.right + 8);
-        this.spawnEnemy(new Runner(x, wave.marker.y));
+        this.acquire('runner', x, wave.marker.y);
       }
     }
     this.runnerWaves = this.runnerWaves.filter((w) => w.remaining > 0);
@@ -225,10 +254,10 @@ export class GameScene implements WorldContext {
   }
 
   // ---- Render ------------------------------------------------------------
-  draw(ctx: CanvasRenderingContext2D): void {
+  draw(ctx: CanvasRenderingContext2D, fps = 0): void {
     const W = CONFIG.view.width, H = CONFIG.view.height;
     if (this.parallax) {
-      this.parallax.draw(ctx, this.camera.x);
+      this.parallax.draw(ctx, this.camera.x, this.time);
       // delikatna mgiełka poranna – lekko odsuwa tło od planu gry
       ctx.fillStyle = 'rgba(230,236,245,0.12)';
       ctx.fillRect(0, 0, W, H);
@@ -240,8 +269,7 @@ export class GameScene implements WorldContext {
     ctx.save();
     this.camera.applyTransform(ctx);
     if (this.tiles) {
-      this.tiles.drawBackground(ctx, this.camera.x, this.camera.width);
-      this.tiles.drawTiles(ctx, this.camera.x, this.camera.width);
+      this.tiles.draw(ctx, this.camera.x, this.camera.width);
     } else {
       this.level.draw(ctx, this.camera.x, this.camera.width);
     }
@@ -257,6 +285,16 @@ export class GameScene implements WorldContext {
     this.hud.draw(ctx, this.player, this.score, this.boss, this.time);
     this.hud.drawAudioState(ctx, AudioEngine.muted, AudioEngine.running || !AudioEngine.available);
     if (this.time < 6) this.hud.drawHint(ctx, Math.min(1, 6 - this.time), this.input.gamepadConnected);
+
+    if (this.debug) {
+      let pb = 0, eb = 0; this.playerBullets.forEachActive(() => pb++); this.enemyBullets.forEachActive(() => eb++);
+      ctx.save(); ctx.font = '8px monospace'; ctx.textBaseline = 'top'; ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(4, 40, 120, 30);
+      ctx.fillStyle = '#7fff7f';
+      ctx.fillText(`FPS ${fps.toFixed(0)}  cam ${this.camera.x.toFixed(0)}`, 6, 42);
+      ctx.fillText(`enemies ${this.enemies.length} pool ${[...this.enemyPool.values()].reduce((a, p) => a + p.length, 0)}`, 6, 51);
+      ctx.fillText(`bullets ${pb}/${eb}  x ${this.player.x.toFixed(0)}`, 6, 60);
+      ctx.restore();
+    }
 
     const again = this.input.gamepadConnected ? 'START – jeszcze raz' : 'R – jeszcze raz';
     if (this.state === 'gameover') this.hud.drawOverlay(ctx, 'GAME OVER', again, '#e74c3c');

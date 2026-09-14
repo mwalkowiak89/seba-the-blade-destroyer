@@ -13,7 +13,8 @@ const WHITE = '#f4f6f8', WHITE_D = '#c9cfd6', WHITE_DD = '#9aa3ad';
 // ---------------------------------------------------------------------------
 export function drawSky(W = 256, H = 240, horizon = 186) {
   const im = create(W, H);
-  const bands = ['#7fb2e5', '#8dbbe8', '#9dc4ea', '#b0cdea', '#c4d3e6', '#d8d6df', '#e9d3cf', '#f3cdb8', '#f7c8a4', '#f9c496'];
+  // zachód słońca: granat → fiolet → róż → pomarańcz → złoto przy horyzoncie
+  const bands = ['#4d5f9e', '#6a6bae', '#8b78b4', '#ab85b0', '#c88fa0', '#e19a8c', '#efaa7c', '#f6bb74', '#fbcc80', '#fdda95'];
   for (let y = 0; y < horizon; y++) {
     const t = y / horizon;
     const i = Math.min(bands.length - 1, Math.floor(t * bands.length));
@@ -23,11 +24,12 @@ export function drawSky(W = 256, H = 240, horizon = 186) {
     hline(im, 0, y, W, c);
   }
   // słońce nisko nad horyzontem
-  circle(im, 196, 158, 13, '#fbe3b0', true); circle(im, 196, 158, 10, '#fff0c8', true); circle(im, 196, 158, 6, '#fffaf0', true);
+  circle(im, 196, 160, 16, '#fbd27a', true); circle(im, 196, 160, 12, '#ffe39a', true); circle(im, 196, 160, 7, '#fff6d0', true);
+  for (let y = 150; y < horizon; y += 3) hline(im, 150, y, 96, y % 6 === 0 ? '#fbd27a' : '#f9c98a'); // odblask na horyzoncie
   // chmury (płaskie, różowawe od dołu)
   const cloud = (x, y, w) => {
-    rect(im, x + 3, y, w - 6, 3, '#f8eef0'); rect(im, x, y + 2, w, 3, '#f8eef0'); rect(im, x + 6, y - 2, w - 14, 2, '#fbf5f6');
-    hline(im, x + 1, y + 5, w - 2, '#f2c6c0'); hline(im, x + 4, y + 6, w - 8, '#e9b5b4');
+    rect(im, x + 3, y, w - 6, 3, '#f6d6c6'); rect(im, x, y + 2, w, 3, '#f6d6c6'); rect(im, x + 6, y - 2, w - 14, 2, '#fbe4d6');
+    hline(im, x + 1, y + 5, w - 2, '#d99a95'); hline(im, x + 4, y + 6, w - 8, '#c08590');
   };
   cloud(10, 48, 60); cloud(120, 30, 44); cloud(200, 70, 50); cloud(60, 96, 36); cloud(170, 112, 70);
   // pola i wzgórza na horyzoncie
@@ -39,12 +41,23 @@ export function drawSky(W = 256, H = 240, horizon = 186) {
   }
   rect(im, 0, horizon, W, H - horizon, '#7d9a72');
   hline(im, 0, horizon, W, '#5f8a66');
-  // farma wiatrowa na horyzoncie (małe turbiny)
-  for (const [x, h, ph] of [[18, 22, 0], [52, 16, 1], [88, 26, 2], [130, 18, 0.5], [156, 24, 1.5], [222, 20, 2.5], [244, 15, 1]]) {
-    const base = horizon - 4 - (x % 5);
-    vline(im, x, base - h, h, WHITE_D);
-    for (let k = 0; k < 3; k++) { const a = -Math.PI / 2 + ph + (k * 2 * Math.PI) / 3; line(im, x, base - h, Math.round(x + Math.cos(a) * h * 0.45), Math.round(base - h + Math.sin(a) * h * 0.45), WHITE); }
-    px(im, x, base - h, WHITE_DD);
+  // farma wiatrowa na horyzoncie – wieże (łopaty w animowanej nakładce drawSkyBlades)
+  for (const [x, h] of SKY_TURBINES) { const base = horizon - 4 - (x % 5); vline(im, x, base - h, h, WHITE_D); px(im, x, base - h, WHITE_DD); }
+  return im;
+}
+
+/** Pozycje turbin na niebie: [x, wysokość wieży, faza]. */
+const SKY_TURBINES = [[18, 22, 0], [52, 16, 1], [88, 26, 2], [130, 18, 0.5], [156, 24, 1.5], [222, 20, 2.5], [244, 15, 1]];
+const SKY_HORIZON = 186;
+
+/** Nakładka z łopatami – `frames` klatek obrotu (przezroczysta, ta sama szerokość co niebo). */
+export function drawSkyBlades(frame, frames, W = 256, H = 70, top = SKY_HORIZON - 60) {
+  const im = create(W, H);
+  const rot = (frame / frames) * (2 * Math.PI / 3);
+  for (const [x, h, ph] of SKY_TURBINES) {
+    const base = SKY_HORIZON - 4 - (x % 5); const hy = base - h - top;
+    for (let k = 0; k < 3; k++) { const a = -Math.PI / 2 + ph + rot + (k * 2 * Math.PI) / 3; line(im, x, hy, Math.round(x + Math.cos(a) * h * 0.45), Math.round(hy + Math.sin(a) * h * 0.45), WHITE); }
+    px(im, x, hy, WHITE_DD);
   }
   return im;
 }
@@ -170,6 +183,9 @@ export function drawSiteNear(W = 480, H = 72) {
   rect(im, 296, g - 4, 10, 4, '#4a505c'); rect(im, 366, g - 4, 10, 4, '#4a505c'); // podpory
   // szpule kabli
   cableReel(im, 130, g - 9, 8); cableReel(im, 372 + 6, g - 7, 6);
+  // barierki ostrzegawcze czerwono-białe
+  const barrier = (x) => { rect(im, x, g - 9, 2, 9, '#c0392b'); rect(im, x + 26, g - 9, 2, 9, '#c0392b'); for (let i = 0; i < 28; i += 4) rect(im, x + i, g - 8, 4, 3, Math.floor(i / 4) % 2 ? '#ffffff' : '#e03b2c'); hline(im, x, g - 9, 28, K); };
+  barrier(266); barrier(126); barrier(444 + 10);
   // tabliczka ostrzegawcza
   rect(im, 288, g - 30, 10, 8, '#ffe36b'); rect(im, 289, g - 29, 8, 6, '#2b2f36'); rect(im, 292, g - 28, 2, 3, '#ffe36b'); px(im, 292, g - 24, '#ffe36b'); vline(im, 292, g - 22, 14, K);
   return im;

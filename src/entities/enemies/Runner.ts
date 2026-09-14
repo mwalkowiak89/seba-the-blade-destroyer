@@ -24,6 +24,8 @@ export class Runner extends EnemyBase {
     this.facing = -1;
   }
 
+  protected override onReset(): void { this.facing = -1; this.anim = 'run'; }
+
   update(dt: number, world: WorldContext): void {
     const player = world.player;
     const dir: 1 | -1 = player.cx < this.cx ? -1 : 1;

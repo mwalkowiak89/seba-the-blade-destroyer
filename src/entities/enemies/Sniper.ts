@@ -30,6 +30,12 @@ export class Sniper extends EnemyBase {
     this.facing = -1;
   }
 
+  override reset(x: number, y: number): void {
+    super.reset(x + (CONFIG.view.tile - this.w) / 2, y + CONFIG.view.tile - this.h);
+  }
+
+  protected override onReset(): void { this.mode = 'cooldown'; this.timer = S.fireInterval * 0.5; this.modeTime = 0; this.facing = -1; }
+
   update(dt: number, world: WorldContext): void {
     const player = world.player;
     const dx = player.cx - this.cx;

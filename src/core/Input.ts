@@ -1,5 +1,5 @@
 /** Mapowanie klawiszy na akcje – łatwe do zmiany w jednym miejscu. */
-export type Action = 'left' | 'right' | 'up' | 'down' | 'jump' | 'fire' | 'restart' | 'mute';
+export type Action = 'left' | 'right' | 'up' | 'down' | 'jump' | 'fire' | 'restart' | 'mute' | 'debug';
 
 export const KEY_BINDINGS: Record<Action, string[]> = {
   left: ['ArrowLeft', 'KeyA'],
@@ -10,6 +10,7 @@ export const KEY_BINDINGS: Record<Action, string[]> = {
   fire: ['KeyX', 'KeyJ'],
   restart: ['KeyR', 'Enter'],
   mute: ['KeyM'],
+  debug: ['F3'],
 };
 
 /**
@@ -26,6 +27,7 @@ export const GAMEPAD_BINDINGS: Record<Action, number[]> = {
   fire: [1, 2, 7],
   restart: [9],
   mute: [8],
+  debug: [],
 };
 
 /** Martwa strefa gałki (0..1). */

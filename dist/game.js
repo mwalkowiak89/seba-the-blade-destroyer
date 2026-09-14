@@ -7,7 +7,7 @@
       height: 240,
       tile: 16,
       fixedStep: 1 / 60,
-      maxStepsPerFrame: 5
+      maxStepsPerFrame: 3
     },
     physics: {
       gravity: 1300,
@@ -23,6 +23,9 @@
       sawSparkRate: 22,
       impactSparks: 6,
       landingDust: 6,
+      /** Limity cząstek (wydajność): na emisję i maksymalny czas życia (s). */
+      maxParticlesPerEmit: 15,
+      maxParticleLife: 0.4,
       shake: { playerHit: 3, enemyDeath: 1.5, bossPhase: 4, bossDeath: 7, sweepLand: 2 }
     },
     camera: {
@@ -34,7 +37,9 @@
     player: {
       width: 14,
       standHeight: 42,
-      crouchHeight: 26,
+      /** Leżenie/czołganie – hurtbox 50% wysokości. */
+      proneHeight: 21,
+      crawlSpeed: 38,
       runSpeed: 105,
       /** Skok o stałej wysokości (bez zmiennej wysokości – jak w Contrze). */
       jumpVelocity: -470,
@@ -170,7 +175,8 @@
     jump: ["KeyZ", "KeyK", "Space"],
     fire: ["KeyX", "KeyJ"],
     restart: ["KeyR", "Enter"],
-    mute: ["KeyM"]
+    mute: ["KeyM"],
+    debug: ["F3"]
   };
   var GAMEPAD_BINDINGS = {
     left: [14],
@@ -180,7 +186,8 @@
     jump: [0],
     fire: [1, 2, 7],
     restart: [9],
-    mute: [8]
+    mute: [8],
+    debug: []
   };
   var GAMEPAD_DEADZONE = 0.45;
   var Input = class {
@@ -953,7 +960,9 @@
       this.pool = new Pool(256, () => new Particle());
     }
     emit(opts) {
-      for (let i = 0; i < opts.count; i++) {
+      const count = Math.min(opts.count, CONFIG.vfx.maxParticlesPerEmit);
+      const maxLife = CONFIG.vfx.maxParticleLife;
+      for (let i = 0; i < count; i++) {
         const p = this.pool.spawn();
         if (!p) return;
         const [a0, a1] = opts.angle ?? [0, Math.PI * 2];
@@ -963,7 +972,8 @@
         p.y = opts.y + randRange(-(opts.spreadY ?? 0), opts.spreadY ?? 0);
         p.vx = Math.cos(ang) * spd;
         p.vy = Math.sin(ang) * spd;
-        p.maxLife = p.life = randRange(...opts.life ?? [0.2, 0.5]);
+        const [l0, l1] = opts.life ?? [0.2, 0.4];
+        p.maxLife = p.life = randRange(Math.min(l0, maxLife), Math.min(l1, maxLife));
         p.size = randRange(...opts.size ?? [1, 3]);
         p.gravity = opts.gravity ?? 0;
         const c = opts.color ?? "#ffffff";
@@ -998,11 +1008,11 @@
 
   // src/assets/manifest.generated.ts
   var MANIFEST = {
-    "version": "mu0z40il",
+    "version": "mu10cpen",
     "sheets": {
       "seba": {
         "file": "assets/sprites/player/seba.png",
-        "frameW": 54,
+        "frameW": 70,
         "frameH": 49,
         "cols": 8,
         "clips": {
@@ -1066,7 +1076,7 @@
             "fps": 8,
             "loop": true
           },
-          "crouch": {
+          "kneel": {
             "frames": [
               30,
               31,
@@ -1075,40 +1085,49 @@
             "fps": 8,
             "loop": true
           },
+          "prone": {
+            "frames": [
+              33,
+              34,
+              35
+            ],
+            "fps": 6,
+            "loop": true
+          },
           "jump": {
             "frames": [
-              33
+              36
             ],
             "fps": 1,
             "loop": false
           },
           "spin": {
             "frames": [
-              34,
-              35,
-              36,
-              37
+              37,
+              38,
+              39,
+              40
             ],
             "fps": 12,
             "loop": true
           },
           "hurt": {
             "frames": [
-              38
+              41
             ],
             "fps": 1,
             "loop": true
           },
           "dead": {
             "frames": [
-              39
+              42
             ],
             "fps": 1,
             "loop": true
           }
         },
         "anchor": "bottom",
-        "anchorX": 27,
+        "anchorX": 35,
         "pivots": {
           "stand": {
             "x": 5,
@@ -1117,6 +1136,10 @@
           "crouch": {
             "x": 9,
             "y": -22
+          },
+          "prone": {
+            "x": 24,
+            "y": -7
           }
         }
       },
@@ -1377,6 +1400,25 @@
         "anchorX": 5,
         "anchorY": 5
       },
+      "screw": {
+        "file": "assets/sprites/fx/screw.png",
+        "frameW": 14,
+        "frameH": 6,
+        "cols": 2,
+        "clips": {
+          "spin": {
+            "frames": [
+              0,
+              1
+            ],
+            "fps": 30,
+            "loop": true
+          }
+        },
+        "anchor": "center",
+        "anchorX": 10,
+        "anchorY": 3
+      },
       "saw": {
         "file": "assets/sprites/fx/saw.png",
         "frameW": 12,
@@ -1395,6 +1437,30 @@
         "anchor": "center",
         "anchorX": 5,
         "anchorY": 5
+      },
+      "skyBlades": {
+        "file": "assets/backgrounds/sky-blades.png",
+        "frameW": 256,
+        "frameH": 70,
+        "cols": 6,
+        "clips": {
+          "spin": {
+            "frames": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "fps": 5,
+            "loop": true
+          }
+        },
+        "anchor": "center",
+        "anchorX": 0,
+        "anchorY": 0,
+        "y": 126
       }
     },
     "images": {
@@ -1641,10 +1707,10 @@
     constructor(layers) {
       this.layers = layers;
     }
-    draw(ctx, camX) {
+    draw(ctx, camX, time = 0) {
       const W = CONFIG.view.width;
       for (const l of this.layers) {
-        const w = l.image.width;
+        const w = l.sheet ? l.sheet.frameW : l.image.width;
         const shift = Math.round(camX * l.scroll) - (l.offsetX ?? 0);
         ctx.globalAlpha = l.alpha ?? 1;
         if (l.repeat === false) {
@@ -1652,7 +1718,13 @@
           continue;
         }
         let x = -((shift % w + w) % w);
-        for (; x < W; x += w) ctx.drawImage(l.image, x, Math.round(l.y));
+        for (; x < W; x += w) {
+          if (l.sheet) {
+            const f = l.sheet.frameAt(l.clip ?? "spin", time);
+            const sx = f % l.sheet.def.cols * l.sheet.frameW, sy = Math.floor(f / l.sheet.def.cols) * l.sheet.frameH;
+            ctx.drawImage(l.sheet.image, sx, sy, l.sheet.frameW, l.sheet.frameH, x, Math.round(l.y), l.sheet.frameW, l.sheet.frameH);
+          } else ctx.drawImage(l.image, x, Math.round(l.y));
+        }
       }
       ctx.globalAlpha = 1;
     }
@@ -1737,10 +1809,37 @@
     constructor(level) {
       this.level = level;
       this.decos = [];
+      /** Cała statyczna plansza wyrenderowana raz do offscreen canvasu – 1 drawImage na klatkę. */
+      this.cache = null;
       this.image = Images.get("tileset");
       this.ts = MANIFEST.images.tileset.tileSize;
       this.cols = MANIFEST.images.tileset.cols;
       this.buildDecorations();
+      this.prerender();
+    }
+    prerender() {
+      if (typeof document === "undefined") return;
+      const c = document.createElement("canvas");
+      c.width = this.level.widthPx;
+      c.height = this.level.heightPx;
+      const g = c.getContext("2d");
+      if (!g) return;
+      g.imageSmoothingEnabled = false;
+      this.drawBackgroundDirect(g, 0, this.level.widthPx);
+      this.drawTilesDirect(g, 0, this.level.widthPx);
+      this.drawPlatformsDirect(g);
+      this.cache = c;
+    }
+    /** Rysuje widoczny wycinek prerenderowanej planszy (tło + kafle). */
+    draw(ctx, camX, camW) {
+      if (!this.cache) {
+        this.drawBackgroundDirect(ctx, camX, camW);
+        this.drawTilesDirect(ctx, camX, camW);
+        this.drawPlatformsDirect(ctx);
+        return;
+      }
+      const x = Math.max(0, Math.floor(camX)), w = Math.min(this.cache.width - x, Math.ceil(camW) + 1);
+      if (w > 0) ctx.drawImage(this.cache, x, 0, w, this.cache.height, x, 0, w, this.cache.height);
     }
     blit(ctx, tile, col, row) {
       const idx = MANIFEST.tiles[tile];
@@ -1772,12 +1871,114 @@
         }
       }
     }
+    /**
+     * Platformy semi-solid jako elementy placu montażu: łopaty na stojakach, sekcje wieży leżące poziomo,
+     * a pod snajperami – dachy kontenerów technicznych. Kolizja pozostaje na górnej krawędzi kafla.
+     */
+    drawPlatformsDirect(g) {
+      const L = this.level, ts = this.ts;
+      const sniperCols = new Set(L.markers.filter((m) => m.type === "sniper").map((m) => `${m.col},${m.row + 1}`));
+      let runIndex = 0;
+      for (let r = 0; r < L.rows; r++) {
+        for (let c = 0; c < L.cols; c++) {
+          if (L.tileAt(c, r) !== 2 /* OneWay */ || L.tileAt(c - 1, r) === 2 /* OneWay */) continue;
+          let c1 = c;
+          while (L.tileAt(c1 + 1, r) === 2 /* OneWay */) c1++;
+          const x0 = c * ts, x1 = (c1 + 1) * ts, y = r * ts;
+          let hasSniper = false;
+          for (let k = c; k <= c1; k++) if (sniperCols.has(`${k},${r}`)) hasSniper = true;
+          if (hasSniper) this.drawContainerRoof(g, x0, y, x1 - x0);
+          else if (runIndex % 2 === 0) this.drawBladePlatform(g, x0, y, x1 - x0);
+          else this.drawTowerPlatform(g, x0, y, x1 - x0);
+          runIndex++;
+          c = c1;
+        }
+      }
+    }
+    /** Łopata z włókna szklanego na żółtych stojakach montażowych (nasada po lewej, końcówka po prawej). */
+    drawBladePlatform(g, x, y, w) {
+      const K = "#2b2f36", W1 = "#f4f6f8", W2 = "#c9cfd6", W3 = "#9aa3ad";
+      for (let i = 0; i < w; i++) {
+        const t = i / w;
+        const th = Math.max(3, Math.round(8 * (1 - t * 0.6)));
+        const top = y + 1 + Math.round(2 * t);
+        g.fillStyle = W1;
+        g.fillRect(x + i, top, 1, th);
+        g.fillStyle = W2;
+        g.fillRect(x + i, top + th - 2, 1, 1);
+        g.fillStyle = W3;
+        g.fillRect(x + i, top + th - 1, 1, 1);
+        g.fillStyle = K;
+        g.fillRect(x + i, top - 1, 1, 1);
+        g.fillRect(x + i, top + th, 1, 1);
+      }
+      g.fillStyle = W2;
+      g.fillRect(x, y, 5, 11);
+      g.fillStyle = K;
+      g.fillRect(x, y, 1, 11);
+      for (let sx = x + 6; sx < x + w - 6; sx += Math.max(32, w - 12)) {
+        g.fillStyle = "#f2c230";
+        g.fillRect(sx, y + 9, 6, 7);
+        g.fillStyle = "#a88410";
+        g.fillRect(sx, y + 14, 6, 2);
+        g.fillStyle = K;
+        g.fillRect(sx - 1, y + 15, 8, 1);
+      }
+    }
+    /** Cylindryczna sekcja wieży leżąca poziomo, na kołyskach. */
+    drawTowerPlatform(g, x, y, w) {
+      const K = "#2b2f36";
+      g.fillStyle = "#c9cfd6";
+      g.fillRect(x, y + 1, w, 14);
+      g.fillStyle = "#f4f6f8";
+      g.fillRect(x, y + 2, w, 4);
+      g.fillStyle = "#9aa3ad";
+      g.fillRect(x, y + 11, w, 3);
+      g.fillStyle = K;
+      g.fillRect(x, y, w, 1);
+      g.fillRect(x, y + 15, w, 1);
+      g.fillStyle = "#8a94a3";
+      g.fillRect(x, y, 3, 16);
+      g.fillRect(x + w - 3, y, 3, 16);
+      g.fillStyle = K;
+      g.fillRect(x, y, 1, 16);
+      g.fillRect(x + w - 1, y, 1, 16);
+      for (let i = x + 10; i < x + w - 6; i += 14) {
+        g.fillStyle = "#e5e9ef";
+        g.fillRect(i, y + 3, 1, 1);
+      }
+      for (let sx = x + 4; sx < x + w - 8; sx += Math.max(28, w - 16)) {
+        g.fillStyle = "#4a505c";
+        g.fillRect(sx, y + 13, 8, 3);
+        g.fillStyle = K;
+        g.fillRect(sx, y + 15, 8, 1);
+      }
+    }
+    /** Dach kontenera technicznego (stanowisko snajpera). */
+    drawContainerRoof(g, x, y, w) {
+      const K = "#2b2f36", base = "#2e86c1", dark = "#1f5f8a", light = "#5dade2";
+      g.fillStyle = base;
+      g.fillRect(x, y, w, 16);
+      g.fillStyle = dark;
+      for (let i = x + 2; i < x + w - 2; i += 3) g.fillRect(i, y + 2, 1, 13);
+      g.fillStyle = light;
+      g.fillRect(x, y, w, 1);
+      g.fillRect(x + 3, y + 3, 8, 3);
+      g.fillStyle = K;
+      g.fillRect(x, y + 15, w, 1);
+      g.fillRect(x, y, 1, 16);
+      g.fillRect(x + w - 1, y, 1, 16);
+      g.fillStyle = "#ffe36b";
+      g.fillRect(x + w - 4, y + 8, 1, 1);
+      g.fillStyle = "#f2c230";
+      for (let i = x + 1; i < x + w - 1; i += 4) g.fillRect(i, y + 1, 2, 1);
+    }
     /** Dekoracje – rysować przed encjami. */
-    drawBackground(ctx, camX, camW) {
+    drawBackgroundDirect(ctx, camX, camW) {
       const c0 = Math.floor(camX / this.ts) - 1, c1 = Math.ceil((camX + camW) / this.ts) + 1;
       for (const d of this.decos) if (d.col >= c0 && d.col <= c1) this.blit(ctx, d.tile, d.col, d.row);
     }
-    drawTiles(ctx, camX, camW) {
+    drawTilesDirect(ctx, camX, camW) {
       const L = this.level;
       const c0 = Math.max(0, Math.floor(camX / this.ts));
       const c1 = Math.min(L.cols - 1, Math.ceil((camX + camW) / this.ts));
@@ -1790,9 +1991,6 @@
             if (L.tileAt(c, r + 1) !== 1 /* Solid */ && r + 1 < L.rows) this.blit(ctx, "edgeBottom", c, r);
             if (L.tileAt(c - 1, r) !== 1 /* Solid */) this.blit(ctx, "edgeLeft", c, r);
             if (L.tileAt(c + 1, r) !== 1 /* Solid */) this.blit(ctx, "edgeRight", c, r);
-          } else if (t === 2 /* OneWay */) {
-            const l = L.tileAt(c - 1, r) !== 2 /* OneWay */, rr = L.tileAt(c + 1, r) !== 2 /* OneWay */;
-            this.blit(ctx, l && rr ? "grateLR" : l ? "grateL" : rr ? "grateR" : "grate", c, r);
           }
         }
       }
@@ -1876,10 +2074,10 @@
       this.pool.clear();
     }
     draw(ctx) {
-      const shot = Sheets.tryGet("shot"), saw = Sheets.tryGet("saw");
+      const screw = Sheets.tryGet("screw"), saw = Sheets.tryGet("saw");
       this.pool.forEachActive((b) => {
-        if (b.owner === "player" && shot) {
-          shot.drawAnchored(ctx, shot.frameAt("fly", b.age), b.x, b.y, shot.def.anchorX ?? 8, shot.def.anchorY ?? 5, { rotation: Math.atan2(b.vy, b.vx) });
+        if (b.owner === "player" && screw) {
+          screw.drawAnchored(ctx, screw.frameAt("spin", b.age), b.x, b.y, screw.def.anchorX ?? 10, screw.def.anchorY ?? 3, { rotation: Math.atan2(b.vy, b.vx) });
           return;
         }
         if (b.owner === "enemy" && saw) {
@@ -2392,8 +2590,9 @@
         return ay < 0 ? { x: 0, y: -1 } : { x: facing, y: 0 };
       case "run":
         return ay !== 0 ? normalize(facing, ay) : { x: facing, y: 0 };
-      case "crouch":
+      case "prone":
         return { x: facing, y: 0 };
+      // leżąc: tylko prosto, tuż nad ziemią
       case "jump":
       case "fall":
         if (ax === 0 && ay === 0) return { x: facing, y: 0 };
@@ -2437,7 +2636,7 @@
       p.vx = 0;
       if (tryGroundTransitions(p, world)) return;
       if (p.input.held("down")) {
-        p.setState(CROUCH, world);
+        p.setState(PRONE, world);
         return;
       }
       if (p.input.axisX !== 0) {
@@ -2459,7 +2658,7 @@
       p.vx = ax * P.runSpeed;
       if (tryGroundTransitions(p, world)) return;
       if (p.input.held("down")) {
-        p.setState(CROUCH, world);
+        p.setState(PRONE, world);
         return;
       }
       if (ax === 0) {
@@ -2470,16 +2669,16 @@
     exit() {
     }
   };
-  var CROUCH = {
-    name: "crouch",
+  var PRONE = {
+    name: "prone",
     enter(p) {
       p.vx = 0;
-      p.setCrouching();
+      p.setProne();
     },
     update(p, _dt, world) {
-      p.vx = 0;
       const ax = p.input.axisX;
       if (ax !== 0) p.facing = ax;
+      p.vx = ax * P.crawlSpeed;
       if (tryGroundTransitions(p, world)) return;
       if (!p.input.held("down")) {
         p.setState(IDLE, world);
@@ -2542,7 +2741,7 @@
     name: "dead",
     enter(p) {
       p.vx = 0;
-      p.setCrouching();
+      p.setProne();
     },
     update(p) {
       p.vx = 0;
@@ -2576,6 +2775,8 @@
       this.stateTime = 0;
       this.firingTimer = 0;
       this.sparkAcc = 0;
+      /** Mikro-odrzut broni (px wzdłuż kierunku celowania, zanika). */
+      this.recoil = 0;
       this.wasOnGround = false;
       this.w = P2.width;
       this.h = P2.standHeight;
@@ -2602,10 +2803,10 @@
       this.y -= P2.standHeight - this.h;
       this.h = P2.standHeight;
     }
-    setCrouching() {
-      if (this.h === P2.crouchHeight) return;
-      this.y += this.h - P2.crouchHeight;
-      this.h = P2.crouchHeight;
+    setProne() {
+      if (this.h === P2.proneHeight) return;
+      this.y += this.h - P2.proneHeight;
+      this.h = P2.proneHeight;
     }
     startDropThrough() {
       this.dropThroughTimer = P2.dropThroughTime;
@@ -2638,6 +2839,7 @@
       this.weapon.update(dt);
       if (this.dropThroughTimer > 0) this.dropThroughTimer -= dt;
       if (this.firingTimer > 0) this.firingTimer -= dt;
+      if (this.recoil > 0) this.recoil = Math.max(0, this.recoil - dt * 40);
       this.state.update(this, dt, world);
       this.vy = Math.min(this.vy + CONFIG.physics.gravity * dt, CONFIG.physics.maxFallSpeed);
       const res = moveAndCollide(this, world.level, this.vx * dt, this.vy * dt, { dropThrough: this.dropThroughTimer > 0 });
@@ -2694,7 +2896,8 @@
     }
     /** Punkt dłoni w świecie (kotwica nakładki broni). */
     handPoint() {
-      const pv = this.state.name === "crouch" || this.isDead ? MANIFEST.sheets.seba.pivots.crouch : MANIFEST.sheets.seba.pivots.stand;
+      const pivots = MANIFEST.sheets.seba.pivots;
+      const pv = this.state.name === "prone" || this.isDead ? pivots.prone ?? pivots.crouch : pivots.stand;
       return { x: this.cx + pv.x * this.facing, y: this.bottom + pv.y };
     }
     updateWeaponPose() {
@@ -2710,6 +2913,7 @@
       if (this.weapon.tryFire(world.playerBullets, origin.x, origin.y, this.aim.x, this.aim.y)) {
         Sfx.play("shoot");
         this.firingTimer = 0.14;
+        this.recoil = 2;
         world.fx.spawn("muzzle", origin.x, origin.y, { clip: "flash", follow: this.weaponVisible ? () => this.muzzle : void 0 });
         world.particles.emit({ x: origin.x, y: origin.y, count: 2, color: ["#ffe36b", "#ffffff"], speed: [20, 60], life: [0.05, 0.12], size: [1, 2], angle: [Math.atan2(this.aim.y, this.aim.x) - 0.4, Math.atan2(this.aim.y, this.aim.x) + 0.4] });
       }
@@ -2754,8 +2958,8 @@
           return this.isFiring ? this.aim.y < -0.5 ? "shoot_up" : "shoot" : "idle";
         case "run":
           return this.isFiring ? "run_shoot" : "run";
-        case "crouch":
-          return "crouch";
+        case "prone":
+          return "prone";
         case "jump":
           return "spin";
         case "fall":
@@ -2779,7 +2983,7 @@
         h: this.h,
         facing: this.facing,
         anim: this.animName(),
-        time: this.stateTime,
+        time: this.state.name === "prone" && this.vx === 0 ? 0 : this.stateTime,
         aim: this.aim,
         rotation,
         alpha,
@@ -2794,7 +2998,8 @@
       const hand = this.handPoint();
       const pv = MAKITA.pivots[o];
       const frame = sheet.frameAt(o, this.age, "horizontal");
-      sheet.drawAnchored(ctx, frame, hand.x, hand.y, pv.x, pv.y, { flipX: this.facing < 0, flipY: this.aim.y > 0.3, alpha });
+      const r = Math.round(this.recoil);
+      sheet.drawAnchored(ctx, frame, hand.x - this.aim.x * r, hand.y - this.aim.y * r, pv.x, pv.y, { flipX: this.facing < 0, flipY: this.aim.y > 0.3, alpha });
     }
   };
 
@@ -2811,6 +3016,23 @@
       /** Czy despawnować, gdy zostanie za kamerą. */
       this.despawnOffscreen = true;
       this.health = new HealthComponent(hp);
+    }
+    /** Ponowne użycie instancji z poola (Object Pooling – bez alokacji w locie). */
+    reset(x, y) {
+      this.x = x;
+      this.y = y;
+      this.vx = 0;
+      this.vy = 0;
+      this.alive = true;
+      this.onGround = false;
+      this.age = 0;
+      this.hitFlash = 0;
+      this.vulnerable = true;
+      this.health.reset();
+      this.onReset();
+    }
+    /** Stan specyficzny podklasy po resecie. */
+    onReset() {
     }
     /** Trafienie pociskiem gracza. */
     takeHit(damage, world) {
@@ -2882,6 +3104,10 @@
       this.y = y;
       this.facing = -1;
     }
+    onReset() {
+      this.facing = -1;
+      this.anim = "run";
+    }
     update(dt, world) {
       const player = world.player;
       const dir = player.cx < this.cx ? -1 : 1;
@@ -2926,6 +3152,15 @@
       this.h = S.height;
       this.x = x + (CONFIG.view.tile - this.w) / 2;
       this.y = y + CONFIG.view.tile - this.h;
+      this.facing = -1;
+    }
+    reset(x, y) {
+      super.reset(x + (CONFIG.view.tile - this.w) / 2, y + CONFIG.view.tile - this.h);
+    }
+    onReset() {
+      this.mode = "cooldown";
+      this.timer = S.fireInterval * 0.5;
+      this.modeTime = 0;
       this.facing = -1;
     }
     update(dt, world) {
@@ -2997,6 +3232,14 @@
       this.originY = y;
       this.x = x;
       this.y = y;
+      this.facing = -1;
+    }
+    onReset() {
+      this.originX = this.x;
+      this.originY = this.y;
+      this.mode = "patrol";
+      this.patrolT = 0;
+      this.attackTimer = D.attackInterval;
       this.facing = -1;
     }
     update(dt, world) {
@@ -3792,10 +4035,13 @@
       this.score = 0;
       this.state = "playing";
       this.enemies = [];
+      /** Pool martwych instancji per rodzaj – respawn bez alokacji. */
+      this.enemyPool = /* @__PURE__ */ new Map();
       this.boss = null;
       this.runnerWaves = [];
       this.bossTriggered = false;
       this.endTimer = 0;
+      this.debug = false;
       const start = this.level.findMarker("player") ?? { x: 32, y: 160 };
       this.player = new PlayerController(input, start.x, start.y + CONFIG.view.tile - CONFIG.player.standHeight);
       this.camera.maxX = this.level.widthPx - this.camera.width;
@@ -3825,13 +4071,16 @@
       const sky = Images.tryGet("sky"), mid = Images.tryGet("siteMid"), near = Images.tryGet("siteNear");
       if (sky && mid && near) {
         const H = CONFIG.view.height;
+        const blades = Sheets.tryGet("skyBlades");
         this.parallax = new Parallax([
-          { image: sky, scroll: 0.1, y: 0 },
-          // świt, pola, farma wiatrowa na horyzoncie
-          { image: mid, scroll: 0.4, y: H - 40 - mid.height },
-          // żurawie, stawiana turbina, sekcje wieży
+          { image: sky, scroll: 0.05, y: 0 },
+          // zachód słońca, pola, wieże turbin
+          ...blades ? [{ image: blades.image, sheet: blades, clip: "spin", scroll: 0.05, y: 126 }] : [],
+          // obracające się łopaty
+          { image: mid, scroll: 0.3, y: H - 40 - mid.height },
+          // żuraw gąsienicowy, sekcje masztów
           { image: near, scroll: 0.7, y: H - 30 - near.height }
-          // kontenery, łopata, ogrodzenie
+          // kontenery, płoty, barierki
         ]);
       }
       if (Images.tryGet("tileset")) this.tiles = new TileRenderer(this.level);
@@ -3843,6 +4092,34 @@
     }
     spawnEnemy(enemy) {
       this.enemies.push(enemy);
+    }
+    /** Pobiera instancję z poola (lub tworzy) i ustawia na pozycji. */
+    acquire(kind, x, y) {
+      const pool = this.enemyPool.get(kind);
+      const reused = pool?.pop();
+      if (reused) {
+        reused.reset(x, y);
+        this.spawnEnemy(reused);
+        return reused;
+      }
+      const e = kind === "runner" ? new Runner(x, y) : kind === "sniper" ? new Sniper(x, y) : new Drone(x, y);
+      this.spawnEnemy(e);
+      return e;
+    }
+    recycleDead() {
+      const alive = [];
+      for (const e of this.enemies) {
+        if (e.alive) {
+          alive.push(e);
+          continue;
+        }
+        if (e.kind === "runner" || e.kind === "sniper" || e.kind === "drone") {
+          const pool = this.enemyPool.get(e.kind) ?? [];
+          if (pool.length < 16) pool.push(e);
+          this.enemyPool.set(e.kind, pool);
+        }
+      }
+      this.enemies = alive;
     }
     fireEnemyBullet(x, y, dirX, dirY, speed, damage, opts = {}) {
       const d = normalize(dirX, dirY);
@@ -3869,6 +4146,7 @@
         AudioEngine.toggleMute();
         Sfx.play("ui");
       }
+      if (this.input.justPressed("debug")) this.debug = !this.debug;
       if (this.state !== "playing") {
         this.endTimer += dt;
         this.particles.update(dt);
@@ -3887,7 +4165,7 @@
       this.particles.update(dt);
       this.fx.update(dt);
       this.resolveCollisions();
-      this.enemies = this.enemies.filter((e) => e.alive);
+      this.recycleDead();
       if (this.boss && !this.boss.alive) this.boss = null;
     }
     /** Wejście do areny: blokada kamery, spawn bossa. */
@@ -3919,10 +4197,10 @@
         for (const m of activate) {
           switch (m.type) {
             case "sniper":
-              this.spawnEnemy(new Sniper(m.x, m.y));
+              this.acquire("sniper", m.x, m.y);
               break;
             case "drone":
-              this.spawnEnemy(new Drone(m.x, m.y));
+              this.acquire("drone", m.x, m.y);
               break;
             case "runnerSpawner":
               this.runnerWaves.push({ marker: m, remaining: CONFIG.enemies.runner.waveCount, timer: 0 });
@@ -3940,7 +4218,7 @@
           wave.remaining--;
           wave.timer = CONFIG.enemies.runner.waveInterval;
           const x = Math.max(wave.marker.x, this.camera.right + 8);
-          this.spawnEnemy(new Runner(x, wave.marker.y));
+          this.acquire("runner", x, wave.marker.y);
         }
       }
       this.runnerWaves = this.runnerWaves.filter((w) => w.remaining > 0);
@@ -3972,10 +4250,10 @@
       if (this.boss && this.boss.alive && !this.boss.isIntro && this.boss.overlaps(player)) this.boss.onTouchPlayer(this);
     }
     // ---- Render ------------------------------------------------------------
-    draw(ctx) {
+    draw(ctx, fps = 0) {
       const W = CONFIG.view.width, H = CONFIG.view.height;
       if (this.parallax) {
-        this.parallax.draw(ctx, this.camera.x);
+        this.parallax.draw(ctx, this.camera.x, this.time);
         ctx.fillStyle = "rgba(230,236,245,0.12)";
         ctx.fillRect(0, 0, W, H);
       } else {
@@ -3985,8 +4263,7 @@
       ctx.save();
       this.camera.applyTransform(ctx);
       if (this.tiles) {
-        this.tiles.drawBackground(ctx, this.camera.x, this.camera.width);
-        this.tiles.drawTiles(ctx, this.camera.x, this.camera.width);
+        this.tiles.draw(ctx, this.camera.x, this.camera.width);
       } else {
         this.level.draw(ctx, this.camera.x, this.camera.width);
       }
@@ -4001,6 +4278,21 @@
       this.hud.draw(ctx, this.player, this.score, this.boss, this.time);
       this.hud.drawAudioState(ctx, AudioEngine.muted, AudioEngine.running || !AudioEngine.available);
       if (this.time < 6) this.hud.drawHint(ctx, Math.min(1, 6 - this.time), this.input.gamepadConnected);
+      if (this.debug) {
+        let pb = 0, eb = 0;
+        this.playerBullets.forEachActive(() => pb++);
+        this.enemyBullets.forEachActive(() => eb++);
+        ctx.save();
+        ctx.font = "8px monospace";
+        ctx.textBaseline = "top";
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.fillRect(4, 40, 120, 30);
+        ctx.fillStyle = "#7fff7f";
+        ctx.fillText(`FPS ${fps.toFixed(0)}  cam ${this.camera.x.toFixed(0)}`, 6, 42);
+        ctx.fillText(`enemies ${this.enemies.length} pool ${[...this.enemyPool.values()].reduce((a, p) => a + p.length, 0)}`, 6, 51);
+        ctx.fillText(`bullets ${pb}/${eb}  x ${this.player.x.toFixed(0)}`, 6, 60);
+        ctx.restore();
+      }
       const again = this.input.gamepadConnected ? "START \u2013 jeszcze raz" : "R \u2013 jeszcze raz";
       if (this.state === "gameover") this.hud.drawOverlay(ctx, "GAME OVER", again, "#e74c3c");
       if (this.state === "victory") this.hud.drawOverlay(ctx, "ETAP UKO\u0143CZONY", `SCORE ${this.score}   \xB7   ${again}`, "#2ecc71");
@@ -4018,6 +4310,8 @@
       this.accumulator = 0;
       this.lastTime = 0;
       this.running = false;
+      /** Wygładzone FPS (do nakładki debug F3). */
+      this.fps = 60;
       canvas.width = CONFIG.view.width;
       canvas.height = CONFIG.view.height;
       const ctx = canvas.getContext("2d", { alpha: false });
@@ -4056,6 +4350,7 @@
       if (!this.running || !this.scene) return;
       let dt = (now - this.lastTime) / 1e3;
       this.lastTime = now;
+      if (dt > 0) this.fps += (1 / dt - this.fps) * 0.1;
       if (dt > 0.25) dt = 0.25;
       this.accumulator += dt;
       const step = CONFIG.view.fixedStep;
@@ -4069,7 +4364,7 @@
         steps++;
       }
       if (steps === CONFIG.view.maxStepsPerFrame) this.accumulator = 0;
-      this.scene.draw(this.ctx);
+      this.scene.draw(this.ctx, this.fps);
       requestAnimationFrame((t) => this.frame(t));
     }
   };

@@ -9,7 +9,7 @@ export const CONFIG = {
     height: 240,
     tile: 16,
     fixedStep: 1 / 60,
-    maxStepsPerFrame: 5,
+    maxStepsPerFrame: 3,
   },
 
   physics: {
@@ -28,6 +28,9 @@ export const CONFIG = {
     sawSparkRate: 22,
     impactSparks: 6,
     landingDust: 6,
+    /** Limity cząstek (wydajność): na emisję i maksymalny czas życia (s). */
+    maxParticlesPerEmit: 15,
+    maxParticleLife: 0.4,
     shake: { playerHit: 3, enemyDeath: 1.5, bossPhase: 4, bossDeath: 7, sweepLand: 2 },
   },
 
@@ -41,7 +44,9 @@ export const CONFIG = {
   player: {
     width: 14,
     standHeight: 42,
-    crouchHeight: 26,
+    /** Leżenie/czołganie – hurtbox 50% wysokości. */
+    proneHeight: 21,
+    crawlSpeed: 38,
     runSpeed: 105,
     /** Skok o stałej wysokości (bez zmiennej wysokości – jak w Contrze). */
     jumpVelocity: -470,
