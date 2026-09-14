@@ -1,4 +1,7 @@
 import { Game } from './core/Game';
+import { AudioEngine } from './audio/AudioEngine';
+import { Jukebox } from './audio/Jukebox';
+import { Sfx } from './render/Audio';
 
 /**
  * Punkt wejścia. Tutaj docelowo: preload sprite sheetów / SFX przed startem, np.
@@ -11,7 +14,8 @@ function boot(): void {
   const game = new Game(canvas);
   void game.start();
   // dostęp z konsoli do debugowania
-  (window as unknown as { game: Game }).game = game;
+  (window as unknown as { game: Game; audio: unknown }).game = game;
+  (window as unknown as { audio: unknown }).audio = { engine: AudioEngine, jukebox: Jukebox, sfx: Sfx };
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

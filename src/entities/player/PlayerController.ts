@@ -55,7 +55,6 @@ export class PlayerController extends Entity {
     this.x = x;
     this.y = y;
     this.lastSafe = { x, y };
-    this.health.onDeath = () => { Sfx.play('game_over'); };
   }
 
   get isDead(): boolean { return this.state === DEAD; }
@@ -143,6 +142,7 @@ export class PlayerController extends Entity {
     this.updateWeaponPose();
     if (aim && this.input.held('fire')) this.fire(world);
     if (!this.isDead && this.weaponVisible) this.sawSparks(dt, world);
+    Sfx.setLoop('saw', !this.isDead && this.weaponVisible, this.isFiring ? 1 : 0.35);
   }
 
   /** Lewa krawędź ekranu = ściana; w arenie bossa także prawa. */
@@ -216,6 +216,7 @@ export class PlayerController extends Entity {
   }
 
   private landingDust(world: WorldContext): void {
+    Sfx.play('land');
     world.particles.emit({
       x: this.cx, y: this.bottom - 1, count: CONFIG.vfx.landingDust, color: ['#8a94a3', '#5b6577', '#c3c8d1'],
       speed: [15, 45], life: [0.25, 0.5], size: [1.5, 3], angle: [-Math.PI * 0.95, -Math.PI * 0.05], spreadX: 5,

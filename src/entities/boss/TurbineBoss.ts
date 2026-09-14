@@ -148,6 +148,7 @@ export class TurbineBoss extends EnemyBase {
     if (!this.alive) return;
     super.die(world);
     Sfx.play('boss_die');
+    Sfx.play('boss_rumble');
     world.events.emit('boss:died', undefined);
   }
 

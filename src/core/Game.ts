@@ -3,6 +3,7 @@ import { Input } from './Input';
 import { GameScene } from '../scenes/GameScene';
 import { loadAllAssets } from '../assets/AssetLoader';
 import { HUD } from '../ui/HUD';
+import { AudioEngine } from '../audio/AudioEngine';
 
 /**
  * Pętla gry: stały krok symulacji (60 Hz) + render co klatkę, całkowite skalowanie canvasu.
@@ -23,6 +24,7 @@ export class Game {
     this.ctx = ctx;
     this.ctx.imageSmoothingEnabled = false;
     this.input = new Input(window);
+    AudioEngine.hookUnlock();
     window.addEventListener('resize', () => this.fitToWindow());
     this.fitToWindow();
     canvas.focus();

@@ -4,6 +4,8 @@ import { EventBus } from '../core/EventBus';
 import type { Input } from '../core/Input';
 import { normalize } from '../core/MathUtil';
 import { Sfx } from '../render/Audio';
+import { Jukebox } from '../audio/Jukebox';
+import { AudioEngine } from '../audio/AudioEngine';
 import { ParticleSystem } from '../render/Particles';
 import { FxSystem } from '../render/Fx';
 import { Parallax } from '../render/Parallax';
@@ -65,8 +67,10 @@ export class GameScene implements WorldContext {
     this.events.on('boss:phase', ({ from, to }) => {
       if (from >= 0) this.hud.showBanner(`FAZA ${to + 1}${to === 2 ? ' – ENRAGE!' : ''}`);
     });
-    this.events.on('boss:died', () => { this.state = 'victory'; this.endTimer = 0; Sfx.play('victory'); });
-    this.events.on('player:died', () => { this.state = 'gameover'; this.endTimer = 0; });
+    this.events.on('boss:spawned', () => Jukebox.play('boss'));
+    this.events.on('boss:died', () => { this.state = 'victory'; this.endTimer = 0; Sfx.stopAllLoops(); Jukebox.play('victory'); });
+    this.events.on('player:died', () => { this.state = 'gameover'; this.endTimer = 0; Sfx.stopAllLoops(); Jukebox.play('gameover'); });
+    Jukebox.play('level');
   }
 
   /** Warstwy tła i tileset – tylko gdy zasoby są załadowane (headless test rysuje placeholdery). */
@@ -106,6 +110,7 @@ export class GameScene implements WorldContext {
     this.hud.update(dt);
 
     this.camera.update(dt);
+    if (this.input.justPressed('mute')) { AudioEngine.toggleMute(); Sfx.play('ui'); }
     if (this.state !== 'playing') {
       this.endTimer += dt;
       this.particles.update(dt);
@@ -251,6 +256,7 @@ export class GameScene implements WorldContext {
     ctx.restore();
 
     this.hud.draw(ctx, this.player, this.score, this.boss, this.time);
+    this.hud.drawAudioState(ctx, AudioEngine.muted, AudioEngine.running || !AudioEngine.available);
     if (this.time < 6) this.hud.drawHint(ctx, Math.min(1, 6 - this.time), this.input.gamepadConnected);
 
     const again = this.input.gamepadConnected ? 'START – jeszcze raz' : 'R – jeszcze raz';

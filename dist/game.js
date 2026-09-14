@@ -13,6 +13,11 @@
       gravity: 1300,
       maxFallSpeed: 460
     },
+    audio: {
+      master: 0.8,
+      sfx: 0.9,
+      music: 0.5
+    },
     vfx: {
       /** Iskry z tarczy tnącej (cząstek/s). */
       sawSparkRate: 22,
@@ -164,7 +169,8 @@
     down: ["ArrowDown", "KeyS"],
     jump: ["KeyZ", "KeyK", "Space"],
     fire: ["KeyX", "KeyJ"],
-    restart: ["KeyR", "Enter"]
+    restart: ["KeyR", "Enter"],
+    mute: ["KeyM"]
   };
   var GAMEPAD_BINDINGS = {
     left: [14],
@@ -173,7 +179,8 @@
     down: [13],
     jump: [0],
     fire: [1, 2, 7],
-    restart: [9]
+    restart: [9],
+    mute: [8]
   };
   var GAMEPAD_DEADZONE = 0.45;
   var Input = class {
@@ -343,27 +350,561 @@
     return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
   }
 
+  // src/audio/AudioEngine.ts
+  var AudioEngine = class {
+    static get available() {
+      return typeof window !== "undefined" && typeof window.AudioContext === "function";
+    }
+    /** Kontekst tworzony leniwie; null gdy Web Audio niedostępne. */
+    static get ctx() {
+      if (this._ctx) return this._ctx;
+      if (!this.available) return null;
+      this._ctx = new AudioContext();
+      this.master = this._ctx.createGain();
+      this.master.gain.value = this.muted ? 0 : CONFIG.audio.master;
+      this.master.connect(this._ctx.destination);
+      this.sfxBus = this._ctx.createGain();
+      this.sfxBus.gain.value = CONFIG.audio.sfx;
+      this.sfxBus.connect(this.master);
+      this.musicBus = this._ctx.createGain();
+      this.musicBus.gain.value = CONFIG.audio.music;
+      this.musicBus.connect(this.master);
+      return this._ctx;
+    }
+    /** Czy przeglądarka pozwala już grać (po gestach użytkownika). */
+    static get running() {
+      return this._ctx?.state === "running";
+    }
+    /** Podpina odblokowanie kontekstu na pierwszy klawisz / klik / dotyk. */
+    static hookUnlock() {
+      if (this.unlockHooked || typeof window === "undefined") return;
+      this.unlockHooked = true;
+      const unlock = () => {
+        void this.resume();
+      };
+      for (const ev of ["keydown", "pointerdown", "touchstart"]) window.addEventListener(ev, unlock, { passive: true });
+    }
+    static async resume() {
+      const c = this.ctx;
+      if (c && c.state !== "running") {
+        try {
+          await c.resume();
+        } catch {
+        }
+      }
+    }
+    static setMuted(m) {
+      this.muted = m;
+      if (this.master && this._ctx) this.master.gain.setTargetAtTime(m ? 0 : CONFIG.audio.master, this._ctx.currentTime, 0.02);
+    }
+    static toggleMute() {
+      this.setMuted(!this.muted);
+      return this.muted;
+    }
+  };
+  AudioEngine._ctx = null;
+  AudioEngine.master = null;
+  AudioEngine.sfxBus = null;
+  AudioEngine.musicBus = null;
+  AudioEngine.muted = false;
+  AudioEngine.unlockHooked = false;
+
+  // src/audio/Synth.ts
+  function renderSfx(def, sampleRate) {
+    const n = Math.max(1, Math.floor(def.duration * sampleRate));
+    const out = new Float32Array(n);
+    const attack = def.attack ?? 4e-3;
+    const decay = def.decay ?? def.duration * 0.6;
+    const sustainEnd = Math.max(attack, def.duration - decay);
+    const duty = def.duty ?? 0.5;
+    const f0 = def.freq, f1 = def.freqEnd ?? def.freq;
+    let phase = 0;
+    let noiseHold = 0, noiseCounter = 0;
+    let lp = 0;
+    let seed = 19088743;
+    const rnd = () => {
+      seed = seed * 1664525 + 1013904223 >>> 0;
+      return seed / 4294967296 * 2 - 1;
+    };
+    for (let i = 0; i < n; i++) {
+      const t = i / sampleRate;
+      const u = t / def.duration;
+      let f = f0 * Math.pow(f1 / f0, u);
+      if (def.arp && def.arp.length) {
+        const idx = Math.min(def.arp.length - 1, Math.floor(t / (def.arpStep ?? 0.05)));
+        f *= def.arp[idx];
+      }
+      if (def.vibratoDepth) f *= 1 + Math.sin(t * Math.PI * 2 * (def.vibratoRate ?? 8)) * def.vibratoDepth;
+      let s;
+      if (def.wave === "noise") {
+        const rate = def.noiseRate ?? 0;
+        if (rate > 0) {
+          noiseCounter += rate / sampleRate;
+          if (noiseCounter >= 1) {
+            noiseCounter -= 1;
+            noiseHold = rnd();
+          }
+          s = noiseHold;
+        } else s = rnd();
+      } else {
+        phase += f / sampleRate;
+        phase -= Math.floor(phase);
+        switch (def.wave) {
+          case "square":
+            s = phase < duty ? 1 : -1;
+            break;
+          case "triangle":
+            s = 4 * Math.abs(phase - 0.5) - 1;
+            break;
+          case "saw":
+            s = 2 * phase - 1;
+            break;
+          default:
+            s = Math.sin(phase * Math.PI * 2);
+        }
+      }
+      if (def.lowpass) {
+        const fc = def.lowpass * Math.pow((def.lowpassEnd ?? def.lowpass) / def.lowpass, u);
+        const a = 1 - Math.exp(-2 * Math.PI * fc / sampleRate);
+        lp += a * (s - lp);
+        s = lp;
+      }
+      let env;
+      if (t < attack) env = t / attack;
+      else if (t < sustainEnd) env = 1;
+      else env = Math.pow(1 - (t - sustainEnd) / Math.max(1e-4, def.duration - sustainEnd), 1.6);
+      out[i] = s * env * (def.gain ?? 0.5);
+    }
+    return out;
+  }
+  var SfxBank = class {
+    constructor(defs) {
+      this.defs = defs;
+      this.buffers = /* @__PURE__ */ new Map();
+    }
+    has(name) {
+      return name in this.defs;
+    }
+    buffer(name) {
+      const ctx = AudioEngine.ctx;
+      if (!ctx) return null;
+      let b = this.buffers.get(name);
+      if (!b) {
+        const def = this.defs[name];
+        if (!def) return null;
+        const pcm = renderSfx(def, ctx.sampleRate);
+        b = ctx.createBuffer(1, pcm.length, ctx.sampleRate);
+        b.getChannelData(0).set(pcm);
+        this.buffers.set(name, b);
+      }
+      return b;
+    }
+    /** @param rate losowa wariacja wysokości (np. 0.06 = ±6%) */
+    play(name, volume = 1, rateJitter = 0) {
+      const ctx = AudioEngine.ctx;
+      const buf = this.buffer(name);
+      if (!ctx || !buf || !AudioEngine.sfxBus || !AudioEngine.running) return;
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      if (rateJitter) src.playbackRate.value = 1 + (Math.random() * 2 - 1) * rateJitter;
+      const g = ctx.createGain();
+      g.gain.value = volume;
+      src.connect(g).connect(AudioEngine.sfxBus);
+      src.start();
+    }
+  };
+
+  // src/audio/SfxDefs.ts
+  var SFX_DEFS = {
+    shoot: { wave: "square", duty: 0.25, freq: 1400, freqEnd: 300, duration: 0.07, decay: 0.05, gain: 0.32 },
+    jump: { wave: "square", duty: 0.5, freq: 260, freqEnd: 720, duration: 0.16, decay: 0.08, gain: 0.22 },
+    land: { wave: "noise", noiseRate: 6e3, freq: 1, duration: 0.09, lowpass: 900, lowpassEnd: 200, decay: 0.07, gain: 0.35 },
+    hurt: { wave: "square", duty: 0.5, freq: 480, freqEnd: 70, duration: 0.3, decay: 0.2, vibratoDepth: 0.08, vibratoRate: 30, gain: 0.5 },
+    enemy_hit: { wave: "noise", noiseRate: 12e3, freq: 1, duration: 0.06, lowpass: 5e3, lowpassEnd: 1500, decay: 0.05, gain: 0.4 },
+    enemy_die: { wave: "noise", freq: 1, duration: 0.45, lowpass: 3500, lowpassEnd: 200, decay: 0.38, gain: 0.6 },
+    explosion: { wave: "noise", freq: 1, duration: 0.7, lowpass: 2500, lowpassEnd: 120, decay: 0.6, gain: 0.7 },
+    boss_phase: { wave: "square", duty: 0.5, freq: 440, duration: 0.7, arp: [1, 1.5, 1, 1.5, 1, 1.5, 2], arpStep: 0.1, decay: 0.15, gain: 0.45 },
+    boss_die: { wave: "noise", freq: 1, duration: 1.4, lowpass: 3e3, lowpassEnd: 60, decay: 1.2, gain: 0.8 },
+    boss_rumble: { wave: "triangle", freq: 220, freqEnd: 35, duration: 1.4, decay: 1, vibratoDepth: 0.2, vibratoRate: 12, gain: 0.5 },
+    sniper_aim: { wave: "triangle", freq: 500, freqEnd: 1300, duration: 0.35, decay: 0.1, gain: 0.35 },
+    drone_bomb: { wave: "square", duty: 0.35, freq: 1200, freqEnd: 250, duration: 0.45, decay: 0.15, vibratoDepth: 0.05, vibratoRate: 20, gain: 0.32 },
+    saw_hit: { wave: "square", duty: 0.5, freq: 1800, freqEnd: 900, duration: 0.05, decay: 0.04, gain: 0.25 },
+    game_over: { wave: "square", duty: 0.5, freq: 660, duration: 1, arp: [1, 0.75, 0.63, 0.5], arpStep: 0.25, decay: 0.2, gain: 0.45 },
+    victory: { wave: "square", duty: 0.5, freq: 330, duration: 0.9, arp: [1, 1.25, 1.5, 2, 2, 2], arpStep: 0.15, decay: 0.2, gain: 0.45 },
+    charge: { wave: "saw", freq: 90, freqEnd: 420, duration: 0.45, decay: 0.1, gain: 0.35 },
+    ui: { wave: "square", duty: 0.5, freq: 880, freqEnd: 1320, duration: 0.08, decay: 0.05, gain: 0.3 }
+  };
+
   // src/render/Audio.ts
   var _Sfx = class _Sfx {
     static register(name, url) {
       const a = new Audio(url);
       a.preload = "auto";
-      _Sfx.sources.set(name, a);
+      _Sfx.files.set(name, a);
     }
-    static play(name) {
+    static play(name, volume = 1) {
       if (!_Sfx.enabled) return;
-      const src = _Sfx.sources.get(name);
-      if (!src) return;
-      const inst = src.cloneNode();
-      inst.volume = _Sfx.volume;
-      void inst.play().catch(() => {
-      });
+      const file = _Sfx.files.get(name);
+      if (file) {
+        const inst = file.cloneNode();
+        inst.volume = Math.min(1, _Sfx.volume * volume);
+        void inst.play().catch(() => {
+        });
+        return;
+      }
+      _Sfx.bank.play(name, _Sfx.volume * volume, _Sfx.jitter[name] ?? 0);
+    }
+    /**
+     * Ciągła pętla syntetyczna (buczenie tarczy tnącej). `on` włącza/wycisza z krótką rampą.
+     */
+    static setLoop(name, on, level = 1) {
+      const ctx = AudioEngine.ctx;
+      if (!ctx || !AudioEngine.sfxBus) return;
+      let loop = _Sfx.loops.get(name);
+      if (!loop) {
+        if (!on) return;
+        const gain = ctx.createGain();
+        gain.gain.value = 0;
+        gain.connect(AudioEngine.sfxBus);
+        const o1 = ctx.createOscillator();
+        o1.type = "sawtooth";
+        o1.frequency.value = 72;
+        const o2 = ctx.createOscillator();
+        o2.type = "square";
+        o2.frequency.value = 145;
+        const lfo = ctx.createOscillator();
+        lfo.type = "sine";
+        lfo.frequency.value = 11;
+        const lfoGain = ctx.createGain();
+        lfoGain.gain.value = 6;
+        lfo.connect(lfoGain).connect(o1.frequency);
+        const filt = ctx.createBiquadFilter();
+        filt.type = "lowpass";
+        filt.frequency.value = 900;
+        o1.connect(filt);
+        o2.connect(filt);
+        filt.connect(gain);
+        o1.start();
+        o2.start();
+        lfo.start();
+        loop = { osc: [o1, o2, lfo], gain };
+        _Sfx.loops.set(name, loop);
+      }
+      const target = on && _Sfx.enabled ? 0.05 * level : 0;
+      loop.gain.gain.setTargetAtTime(target, ctx.currentTime, 0.04);
+    }
+    static stopAllLoops() {
+      const ctx = AudioEngine.ctx;
+      if (!ctx) return;
+      for (const l of _Sfx.loops.values()) l.gain.gain.setTargetAtTime(0, ctx.currentTime, 0.03);
     }
   };
-  _Sfx.sources = /* @__PURE__ */ new Map();
-  _Sfx.volume = 0.6;
+  _Sfx.files = /* @__PURE__ */ new Map();
+  _Sfx.bank = new SfxBank(SFX_DEFS);
+  _Sfx.loops = /* @__PURE__ */ new Map();
+  _Sfx.volume = 1;
   _Sfx.enabled = true;
+  /** Losowa wariacja wysokości dla szybko powtarzanych efektów. */
+  _Sfx.jitter = { shoot: 0.08, enemy_hit: 0.15, saw_hit: 0.1, land: 0.1 };
   var Sfx = _Sfx;
+
+  // src/audio/Music.ts
+  var NOTE_INDEX = { C: 0, "C#": 1, D: 2, "D#": 3, E: 4, F: 5, "F#": 6, G: 7, "G#": 8, A: 9, "A#": 10, B: 11 };
+  function noteToFreq(note, transpose = 0) {
+    const m = /^([A-G]#?)(-?\d)$/.exec(note);
+    if (!m) return 0;
+    const midi = 12 * (parseInt(m[2], 10) + 1) + NOTE_INDEX[m[1]] + transpose;
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+  var waveCache = /* @__PURE__ */ new Map();
+  function pulseWave(ctx, duty) {
+    const key = duty.toFixed(3);
+    let w = waveCache.get(key);
+    if (!w) {
+      const N = 32;
+      const real = new Float32Array(N), imag = new Float32Array(N);
+      for (let k = 1; k < N; k++) {
+        real[k] = 2 / (k * Math.PI) * Math.sin(k * Math.PI * duty);
+      }
+      w = ctx.createPeriodicWave(real, imag, { disableNormalization: false });
+      waveCache.set(key, w);
+    }
+    return w;
+  }
+  var noiseBuffer = null;
+  function getNoise(ctx) {
+    if (!noiseBuffer) {
+      noiseBuffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const d = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    return noiseBuffer;
+  }
+  var MusicPlayer = class {
+    constructor() {
+      this.song = null;
+      this.tokens = [];
+      this.step = 0;
+      this.nextTime = 0;
+      this.timer = null;
+      this.bus = null;
+      this.onEnd = null;
+      this.stepDur = 0.1;
+    }
+    get current() {
+      return this.song?.name ?? null;
+    }
+    play(song, onEnd) {
+      const ctx = AudioEngine.ctx;
+      this.stop();
+      this.song = song;
+      this.onEnd = onEnd ?? null;
+      if (!ctx || !AudioEngine.musicBus) return;
+      this.tokens = song.tracks.map((t) => t.steps.trim().split(/\s+/));
+      this.stepDur = 60 / song.bpm / 4;
+      this.step = 0;
+      this.bus = ctx.createGain();
+      this.bus.gain.value = 1;
+      this.bus.connect(AudioEngine.musicBus);
+      this.nextTime = ctx.currentTime + 0.05;
+      this.timer = setInterval(() => this.schedule(), 25);
+    }
+    stop(fade = 0.05) {
+      if (this.timer) {
+        clearInterval(this.timer);
+        this.timer = null;
+      }
+      const ctx = AudioEngine.ctx;
+      if (this.bus && ctx) {
+        const b = this.bus;
+        b.gain.setTargetAtTime(0, ctx.currentTime, fade);
+        setTimeout(() => b.disconnect(), (fade * 6 + 0.1) * 1e3);
+      }
+      this.bus = null;
+      this.song = null;
+    }
+    schedule() {
+      const ctx = AudioEngine.ctx;
+      if (!ctx || !this.song || !this.bus) return;
+      if (!AudioEngine.running) {
+        this.nextTime = ctx.currentTime + 0.05;
+        return;
+      }
+      const length = Math.max(...this.tokens.map((t) => t.length));
+      while (this.nextTime < ctx.currentTime + 0.15) {
+        if (this.step >= length) {
+          if (this.song.loop) this.step = 0;
+          else {
+            const cb = this.onEnd;
+            this.stop(0.3);
+            cb?.();
+            return;
+          }
+        }
+        this.song.tracks.forEach((track, ti) => this.scheduleStep(ctx, track, this.tokens[ti], this.step, this.nextTime));
+        this.step++;
+        this.nextTime += this.stepDur;
+      }
+    }
+    scheduleStep(ctx, track, tokens, step, t) {
+      const tok = tokens[step % tokens.length];
+      if (!tok || tok === "-" || tok === ".") return;
+      let len = 1;
+      while (tokens[(step + len) % tokens.length] === "." && step + len < tokens.length) len++;
+      const dur = len * this.stepDur * (track.legato ?? 0.9);
+      const bus = this.bus;
+      if (track.wave === "noise") {
+        this.drum(ctx, tok, t, track.gain, bus);
+        return;
+      }
+      const f = noteToFreq(tok, track.transpose ?? 0);
+      if (!f) return;
+      const osc = ctx.createOscillator();
+      if (track.wave === "square") osc.setPeriodicWave(pulseWave(ctx, track.duty ?? 0.5));
+      else osc.type = "triangle";
+      osc.frequency.value = f;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(track.gain, t + 4e-3);
+      g.gain.setTargetAtTime(track.gain * 0.7, t + 0.03, 0.08);
+      g.gain.setTargetAtTime(0, t + dur, 0.012);
+      osc.connect(g).connect(bus);
+      osc.start(t);
+      osc.stop(t + dur + 0.1);
+    }
+    drum(ctx, kind, t, gain, bus) {
+      if (kind === "K") {
+        const o = ctx.createOscillator();
+        o.type = "triangle";
+        o.frequency.setValueAtTime(170, t);
+        o.frequency.exponentialRampToValueAtTime(40, t + 0.1);
+        const g2 = ctx.createGain();
+        g2.gain.setValueAtTime(gain * 1.6, t);
+        g2.gain.exponentialRampToValueAtTime(1e-3, t + 0.14);
+        o.connect(g2).connect(bus);
+        o.start(t);
+        o.stop(t + 0.16);
+        return;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = getNoise(ctx);
+      const filt = ctx.createBiquadFilter();
+      const g = ctx.createGain();
+      if (kind === "S") {
+        filt.type = "bandpass";
+        filt.frequency.value = 1800;
+        filt.Q.value = 0.7;
+        g.gain.setValueAtTime(gain * 1.1, t);
+        g.gain.exponentialRampToValueAtTime(1e-3, t + 0.12);
+        src.start(t);
+        src.stop(t + 0.13);
+      } else {
+        filt.type = "highpass";
+        filt.frequency.value = 6e3;
+        g.gain.setValueAtTime(gain * 0.5, t);
+        g.gain.exponentialRampToValueAtTime(1e-3, t + 0.04);
+        src.start(t);
+        src.stop(t + 0.05);
+      }
+      src.connect(filt).connect(g).connect(bus);
+    }
+  };
+
+  // src/audio/Songs.ts
+  var bars = (...b) => b.join(" ");
+  var LEVEL_THEME = {
+    name: "level",
+    bpm: 168,
+    loop: true,
+    tracks: [
+      { wave: "square", duty: 0.5, gain: 0.26, steps: bars(
+        "E4 . . . G4 . B4 . E5 . . . D5 . B4 .",
+        "A4 . . . B4 . A4 . G4 . . . E4 . . .",
+        "C5 . . . D5 . E5 . G5 . . . E5 . D5 .",
+        "B4 . . . D5 . B4 . A4 . G4 . E4 . . .",
+        "E5 . . . D5 . B4 . G4 . . . A4 . B4 .",
+        "C5 . . . B4 . A4 . G4 . . . F#4 . . .",
+        "E4 . G4 . A4 . B4 . D5 . . . E5 . D5 .",
+        "B4 . . . . . . . F#4 . . . . . . ."
+      ) },
+      { wave: "square", duty: 0.25, gain: 0.13, legato: 0.6, steps: bars(
+        "E3 G3 B3 E4 E3 G3 B3 E4 A3 C4 E4 A4 A3 C4 E4 A4",
+        "E3 G3 B3 E4 E3 G3 B3 E4 B3 D4 F#4 B4 G3 B3 D4 G4",
+        "C3 E3 G3 C4 C3 E3 G3 C4 D3 F#3 A3 D4 E3 G3 B3 E4",
+        "B2 D3 F#3 B3 B2 D3 F#3 B3 E3 G3 B3 E4 E3 G3 B3 E4",
+        "E3 G3 B3 E4 E3 G3 B3 E4 A3 C4 E4 A4 A3 C4 E4 A4",
+        "E3 G3 B3 E4 E3 G3 B3 E4 B3 D4 F#4 B4 G3 B3 D4 G4",
+        "C3 E3 G3 C4 C3 E3 G3 C4 D3 F#3 A3 D4 E3 G3 B3 E4",
+        "B2 D3 F#3 B3 B2 D3 F#3 B3 B2 D3 F#3 B3 B2 D3 F#3 B3"
+      ) },
+      { wave: "triangle", gain: 0.5, legato: 0.8, steps: bars(
+        "E2 . E2 . E2 . G2 . A2 . A2 . G2 . E2 .",
+        "E2 . E2 . E2 . G2 . B2 . B2 . A2 . G2 .",
+        "C2 . C2 . C2 . D2 . E2 . E2 . D2 . C2 .",
+        "B1 . B1 . B1 . D2 . E2 . E2 . E2 . E2 .",
+        "E2 . E2 . E2 . G2 . A2 . A2 . G2 . E2 .",
+        "E2 . E2 . E2 . G2 . B2 . B2 . A2 . G2 .",
+        "C2 . C2 . C2 . D2 . E2 . E2 . D2 . C2 .",
+        "B1 . B1 . D2 . F#2 . B1 . B1 . D2 . F#2 ."
+      ) },
+      { wave: "noise", gain: 0.32, steps: bars(
+        "K - H - S - H H K - H - S - H -",
+        "K - H - S - H H K - H - S - H -",
+        "K - H - S - H H K - H - S - H -",
+        "K - H - S - H H K - H - S - H -",
+        "K - H - S - H H K - H - S - H -",
+        "K - H - S - H H K - H - S - H -",
+        "K - H - S - H H K - H - S - H -",
+        "K - H - S - H - K - S - S - S S"
+      ) }
+    ]
+  };
+  var BOSS_THEME = {
+    name: "boss",
+    bpm: 184,
+    loop: true,
+    tracks: [
+      { wave: "square", duty: 0.5, gain: 0.28, steps: bars(
+        "D5 . F5 . A5 . G#5 . A5 . . . F5 . D5 .",
+        "D5 . F5 . A5 . A#5 . A5 . . . G5 . A5 .",
+        "A#5 . . . A5 . G5 . F5 . . . E5 . F5 .",
+        "E5 . . . F5 . E5 . C#5 . . . D5 . . .",
+        "D5 . . . . . D5 . F5 . . . A5 . . .",
+        "G#5 . . . A5 . G#5 . A5 . . . D6 . . .",
+        "C6 . . . A#5 . A5 . G5 . . . F5 . E5 .",
+        "F5 . E5 . D5 . C#5 . D5 . . . . . . ."
+      ) },
+      { wave: "square", duty: 0.125, gain: 0.15, legato: 0.6, steps: bars(
+        "D3 F3 A3 D4 D3 F3 A3 D4 D3 F3 A3 D4 D3 F3 A3 C4",
+        "D3 F3 A3 D4 D3 F3 A3 D4 D3 F3 A3 D4 G#3 B3 D4 F4",
+        "A#2 D3 F3 A#3 A#2 D3 F3 A#3 G2 A#2 D3 G3 G2 A#2 D3 G3",
+        "A2 C#3 E3 A3 A2 C#3 E3 A3 G#2 B2 D3 G#3 A2 C#3 E3 A3",
+        "D3 F3 A3 D4 D3 F3 A3 D4 D3 F3 A3 D4 D3 F3 A3 C4",
+        "D3 F3 A3 D4 D3 F3 A3 D4 D3 F3 A3 D4 G#3 B3 D4 F4",
+        "A#2 D3 F3 A#3 A#2 D3 F3 A#3 G2 A#2 D3 G3 G2 A#2 D3 G3",
+        "A2 C#3 E3 A3 A2 C#3 E3 A3 A2 C#3 E3 A3 D3 F3 A3 D4"
+      ) },
+      { wave: "triangle", gain: 0.55, legato: 0.7, steps: bars(
+        "D2 . D2 D2 . D2 . F2 D2 . D2 D2 . D2 . C2",
+        "D2 . D2 D2 . D2 . F2 D2 . D2 D2 . G#2 . A2",
+        "A#2 . A#2 A#2 . A#2 . A2 G2 . G2 G2 . G2 . F2",
+        "A2 . A2 A2 . A2 . A2 G#2 . G#2 . A2 . . .",
+        "D2 . D2 D2 . D2 . F2 D2 . D2 D2 . D2 . C2",
+        "D2 . D2 D2 . D2 . F2 D2 . D2 D2 . G#2 . A2",
+        "A#2 . A#2 A#2 . A#2 . A2 G2 . G2 G2 . G2 . F2",
+        "A2 . A2 A2 . A2 . A2 A2 . A2 . D2 . . ."
+      ) },
+      { wave: "noise", gain: 0.34, steps: bars(
+        "K - H H S - K - K - H H S - S -",
+        "K - H H S - K - K - H H S - S -",
+        "K - H H S - K - K - H H S - S -",
+        "K - H H S - K - K - H H S - S -",
+        "K - H H S - K - K - H H S - S -",
+        "K - H H S - K - K - H H S - S -",
+        "K - H H S - K - K - H H S - S -",
+        "K - S - K - S - S S S S K K S S"
+      ) }
+    ]
+  };
+  var VICTORY_JINGLE = {
+    name: "victory",
+    bpm: 132,
+    loop: false,
+    tracks: [
+      { wave: "square", duty: 0.5, gain: 0.3, steps: "E5 . G5 . B5 . E6 . . . D6 . E6 . . . . . . . - - - -" },
+      { wave: "square", duty: 0.25, gain: 0.16, steps: "G4 . B4 . E5 . G5 . . . B5 . G5 . . . . . . . - - - -" },
+      { wave: "triangle", gain: 0.5, steps: "E2 . . . G2 . . . B2 . . . E3 . . . . . . . - - - -" },
+      { wave: "noise", gain: 0.3, steps: "K - - - S - - - K - - - S S - - - - - - - - - -" }
+    ]
+  };
+  var GAMEOVER_JINGLE = {
+    name: "gameover",
+    bpm: 92,
+    loop: false,
+    tracks: [
+      { wave: "square", duty: 0.5, gain: 0.28, steps: "E4 . . . D4 . . . C4 . . . B3 . . . E3 . . . . . . . - - - -" },
+      { wave: "square", duty: 0.25, gain: 0.14, steps: "B3 . . . A3 . . . G3 . . . F#3 . . . B2 . . . . . . . - - - -" },
+      { wave: "triangle", gain: 0.5, steps: "E2 . . . . . . . C2 . . . . . . . E1 . . . . . . . - - - -" },
+      { wave: "noise", gain: 0.25, steps: "K - - - - - - - K - - - - - - - K - - - - - - - - - - -" }
+    ]
+  };
+
+  // src/audio/Jukebox.ts
+  var SONGS = { level: LEVEL_THEME, boss: BOSS_THEME, victory: VICTORY_JINGLE, gameover: GAMEOVER_JINGLE };
+  var _Jukebox = class _Jukebox {
+    static play(name) {
+      if (_Jukebox.player.current === name) return;
+      _Jukebox.player.play(SONGS[name]);
+    }
+    static stop() {
+      _Jukebox.player.stop();
+    }
+    static get current() {
+      return _Jukebox.player.current;
+    }
+  };
+  _Jukebox.player = new MusicPlayer();
+  var Jukebox = _Jukebox;
 
   // src/core/Pool.ts
   var Pool = class {
@@ -1263,6 +1804,7 @@
   };
   function impactSparks(world, x, y, vx, vy) {
     const back = Math.atan2(-vy, -vx);
+    Sfx.play("saw_hit", 0.5);
     world.fx.spawn("shotHit", x, y, { rotation: Math.atan2(vy, vx) });
     world.particles.emit({
       x,
@@ -2024,9 +2566,6 @@
       this.x = x;
       this.y = y;
       this.lastSafe = { x, y };
-      this.health.onDeath = () => {
-        Sfx.play("game_over");
-      };
     }
     get isDead() {
       return this.state === DEAD;
@@ -2103,6 +2642,7 @@
       this.updateWeaponPose();
       if (aim && this.input.held("fire")) this.fire(world);
       if (!this.isDead && this.weaponVisible) this.sawSparks(dt, world);
+      Sfx.setLoop("saw", !this.isDead && this.weaponVisible, this.isFiring ? 1 : 0.35);
     }
     /** Lewa krawędź ekranu = ściana; w arenie bossa także prawa. */
     clampToCamera(world) {
@@ -2178,6 +2718,7 @@
       }
     }
     landingDust(world) {
+      Sfx.play("land");
       world.particles.emit({
         x: this.cx,
         y: this.bottom - 1,
@@ -2625,6 +3166,7 @@
         case "descend":
           if (boss.moveTowards(boss.x, floorTopY, this.speed * 1.2, dt)) {
             this.stage = "sweepLeft";
+            Sfx.play("explosion", 0.6);
             world.camera.shake(CONFIG.vfx.shake.sweepLand, 0.2);
             world.particles.emit({ x: boss.cx, y: boss.bottom, count: 12, color: ["#8a94a3", "#c3c8d1", "#ffb300"], speed: [30, 110], life: [0.2, 0.5], gravity: 300, angle: [-Math.PI, 0], spreadX: boss.w / 2 });
           }
@@ -2679,6 +3221,7 @@
               y: clamp(p.cy - boss.h / 2, 8, boss.floorY - boss.h)
             };
             this.stage = "dash";
+            Sfx.play("charge");
           }
           return false;
         case "dash":
@@ -2915,6 +3458,7 @@
       if (!this.alive) return;
       super.die(world);
       Sfx.play("boss_die");
+      Sfx.play("boss_rumble");
       world.events.emit("boss:died", void 0);
     }
     deathEffect(world) {
@@ -3168,6 +3712,36 @@
       ), W / 2, H - 14);
       ctx.restore();
     }
+    /** Ikona głośnika (prawy dolny róg) + podpowiedź, gdy przeglądarka czeka na gest użytkownika. */
+    drawAudioState(ctx, muted, unlocked) {
+      const W = CONFIG.view.width, H = CONFIG.view.height;
+      const x = W - 14, y = H - 12;
+      ctx.save();
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = muted || !unlocked ? "#7d8794" : C.R;
+      ctx.fillRect(x, y + 2, 3, 4);
+      ctx.fillRect(x + 3, y + 1, 2, 6);
+      ctx.fillRect(x + 5, y, 1, 8);
+      if (muted || !unlocked) {
+        ctx.fillStyle = "#ff3b3b";
+        ctx.fillRect(x + 7, y + 1, 1, 1);
+        ctx.fillRect(x + 8, y + 2, 1, 1);
+        ctx.fillRect(x + 9, y + 3, 1, 1);
+        ctx.fillRect(x + 9, y + 1, 1, 1);
+        ctx.fillRect(x + 7, y + 3, 1, 1);
+      } else {
+        ctx.fillRect(x + 7, y + 2, 1, 4);
+        ctx.fillRect(x + 9, y + 1, 1, 6);
+      }
+      if (!unlocked) {
+        ctx.font = FONT(16);
+        ctx.textAlign = "right";
+        ctx.textBaseline = "bottom";
+        ctx.fillStyle = "#c3c8d1";
+        ctx.fillText(ascii("DOWOLNY KLAWISZ: D\u0179WI\u0118K"), x - 4, H - 2);
+      }
+      ctx.restore();
+    }
     static drawLoading(ctx, done, total) {
       const W = CONFIG.view.width, H = CONFIG.view.height;
       ctx.fillStyle = "#050912";
@@ -3215,15 +3789,20 @@
       this.events.on("boss:phase", ({ from, to }) => {
         if (from >= 0) this.hud.showBanner(`FAZA ${to + 1}${to === 2 ? " \u2013 ENRAGE!" : ""}`);
       });
+      this.events.on("boss:spawned", () => Jukebox.play("boss"));
       this.events.on("boss:died", () => {
         this.state = "victory";
         this.endTimer = 0;
-        Sfx.play("victory");
+        Sfx.stopAllLoops();
+        Jukebox.play("victory");
       });
       this.events.on("player:died", () => {
         this.state = "gameover";
         this.endTimer = 0;
+        Sfx.stopAllLoops();
+        Jukebox.play("gameover");
       });
+      Jukebox.play("level");
     }
     /** Warstwy tła i tileset – tylko gdy zasoby są załadowane (headless test rysuje placeholdery). */
     setupRendering() {
@@ -3272,6 +3851,10 @@
       this.time += dt;
       this.hud.update(dt);
       this.camera.update(dt);
+      if (this.input.justPressed("mute")) {
+        AudioEngine.toggleMute();
+        Sfx.play("ui");
+      }
       if (this.state !== "playing") {
         this.endTimer += dt;
         this.particles.update(dt);
@@ -3402,6 +3985,7 @@
       this.particles.draw(ctx);
       ctx.restore();
       this.hud.draw(ctx, this.player, this.score, this.boss, this.time);
+      this.hud.drawAudioState(ctx, AudioEngine.muted, AudioEngine.running || !AudioEngine.available);
       if (this.time < 6) this.hud.drawHint(ctx, Math.min(1, 6 - this.time), this.input.gamepadConnected);
       const again = this.input.gamepadConnected ? "START \u2013 jeszcze raz" : "R \u2013 jeszcze raz";
       if (this.state === "gameover") this.hud.drawOverlay(ctx, "GAME OVER", again, "#e74c3c");
@@ -3427,6 +4011,7 @@
       this.ctx = ctx;
       this.ctx.imageSmoothingEnabled = false;
       this.input = new Input(window);
+      AudioEngine.hookUnlock();
       window.addEventListener("resize", () => this.fitToWindow());
       this.fitToWindow();
       canvas.focus();
@@ -3482,6 +4067,7 @@
     const game = new Game(canvas);
     void game.start();
     window.game = game;
+    window.audio = { engine: AudioEngine, jukebox: Jukebox, sfx: Sfx };
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();

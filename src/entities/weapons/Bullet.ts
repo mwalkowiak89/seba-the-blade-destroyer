@@ -2,6 +2,7 @@ import { Pool } from '../../core/Pool';
 import type { WorldContext } from '../../scenes/WorldContext';
 import { Sheets } from '../../assets/AssetLoader';
 import { CONFIG } from '../../core/Config';
+import { Sfx } from '../../render/Audio';
 
 export type BulletOwner = 'player' | 'enemy';
 
@@ -35,6 +36,7 @@ export interface BulletSpawn {
 /** Rozbryzg iskier w punkcie uderzenia w metal + animacja trafienia. */
 export function impactSparks(world: WorldContext, x: number, y: number, vx: number, vy: number): void {
   const back = Math.atan2(-vy, -vx);
+  Sfx.play('saw_hit', 0.5);
   world.fx.spawn('shotHit', x, y, { rotation: Math.atan2(vy, vx) });
   world.particles.emit({
     x, y, count: CONFIG.vfx.impactSparks, color: ['#ffe36b', '#ffb300', '#ffffff'],

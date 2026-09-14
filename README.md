@@ -27,6 +27,7 @@ npm test             # headless smoke test: bot przechodzi poziom i pokonuje bos
 | Kucanie | Dół |
 | Zeskok przez platformę | Dół + Skok |
 | Restart | R / Enter |
+| Wycisz | M (pad: Select) |
 
 **Gamepad** (standard mapping, np. Xbox / Steam Deck): D-pad lub lewa gałka – ruch/celowanie,
 **A** – skok, **B / X / RT** – ogień, **Start** – restart. Mapowanie w `GAMEPAD_BINDINGS` (`src/core/Input.ts`).
@@ -52,12 +53,26 @@ Nazwy klipów = nazwy stanów FSM (`idle, run, run_shoot, shoot, crouch, jump, s
 Pixel-perfect: wirtualna rozdzielczość 320×240, skalowanie całkowite z letterboxem (odpowiednik `viewport` + `keep`),
 `image-rendering: pixelated` + `imageSmoothingEnabled = false` (Nearest), pozycje kamery i sprite'ów zaokrąglane do pełnych pikseli.
 
+## Audio (chiptune syntezowany w Web Audio)
+
+Bez plików audio – wszystko generowane w locie w stylu NES (`src/audio/`):
+- `Synth.ts` – efekty jak w jsfxr (pulse/triangle/noise, poślizg częstotliwości, arpeggio, filtr), renderowane raz do bufora;
+  definicje w `SfxDefs.ts` (shoot, jump, land, hurt, enemy_hit, explosion, boss_phase, sniper_aim, drone_bomb, …).
+- `Music.ts` – sekwencer 4-kanałowy (2× pulse, triangle, noise) na zegarze AudioContext; utwory w `Songs.ts`
+  (notacja krokowa: `E4` nuta, `.` przedłużenie, `-` pauza, `K/S/H` perkusja). Motyw poziomu, motyw bossa, dżingle.
+- `Jukebox.ts` – przełączanie utworów zdarzeniami (`boss:spawned`, `boss:died`, `player:died`).
+- Buczenie tarczy tnącej to pętla oscylatorów (`Sfx.setLoop('saw', …)`), głośniejsza podczas ognia.
+- Głośności w `CONFIG.audio`. Kontekst odblokowuje się pierwszym klawiszem/klikiem (polityka autoplay przeglądarek).
+
+**Podmiana na nagrania**: `Sfx.register('shoot', 'assets/sfx/shoot.wav')` – dany efekt gra z pliku zamiast z syntezatora.
+
 ## Architektura (`src/`)
 
 ```
 core/      Config (WSZYSTKIE parametry balansu), Game (pętla 60 Hz), Input, Camera, Pool, EventBus
 render/    Visual (PlaceholderVisual / SpriteSheetVisual), Parallax, TileRenderer, Fx (animacje jednorazowe), Particles, Audio (stub SFX)
 assets/    AssetLoader (preload sheetów/obrazów/czcionki), SpriteSheet (kotwice, flash), manifest.generated.ts
+audio/     AudioEngine (kontekst, tory, mute), Synth + SfxDefs (efekty), Music + Songs (sekwencer, utwory), Jukebox
 world/     Level (tilemapa ASCII 16px), Physics (AABB vs grid + one-way), TestLevel (dane)
 entities/
   Entity, HealthComponent

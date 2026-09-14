@@ -136,6 +136,23 @@ export class HUD {
     ctx.restore();
   }
 
+  /** Ikona głośnika (prawy dolny róg) + podpowiedź, gdy przeglądarka czeka na gest użytkownika. */
+  drawAudioState(ctx: CanvasRenderingContext2D, muted: boolean, unlocked: boolean): void {
+    const W = CONFIG.view.width, H = CONFIG.view.height;
+    const x = W - 14, y = H - 12;
+    ctx.save();
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = muted || !unlocked ? '#7d8794' : C.R;
+    ctx.fillRect(x, y + 2, 3, 4); ctx.fillRect(x + 3, y + 1, 2, 6); ctx.fillRect(x + 5, y, 1, 8);
+    if (muted || !unlocked) { ctx.fillStyle = '#ff3b3b'; ctx.fillRect(x + 7, y + 1, 1, 1); ctx.fillRect(x + 8, y + 2, 1, 1); ctx.fillRect(x + 9, y + 3, 1, 1); ctx.fillRect(x + 9, y + 1, 1, 1); ctx.fillRect(x + 7, y + 3, 1, 1); }
+    else { ctx.fillRect(x + 7, y + 2, 1, 4); ctx.fillRect(x + 9, y + 1, 1, 6); }
+    if (!unlocked) {
+      ctx.font = FONT(16); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillStyle = '#c3c8d1';
+      ctx.fillText(ascii('DOWOLNY KLAWISZ: DŹWIĘK'), x - 4, H - 2);
+    }
+    ctx.restore();
+  }
+
   static drawLoading(ctx: CanvasRenderingContext2D, done: number, total: number): void {
     const W = CONFIG.view.width, H = CONFIG.view.height;
     ctx.fillStyle = '#050912';

@@ -17,6 +17,12 @@ export const CONFIG = {
     maxFallSpeed: 460,
   },
 
+  audio: {
+    master: 0.8,
+    sfx: 0.9,
+    music: 0.5,
+  },
+
   vfx: {
     /** Iskry z tarczy tnącej (cząstek/s). */
     sawSparkRate: 22,

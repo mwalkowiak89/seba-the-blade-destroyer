@@ -1,5 +1,6 @@
 import { CONFIG } from '../../core/Config';
 import { clamp, degToRad, normalize } from '../../core/MathUtil';
+import { Sfx } from '../../render/Audio';
 import type { WorldContext } from '../../scenes/WorldContext';
 import type { AttackPattern, BossPhase } from './BossFSM';
 import type { TurbineBoss } from './TurbineBoss';
@@ -81,6 +82,7 @@ export class SweepAttack implements AttackPattern<TurbineBoss> {
       case 'descend':
         if (boss.moveTowards(boss.x, floorTopY, this.speed * 1.2, dt)) {
           this.stage = 'sweepLeft';
+          Sfx.play('explosion', 0.6);
           world.camera.shake(CONFIG.vfx.shake.sweepLand, 0.2);
           world.particles.emit({ x: boss.cx, y: boss.bottom, count: 12, color: ['#8a94a3', '#c3c8d1', '#ffb300'], speed: [30, 110], life: [0.2, 0.5], gravity: 300, angle: [-Math.PI, 0], spreadX: boss.w / 2 });
         }
@@ -135,6 +137,7 @@ export class ChargeAttack implements AttackPattern<TurbineBoss> {
             y: clamp(p.cy - boss.h / 2, 8, boss.floorY - boss.h),
           };
           this.stage = 'dash';
+          Sfx.play('charge');
         }
         return false;
       case 'dash':
