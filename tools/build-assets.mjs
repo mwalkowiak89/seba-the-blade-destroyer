@@ -38,24 +38,70 @@ function emitSheet(name, file, packed, clips, extra = {}) {
 // ---------------------------------------------------------------------------
 // Palety
 // ---------------------------------------------------------------------------
-/** Warped City player → Seba: niebiesko-szary kombinezon roboczy, ciemny kask. */
+/** Kolory-znaczniki hełmu malowanego przez paintHelmet (potem mapowane paletą postaci). */
+const H = { base: '#5b6577', hi: '#8f9db0', visor: '#101822', glow: '#2fb9b0' };
+const HAIR = new Set(['93278f', 'c51aea']);
+const SKIN = new Set(['ffb164', 'b15c51']);
+
+/**
+ * Zamienia fryzurę na zamknięty hełm z wizjerem: piksele włosów → hełm (z rozjaśnioną górną krawędzią),
+ * skóra twarzy w obrębie głowy → wizjer z podświetloną linią z przodu. Działa na każdej klatce niezależnie.
+ */
+function paintHelmet(img) {
+  const out = { width: img.width, height: img.height, data: Buffer.from(img.data) };
+  const W = img.width, Hh = img.height;
+  const key = (x, y) => (x < 0 || y < 0 || x >= W || y >= Hh || img.data[(y * W + x) * 4 + 3] === 0) ? null : img.data.subarray((y * W + x) * 4, (y * W + x) * 4 + 3).toString('hex');
+  let x0 = W, y0 = Hh, x1 = -1, y1 = -1;
+  for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) if (HAIR.has(key(x, y))) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  if (x1 < 0) return out;
+  const set = (x, y, c) => out.data.set(hex(c), (y * W + x) * 4);
+  // hełm
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    if (!HAIR.has(key(x, y))) continue;
+    set(x, y, HAIR.has(key(x, y - 1)) || SKIN.has(key(x, y - 1)) ? H.base : H.hi);
+  }
+  // wizjer: skóra w obrębie głowy (bbox włosów poszerzony o 1 w bok i 3 w dół)
+  const visor = [];
+  for (let y = y0; y <= y1 + 3; y++) for (let x = x0 - 1; x <= x1 + 1; x++) if (SKIN.has(key(x, y))) visor.push([x, y]);
+  for (const [x, y] of visor) set(x, y, H.visor);
+  // kierunek twarzy: po której stronie środka hełmu jest skóra
+  const cx = (x0 + x1) / 2;
+  const faceRight = visor.length === 0 || visor.reduce((a, [x]) => a + (x > cx ? 1 : -1), 0) >= 0;
+  // szczelina wizjera przez przód hełmu: 2 rzędy w środku wysokości, 6 pikseli od strony twarzy, z poświatą na krawędzi
+  const isHead = (x, y) => HAIR.has(key(x, y)) || SKIN.has(key(x, y)) || key(x, y) === '050912' || key(x, y) === 'ff2245';
+  const yMid = y0 + Math.floor((y1 - y0) / 2);
+  for (const y of [yMid, yMid + 1]) {
+    const xs = [];
+    for (let x = x0 - 1; x <= x1 + 1; x++) if (isHead(x, y)) xs.push(x);
+    if (!xs.length) continue;
+    const front = faceRight ? xs.slice(-6) : xs.slice(0, 6);
+    for (const x of front) set(x, y, H.visor);
+    set(faceRight ? front[front.length - 1] : front[0], y, H.glow);
+    if (y === yMid) set(faceRight ? front[front.length - 2] : front[1], y, H.glow);
+  }
+  return out;
+}
+
+/** Warped City player → Seba: mechanik w niebieskim kombinezonie, rękawice, buty, zamknięty hełm. */
 const SEBA_PALETTE = {
   '#ffd800': '#4f8fd6', // kurtka → kombinezon jasny
   '#ec7809': '#2c5aa0', // kurtka cień → kombinezon cień
-  '#93278f': '#3c4656', // włosy → kask ciemny
-  '#c51aea': '#6b7a90', // włosy highlight → kask highlight
-  '#a096d1': '#9fb0c4', // lawenda → jasny metal
-  '#442b61': '#242a38', // spodnie → ciemnoszare
+  '#ffb164': '#3b6fb0', // skóra (ręce, uda) → kombinezon / rękawice
+  '#b15c51': '#24487f', // skóra cień
+  '#442b61': '#242a38', // rajstopy → ciemne spodnie / nakolanniki
   '#81709a': '#55607a',
-  '#ff2245': '#ffb300', // detal → pomarańczowy znacznik (gogle)
+  '#a096d1': '#3a4250', // buty
+  '#fcfcfc': '#6b7a90', // buty highlight
+  '#ff2245': '#101822', // oko → wizjer
+  [H.base]: '#5b6577', [H.hi]: '#8f9db0', [H.visor]: '#101822', [H.glow]: '#2fb9b0',
 };
 /** Blaszak – biegacz: metal, czerwony wizjer. */
 const RUNNER_PALETTE = {
   '#ffd800': '#7d8794', '#ec7809': '#4b5563',
-  '#93278f': '#2b3038', '#c51aea': '#4a5260', '#a096d1': '#8a94a3',
   '#ffb164': '#aab3bf', '#b15c51': '#6b7482', // skóra → metal
-  '#442b61': '#1c2029', '#81709a': '#3a4250',
+  '#442b61': '#1c2029', '#81709a': '#3a4250', '#a096d1': '#2b3038',
   '#fcfcfc': '#d9dee5', '#ff2245': '#ff2a2a',
+  [H.base]: '#3a4250', [H.hi]: '#6b7482', [H.visor]: '#101010', [H.glow]: '#ff2a2a',
 };
 
 // ---------------------------------------------------------------------------
@@ -80,7 +126,7 @@ const RUNNER_PALETTE = {
   const clips = {}; const list = [];
   for (const [name, imgs] of Object.entries(clipsSrc)) {
     clips[name] = { frames: imgs.map((_, i) => list.length + i), fps: fps[name], loop: loop[name] ?? true };
-    list.push(...imgs.map((im) => crop(im, u)));
+    list.push(...imgs.map((im) => paintHelmet(crop(im, u))));
   }
   const anchorX = 38 - u.x0; // środek postaci w klatce (idle: 28..48)
   const seba = pack(list.map((im) => recolor({ ...im, data: Buffer.from(im.data) }, SEBA_PALETTE)), 8);
@@ -91,7 +137,7 @@ const RUNNER_PALETTE = {
   });
 
   // Biegacz – blaszak: te same klatki biegu w palecie metalu
-  const runnerList = [...clipsSrc.run, ...clipsSrc.hurt].map((im) => recolor(crop(im, u), RUNNER_PALETTE));
+  const runnerList = [...clipsSrc.run, ...clipsSrc.hurt].map((im) => recolor(paintHelmet(crop(im, u)), RUNNER_PALETTE));
   const runner = pack(runnerList, 9);
   emitSheet('runner', 'assets/sprites/enemies/runner.png', runner, {
     run: { frames: [0, 1, 2, 3, 4, 5, 6, 7], fps: 16, loop: true },
@@ -243,11 +289,11 @@ const RUNNER_PALETTE = {
 // ---------------------------------------------------------------------------
 {
   const im = create(20, 20);
-  rect(im, 4, 2, 12, 6, '#3c4656'); rect(im, 3, 4, 14, 4, '#3c4656'); hline(im, 5, 2, 10, '#6b7a90'); // kask
-  rect(im, 5, 8, 10, 8, '#ffb164'); rect(im, 5, 14, 10, 2, '#b15c51'); // twarz
-  rect(im, 4, 8, 12, 4, '#242a38'); rect(im, 5, 9, 4, 2, '#2fb9b0'); rect(im, 11, 9, 4, 2, '#2fb9b0'); px(im, 6, 9, '#ffffff'); px(im, 12, 9, '#ffffff'); // gogle
-  rect(im, 8, 13, 4, 1, '#050912'); // usta
-  rect(im, 3, 16, 14, 4, '#4f8fd6'); rect(im, 3, 16, 14, 1, '#2c5aa0'); // kołnierz kombinezonu
+  rect(im, 4, 1, 12, 14, '#5b6577'); rect(im, 3, 3, 14, 11, '#5b6577'); // hełm
+  hline(im, 5, 1, 10, '#8f9db0'); vline(im, 3, 4, 8, '#8f9db0'); // światło
+  rect(im, 5, 6, 10, 5, '#101822'); hline(im, 6, 7, 8, '#2fb9b0'); px(im, 7, 7, '#ffffff'); px(im, 12, 7, '#ffffff'); // wizjer
+  rect(im, 6, 12, 8, 2, '#3a4250'); px(im, 8, 13, '#8f9db0'); px(im, 11, 13, '#8f9db0'); // respirator
+  rect(im, 3, 15, 14, 5, '#4f8fd6'); rect(im, 3, 15, 14, 1, '#2c5aa0'); px(im, 10, 17, '#ffb300'); // kołnierz kombinezonu
   save(im, 'assets/sprites/ui/portrait.png');
   manifest.images.portrait = { file: 'assets/sprites/ui/portrait.png', w: 20, h: 20 };
 }
