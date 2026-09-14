@@ -44,7 +44,12 @@ Kolizja jest kaflowa (16 px), a długość platform jest zmienna w poziomie, wi�
 jako **zestawy kafli** układane w runy. Duże jednorodne sprajty (Sprite2D) zostawiamy dla dekoracji bez kolizji (żuraw,
 naczepa w tle).
 
-### 3a. Wielka łopata (platforma semi-solid, 2 rzędy)
+### 3a. Wielka łopata – **sprite 32 kafli** (`assets/raw/props/blade-stands-source.jpeg` → `tools/extract-props.mjs`)
+Masywna łopata to jeden PNG 512×62 (`blade-big.png`) + sheet stojaków A-frame (`stands.png`, 62 px). Run `L` o długości
+dokładnie 32 kafli rysuje ten sprite (górna powierzchnia = krawędź kolizji), stojaki w 1/6, 1/2, 5/6 długości dopełnione
+kolumnami do ziemi. Runy `L` innej długości używają kafli poniżej.
+
+### 3b. Łopata kaflowa (platforma semi-solid, 2 rzędy)
 Rysowana w 2 rzędach kafli (32 px grubości u nasady). Kolizja: górna krawędź górnego rzędu (wskok od dołu, zeskok DÓŁ+SKOK).
 
 | Kafel | Rozmiar | Uwagi |
@@ -56,14 +61,14 @@ Rysowana w 2 rzędach kafli (32 px grubości u nasady). Kolizja: górna krawęd�
 
 Cieniowanie: grzbiet oświetlony słońcem (ciepła biel #fff4e0 → #f1ede6), spód w cieniu (#8f98a3 → #5e6873), kontur 1 px.
 
-### 3b. Mała łopata (platforma 1-rzędowa)
+### 3c. Mała łopata (platforma 1-rzędowa)
 `bladeRoot`, `bladeMid`, `bladeTip` – 16 × 16, profil w górnych 10 px; `trestle` 16 × 16 pod końcami.
 
-### 3c. Sekcja wieży (platforma 1-rzędowa)
+### 3d. Sekcja wieży (platforma 1-rzędowa)
 `towerL`, `towerM` (tilowany), `towerR` – 16 × 16, cylinder 14 px z kołnierzami; `cradle` 16 × 16 (kołyska) pod końcami.
 Sekcja **na naczepie** w planie bliskim → osobny sprajt dekoracyjny PNG (np. 120 × 44), bez kolizji.
 
-### 3d. Kontener (blok kolizyjny i dach-platforma)
+### 3e. Kontener (blok kolizyjny i dach-platforma)
 Dach: `contL`, `contM`, `contR`, `contLR`; korpus: `contBL`, `contBM`, `contBR`, `contBLR` – 16 × 16.
 Kolory wg mockupu (niebieski, czerwony, zielony, pomarańczowy) – każdy kolor to osobny komplet 8 kafli (albo 1 komplet +
 paleta do przemalowania, jeśli trzymacie stałe indeksy kolorów).

@@ -39,6 +39,8 @@ export const CONFIG = {
     maxParticlesPerEmit: 15,
     maxParticleLife: 0.4,
     shake: { playerHit: 3, enemyDeath: 1.5, bossPhase: 4, bossDeath: 7, sweepLand: 2 },
+    /** Globalny tint zachodu (mnożenie): kolory bliskie białym = delikatny efekt. */
+    sunsetTint: { top: '#e6dcf2', mid: '#fbe8d8', bottom: '#ffe3c2' },
   },
 
   camera: {

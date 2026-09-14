@@ -45,27 +45,27 @@ export class HUD {
     const px = 2, py = 2;
     if (panel) ctx.drawImage(panel, px, py);
     const portrait = Images.tryGet('portrait');
-    if (portrait) ctx.drawImage(portrait, px + 4, py + 4);
+    if (portrait) ctx.drawImage(portrait, px + 3, py + 3);
     const segs = Sheets.tryGet('hudSeg');
     const f = player.health.fraction;
     const lit = Math.ceil(f * 10);
     const clip = f > 0.5 ? 'green' : f > 0.25 ? 'yellow' : 'red';
     for (let i = 0; i < 10; i++) {
       const on = i < lit && !(f <= 0.25 && f > 0 && Math.floor(time * 6) % 2 === 0 && i === lit - 1);
-      const sx = px + 31 + i * 6, sy = py + 4;
+      const sx = px + 30 + i * 6, sy = py + 2;
       if (segs) segs.drawAnchored(ctx, segs.frameAt(on ? clip : 'off', 0, 'off'), sx, sy, 0, 0);
       else { ctx.fillStyle = on ? '#3ddc84' : '#2f343b'; ctx.fillRect(sx, sy, 5, 8); }
     }
-    this.label(ctx, 'SEBA', px + 29, py + 15, '#e6e9ed');
-    this.label(ctx, `${Math.ceil(player.health.current)}`, px + 66, py + 15, '#3ddc84');
+    this.label(ctx, 'SEBA', px + 28, py + 13, '#e6e9ed');
+    this.label(ctx, `${Math.ceil(player.health.current)}`, px + 64, py + 13, '#3ddc84');
 
     // --- punkty (prawy górny róg) ---
     const sp = Images.tryGet('hudScore');
     const sw = sp?.width ?? 60, sx0 = W - 2 - sw;
     if (sp) ctx.drawImage(sp, sx0, 2);
     ctx.textAlign = 'right';
-    this.label(ctx, 'SCORE', sx0 + sw - 5, 3, '#d9a72c');
-    this.label(ctx, score.toString().padStart(6, '0'), sx0 + sw - 7, 15, '#ffffff');
+    this.label(ctx, 'SCORE', sx0 + sw - 4, 2, '#d9a72c');
+    this.label(ctx, score.toString().padStart(6, '0'), sx0 + sw - 6, 14, '#ffffff');
     ctx.textAlign = 'left';
 
     // --- boss (pod panelami, wyśrodkowany) ---

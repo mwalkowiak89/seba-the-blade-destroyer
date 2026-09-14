@@ -1,6 +1,6 @@
 /* WYGENEROWANE przez tools/build-assets.mjs – nie edytuj ręcznie. */
 export const MANIFEST = {
-  "version": "mu17hf3w",
+  "version": "mu182hne",
   "sheets": {
     "seba": {
       "file": "assets/sprites/player/seba.png",
@@ -648,6 +648,41 @@ export const MANIFEST = {
       "anchorY": 0,
       "density": 1,
       "y": 106
+    },
+    "propStand": {
+      "file": "assets/sprites/props/stands.png",
+      "frameW": 112,
+      "frameH": 64,
+      "cols": 4,
+      "clips": {
+        "s0": {
+          "frames": [
+            0
+          ],
+          "fps": 1
+        },
+        "s1": {
+          "frames": [
+            1
+          ],
+          "fps": 1
+        },
+        "s2": {
+          "frames": [
+            2
+          ],
+          "fps": 1
+        },
+        "s3": {
+          "frames": [
+            3
+          ],
+          "fps": 1
+        }
+      },
+      "anchor": "bottom",
+      "anchorX": 56,
+      "density": 1
     }
   },
   "images": {
@@ -659,13 +694,13 @@ export const MANIFEST = {
     },
     "hudPlayer": {
       "file": "assets/sprites/ui/panel-player.png",
-      "w": 98,
-      "h": 28
+      "w": 94,
+      "h": 26
     },
     "hudScore": {
       "file": "assets/sprites/ui/panel-score.png",
-      "w": 60,
-      "h": 28
+      "w": 58,
+      "h": 26
     },
     "hudBoss": {
       "file": "assets/sprites/ui/panel-boss.png",
@@ -691,6 +726,47 @@ export const MANIFEST = {
       "file": "assets/backgrounds/site-near.png",
       "w": 768,
       "h": 72
+    },
+    "bladeBig": {
+      "file": "assets/sprites/props/blade-big.png",
+      "w": 512,
+      "h": 62,
+      "tiles": 32,
+      "flatTop": 0,
+      "bottom": [
+        61,
+        61,
+        58,
+        58,
+        58,
+        59,
+        60,
+        60,
+        60,
+        59,
+        59,
+        57,
+        57,
+        57,
+        57,
+        55,
+        55,
+        55,
+        53,
+        53,
+        53,
+        52,
+        52,
+        51,
+        51,
+        49,
+        49,
+        48,
+        48,
+        47,
+        46,
+        44
+      ]
     }
   },
   "tiles": {

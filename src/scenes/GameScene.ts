@@ -61,7 +61,7 @@ export class GameScene implements WorldContext {
   private debug = false;
   private hitStopTimer = 0;
   arenaFloorY = 0;
-  /** Podpowiedź sterowania: znika (fade) po 4 s lub po pierwszym klawiszu. */
+  /** Podpowiedź sterowania: znika (fade) po 3 s lub po pierwszym klawiszu. */
   private hintAlpha = 1;
   private hintDismissed = false;
 
@@ -151,7 +151,7 @@ export class GameScene implements WorldContext {
     this.hud.update(dt);
 
     this.camera.update(dt);
-    if (!this.hintDismissed && (this.time > 4 || (['left', 'right', 'up', 'down', 'jump', 'fire'] as const).some((a) => this.input.held(a)))) this.hintDismissed = true;
+    if (!this.hintDismissed && (this.time > 3 || (['left', 'right', 'up', 'down', 'jump', 'fire'] as const).some((a) => this.input.held(a)))) this.hintDismissed = true;
     if (this.hintDismissed && this.hintAlpha > 0) this.hintAlpha = Math.max(0, this.hintAlpha - dt * 2);
     if (this.input.justPressed('mute')) { AudioEngine.toggleMute(); Sfx.play('ui'); }
     if (this.input.justPressed('debug')) this.debug = !this.debug;
@@ -320,12 +320,22 @@ export class GameScene implements WorldContext {
     this.particles.draw(ctx);
     ctx.restore();
 
+    // globalne ciepłe oświetlenie zachodu (jak CanvasModulate): mnożenie gradientem fiolet (góra) → pomarańcz (dół)
+    // obejmuje tło, kafle, Sebę i wrogów; HUD rysowany po nim pozostaje czysty
+    const tint = this.tintGradient(ctx, H);
+    if (tint) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = tint;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    }
     if (this.hitStopTimer > 0) {
       ctx.fillStyle = `rgba(255,255,255,${(0.5 * this.hitStopTimer / CONFIG.boss.finale.hitStop).toFixed(3)})`;
       ctx.fillRect(0, 0, W, H);
     }
     this.hud.draw(ctx, this.player, this.score, this.boss, this.time);
-    this.hud.drawAudioState(ctx, AudioEngine.muted, AudioEngine.running || !AudioEngine.available);
+    this.hud.drawAudioState(ctx, AudioEngine.muted, AudioEngine.running || !AudioEngine.available || this.hintAlpha > 0);
     if (this.hintAlpha > 0) this.hud.drawHint(ctx, this.hintAlpha, this.input.gamepadConnected);
 
     if (this.debug) {
@@ -341,6 +351,18 @@ export class GameScene implements WorldContext {
     const again = this.input.gamepadConnected ? 'START – jeszcze raz' : 'R – jeszcze raz';
     if (this.state === 'gameover') this.hud.drawOverlay(ctx, 'GAME OVER', again, '#e74c3c');
     if (this.state === 'victory') this.hud.drawOverlay(ctx, 'ETAP UKOŃCZONY', `SCORE ${this.score}   ·   ${again}`, '#2ecc71');
+  }
+
+  private tintCache: CanvasGradient | null = null;
+  private tintGradient(ctx: CanvasRenderingContext2D, H: number): CanvasGradient | null {
+    if (!this.tintCache) {
+      const g = ctx.createLinearGradient(0, 0, 0, H) as CanvasGradient | undefined; // headless mock może nie mieć gradientów
+      if (!g || typeof g.addColorStop !== 'function') return null;
+      const t = CONFIG.vfx.sunsetTint;
+      g.addColorStop(0, t.top); g.addColorStop(0.55, t.mid); g.addColorStop(1, t.bottom);
+      this.tintCache = g;
+    }
+    return this.tintCache;
   }
 
   get wantsRestart(): boolean {

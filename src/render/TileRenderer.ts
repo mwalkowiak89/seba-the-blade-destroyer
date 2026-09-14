@@ -1,5 +1,5 @@
 import { MANIFEST } from '../assets/manifest.generated';
-import { Images } from '../assets/AssetLoader';
+import { Images, Sheets } from '../assets/AssetLoader';
 import { CONFIG } from '../core/Config';
 import { Level, Skin, Tile } from '../world/Level';
 
@@ -22,13 +22,48 @@ export class TileRenderer {
   private cols: number;
   private decos: Deco[] = [];
   private cache: HTMLCanvasElement | null = null;
+  /** Masywna łopata z ekstraktora (sprite o długości `tiles` kafli) – używana, gdy run L ma dokładnie tę długość. */
+  private bladeSprite: { img: HTMLImageElement; tiles: number; flatTop: number; bottom: readonly number[] } | null = null;
 
   constructor(private level: Level) {
     this.image = Images.get('tileset');
     this.ts = MANIFEST.images.tileset.tileSize;
     this.cols = MANIFEST.images.tileset.cols;
+    const bb = (MANIFEST.images as { bladeBig?: { tiles: number; flatTop: number; bottom: readonly number[] } }).bladeBig;
+    const bbImg = Images.tryGet('bladeBig' as never);
+    if (bb && bbImg) this.bladeSprite = { img: bbImg, tiles: bb.tiles, flatTop: bb.flatTop, bottom: bb.bottom };
     this.buildDecorations();
     this.prerender();
+  }
+
+  /**
+   * Masywna łopata jako jeden sprite: górna płaska powierzchnia = górna krawędź rzędu kolizji.
+   * Pod spodem stojaki A-frame (sheet propStand) w 1/6, 1/2 i 5/6 długości, dopełnione kolumnami do ziemi.
+   */
+  private drawBladeSprite(g: CanvasRenderingContext2D, c0: number, c1: number, r: number): void {
+    const bs = this.bladeSprite!; const ts = this.ts; const L = this.level;
+    const x0 = c0 * ts, yTop = r * ts - bs.flatTop;
+    const stands = Sheets.tryGet('propStand' as never);
+    const n = c1 - c0 + 1;
+    let k = 0;
+    for (const frac of [1 / 6, 1 / 2, 5 / 6]) {
+      const c = c0 + Math.round(n * frac);
+      let gr = r + 1; while (gr < L.rows && L.tileAt(c, gr) === Tile.Empty) gr++;
+      if (gr >= L.rows || L.tileAt(c, gr) !== Tile.Solid) continue; // pod spodem szczelina – bez stojaka
+      const groundY = gr * ts;
+      const underside = yTop + (bs.bottom[Math.min(bs.bottom.length - 1, Math.floor((c - c0)))] ?? 0);
+      if (stands) {
+        const sh = stands.frameH;
+        const standTop = underside + 3; // lekkie zachodzenie pod łopatę
+        // kolumny od ziemi w górę do spodu stojaka
+        for (let y = groundY - ts; y >= standTop + sh - 8; y -= ts) this.blit(g, 'column', c, Math.round(y / ts));
+        const frame = stands.frameAt(`s${k++ % stands.def.cols}`, 0, 's0');
+        stands.drawAnchored(g, frame, c * ts + ts / 2, standTop + sh, stands.def.anchorX ?? stands.frameW / 2, sh);
+      } else {
+        for (let gy = groundY - ts; gy > underside; gy -= ts) this.blit(g, 'column', c, gy / ts);
+      }
+    }
+    g.drawImage(bs.img, Math.round(x0), Math.round(yTop));
   }
 
   private prerender(): void {
@@ -87,6 +122,7 @@ export class TileRenderer {
     this.forEachRun((c0, c1, r, kind) => {
       if (kind === 'container') return;
       if (kind === 'bigBlade') {
+        if (this.bladeSprite && c1 - c0 + 1 === this.bladeSprite.tiles) return; // sprite: stojaki rysuje drawBladeSprite
         // duże kozły pod 1/4 i 3/4 długości, od rzędu pod spodem łopaty do ziemi
         for (const c of new Set([c0 + Math.floor((c1 - c0) / 4), c1 - Math.floor((c1 - c0) / 4)])) {
           for (let k = 2; k <= 10 && r + k < L.rows; k++) {
@@ -147,6 +183,7 @@ export class TileRenderer {
         const first = c === c0, last = c === c1;
         let t: TileName;
         if (kind === 'bigBlade') {
+          if (this.bladeSprite && c1 - c0 + 1 === this.bladeSprite.tiles) { if (first) this.drawBladeSprite(g, c0, c1, r); continue; }
           this.blit(g, first ? 'bigRootT' : last ? 'bigTipT' : 'bigMidT', c, r);
           if (r + 1 < this.level.rows && this.level.tileAt(c, r + 1) === Tile.Empty) this.blit(g, first ? 'bigRootB' : last ? 'bigTipB' : 'bigMidB', c, r + 1);
           continue;

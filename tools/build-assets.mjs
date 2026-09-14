@@ -15,10 +15,11 @@ import { drawSky, drawSiteMid, drawSiteNear, drawSkyBlades, SKY_HORIZON } from '
 
 const RAW = 'assets/raw/warped-city';
 
-// Ekstrakcja klatek Seby z wygenerowanego sheetu (green screen) – jeśli źródło istnieje.
-if (fs.existsSync('assets/raw/seba-ai/source.jpeg')) {
+// Ekstrakcja klatek Seby i propsów (łopata, stojaki) z sheetów green-screen – jeśli źródła istnieją.
+{
   const { execFileSync } = await import('node:child_process');
-  execFileSync(process.execPath, ['tools/extract-seba.mjs'], { stdio: 'inherit' });
+  if (fs.existsSync('assets/raw/seba-ai/source.jpeg')) execFileSync(process.execPath, ['tools/extract-seba.mjs'], { stdio: 'inherit' });
+  if (fs.existsSync('assets/raw/props/blade-stands-source.jpeg')) execFileSync(process.execPath, ['tools/extract-props.mjs'], { stdio: 'inherit' });
 }
 const manifest = { version: Date.now().toString(36), sheets: {}, images: {}, tiles: {} };
 
@@ -425,9 +426,9 @@ const RUNNER_PALETTE = {
     return im;
   };
   // panel gracza: portret 20x20 w ramce 24x24 + bateria 10×(5+1) w wgłębieniu + miejsce na etykietę
-  const pp = panel(98, 28, [[2, 2, 24, 24], [28, 2, 68, 11]]);
+  const pp = panel(94, 26, [[1, 1, 24, 24], [27, 1, 66, 10]]);
   save(pp, 'assets/sprites/ui/panel-player.png'); manifest.images.hudPlayer = { file: 'assets/sprites/ui/panel-player.png', w: pp.width, h: pp.height };
-  const ps = panel(60, 28, [[3, 14, 54, 11]]);
+  const ps = panel(58, 26, [[2, 13, 54, 11]]);
   save(ps, 'assets/sprites/ui/panel-score.png'); manifest.images.hudScore = { file: 'assets/sprites/ui/panel-score.png', w: ps.width, h: ps.height };
   const pb = panel(128, 20, [[4, 4, 120, 8]]);
   save(pb, 'assets/sprites/ui/panel-boss.png'); manifest.images.hudBoss = { file: 'assets/sprites/ui/panel-boss.png', w: pb.width, h: pb.height };
@@ -478,6 +479,15 @@ if (manifest.sebaSource === 'seba-ai') {
   manifest.images.siteMid = { file: 'assets/backgrounds/site-mid.png', w: mid.width, h: mid.height };
   const near = external(['site-near']) ?? drawSiteNear(); save(near, 'assets/backgrounds/site-near.png');
   manifest.images.siteNear = { file: 'assets/backgrounds/site-near.png', w: near.width, h: near.height };
+}
+
+// ---------------------------------------------------------------------------
+// Propsy z ekstraktora: masywna łopata (sprite 32 kafli) + stojaki
+// ---------------------------------------------------------------------------
+if (fs.existsSync('assets/raw/props/props.json')) {
+  const props = JSON.parse(fs.readFileSync('assets/raw/props/props.json', 'utf8'));
+  manifest.images.bladeBig = props.blade;
+  manifest.sheets.propStand = { ...props.stands, density: D };
 }
 
 // ---------------------------------------------------------------------------
