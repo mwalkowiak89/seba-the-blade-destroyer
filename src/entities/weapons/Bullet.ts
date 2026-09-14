@@ -144,10 +144,16 @@ export class BulletPool {
         return;
       }
       if (b.owner === 'enemy') {
+        const sheet = b.kind === 'bolt' ? Sheets.tryGet('bolt') : b.kind === 'shard' ? Sheets.tryGet('shard') : b.kind === 'mine' ? Sheets.tryGet('mine') : saw;
+        if (sheet) {
+          const clip = b.kind === 'bolt' ? 'fly' : b.kind === 'mine' ? 'pulse' : 'spin';
+          const rotation = b.kind === 'bolt' ? Math.atan2(b.vy, b.vx) : b.kind === 'shard' ? Math.round(b.age * 6) * (Math.PI / 2) : b.kind === 'mine' ? 0 : Math.round(b.age * 8) * (Math.PI / 4);
+          sheet.drawAnchored(ctx, sheet.frameAt(clip, b.age), b.x, b.y, sheet.def.anchorX ?? 6, sheet.def.anchorY ?? 6, { rotation });
+          return;
+        }
         if (b.kind === 'bolt') { drawBolt(ctx, b); return; }
         if (b.kind === 'shard') { drawShard(ctx, b); return; }
         if (b.kind === 'mine') { drawMine(ctx, b); return; }
-        if (saw) { saw.drawAnchored(ctx, saw.frameAt('spin', b.age), b.x, b.y, saw.def.anchorX ?? 10, saw.def.anchorY ?? 10, { rotation: b.age * 14 }); return; }
       }
       ctx.fillStyle = b.color;
       if (b.owner === 'player') {

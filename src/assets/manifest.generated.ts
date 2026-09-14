@@ -1,11 +1,11 @@
 /* WYGENEROWANE przez tools/build-assets.mjs – nie edytuj ręcznie. */
 export const MANIFEST = {
-  "version": "mu11eafb",
+  "version": "mu142ex6",
   "sheets": {
     "seba": {
       "file": "assets/sprites/player/seba.png",
-      "frameW": 138,
-      "frameH": 96,
+      "frameW": 70,
+      "frameH": 49,
       "cols": 8,
       "clips": {
         "idle": {
@@ -110,31 +110,31 @@ export const MANIFEST = {
         }
       },
       "anchor": "bottom",
-      "anchorX": 69,
-      "density": 2,
+      "anchorX": 35,
+      "density": 1,
       "pivots": {
         "stand": {
-          "x": 10,
-          "y": -54
+          "x": 5,
+          "y": -27
         },
         "up": {
-          "x": 18,
-          "y": -38
+          "x": 9,
+          "y": -19
         },
         "crouch": {
-          "x": 18,
-          "y": -44
+          "x": 9,
+          "y": -22
         },
         "prone": {
-          "x": 48,
-          "y": -14
+          "x": 24,
+          "y": -7
         }
       }
     },
     "runner": {
       "file": "assets/sprites/enemies/runner.png",
-      "frameW": 114,
-      "frameH": 106,
+      "frameW": 57,
+      "frameH": 53,
       "cols": 9,
       "clips": {
         "run": {
@@ -166,14 +166,14 @@ export const MANIFEST = {
           "loop": true
         }
       },
-      "density": 2,
+      "density": 1,
       "anchor": "bottom",
-      "anchorX": 62
+      "anchorX": 31
     },
     "drone": {
       "file": "assets/sprites/enemies/drone.png",
-      "frameW": 72,
-      "frameH": 98,
+      "frameW": 36,
+      "frameH": 49,
       "cols": 4,
       "clips": {
         "patrol": {
@@ -207,15 +207,15 @@ export const MANIFEST = {
           "loop": true
         }
       },
-      "density": 2,
+      "density": 1,
       "anchor": "center",
-      "anchorX": 36,
-      "anchorY": 32
+      "anchorX": 18,
+      "anchorY": 16
     },
     "turret": {
       "file": "assets/sprites/enemies/turret.png",
-      "frameW": 50,
-      "frameH": 46,
+      "frameW": 25,
+      "frameH": 23,
       "cols": 6,
       "clips": {
         "idle": {
@@ -244,14 +244,14 @@ export const MANIFEST = {
           "loop": true
         }
       },
-      "density": 2,
+      "density": 1,
       "anchor": "bottom",
-      "anchorX": 26
+      "anchorX": 13
     },
     "shot": {
       "file": "assets/sprites/fx/shot.png",
-      "frameW": 30,
-      "frameH": 22,
+      "frameW": 15,
+      "frameH": 11,
       "cols": 3,
       "clips": {
         "fly": {
@@ -264,15 +264,15 @@ export const MANIFEST = {
           "loop": true
         }
       },
-      "density": 2,
+      "density": 1,
       "anchor": "center",
-      "anchorX": 16,
-      "anchorY": 10
+      "anchorX": 8,
+      "anchorY": 5
     },
     "shotHit": {
       "file": "assets/sprites/fx/shot-hit.png",
-      "frameW": 30,
-      "frameH": 22,
+      "frameW": 15,
+      "frameH": 11,
       "cols": 3,
       "clips": {
         "play": {
@@ -285,15 +285,15 @@ export const MANIFEST = {
           "loop": false
         }
       },
-      "density": 2,
+      "density": 1,
       "anchor": "center",
-      "anchorX": 14,
-      "anchorY": 10
+      "anchorX": 7,
+      "anchorY": 5
     },
     "explosion": {
       "file": "assets/sprites/fx/explosion.png",
-      "frameW": 110,
-      "frameH": 104,
+      "frameW": 55,
+      "frameH": 52,
       "cols": 6,
       "clips": {
         "play": {
@@ -309,15 +309,15 @@ export const MANIFEST = {
           "loop": false
         }
       },
-      "density": 2,
+      "density": 1,
       "anchor": "center",
-      "anchorX": 54,
-      "anchorY": 52
+      "anchorX": 27,
+      "anchorY": 26
     },
     "makita": {
       "file": "assets/sprites/player/makita.png",
-      "frameW": 56,
-      "frameH": 56,
+      "frameW": 28,
+      "frameH": 28,
       "cols": 6,
       "clips": {
         "horizontal": {
@@ -345,41 +345,41 @@ export const MANIFEST = {
           "loop": true
         }
       },
-      "density": 2,
+      "density": 1,
       "anchor": "pivot",
       "pivots": {
         "horizontal": {
-          "x": 12,
-          "y": 26
+          "x": 6,
+          "y": 13
         },
         "diagonal": {
-          "x": 16,
-          "y": 38
+          "x": 8,
+          "y": 19
         },
         "vertical": {
-          "x": 26,
-          "y": 42
+          "x": 13,
+          "y": 21
         }
       },
       "muzzle": {
         "horizontal": {
-          "x": 54,
-          "y": 26
+          "x": 27,
+          "y": 12
         },
         "diagonal": {
-          "x": 46,
-          "y": 8
+          "x": 22,
+          "y": 5
         },
         "vertical": {
-          "x": 26,
+          "x": 12,
           "y": 0
         }
       }
     },
     "muzzle": {
       "file": "assets/sprites/fx/muzzle.png",
-      "frameW": 24,
-      "frameH": 24,
+      "frameW": 12,
+      "frameH": 12,
       "cols": 2,
       "clips": {
         "flash": {
@@ -391,15 +391,15 @@ export const MANIFEST = {
           "loop": false
         }
       },
-      "density": 2,
+      "density": 1,
       "anchor": "center",
-      "anchorX": 10,
-      "anchorY": 10
+      "anchorX": 5,
+      "anchorY": 5
     },
     "screw": {
       "file": "assets/sprites/fx/screw.png",
-      "frameW": 28,
-      "frameH": 12,
+      "frameW": 14,
+      "frameH": 6,
       "cols": 2,
       "clips": {
         "spin": {
@@ -411,15 +411,15 @@ export const MANIFEST = {
           "loop": true
         }
       },
-      "density": 2,
+      "density": 1,
       "anchor": "center",
-      "anchorX": 20,
-      "anchorY": 6
+      "anchorX": 10,
+      "anchorY": 3
     },
     "saw": {
       "file": "assets/sprites/fx/saw.png",
-      "frameW": 24,
-      "frameH": 24,
+      "frameW": 12,
+      "frameH": 12,
       "cols": 2,
       "clips": {
         "spin": {
@@ -431,15 +431,203 @@ export const MANIFEST = {
           "loop": true
         }
       },
-      "density": 2,
+      "density": 1,
       "anchor": "center",
-      "anchorX": 10,
-      "anchorY": 10
+      "anchorX": 5,
+      "anchorY": 5
+    },
+    "bossWing": {
+      "file": "assets/sprites/boss/wing.png",
+      "frameW": 28,
+      "frameH": 96,
+      "cols": 6,
+      "clips": {
+        "p1": {
+          "frames": [
+            0
+          ],
+          "fps": 1
+        },
+        "p1c": {
+          "frames": [
+            1
+          ],
+          "fps": 1
+        },
+        "p2": {
+          "frames": [
+            2
+          ],
+          "fps": 1
+        },
+        "p2c": {
+          "frames": [
+            3
+          ],
+          "fps": 1
+        },
+        "p3": {
+          "frames": [
+            4
+          ],
+          "fps": 1
+        },
+        "p3c": {
+          "frames": [
+            5
+          ],
+          "fps": 1
+        }
+      },
+      "density": 1,
+      "anchor": "center",
+      "anchorX": 14,
+      "anchorY": 48
+    },
+    "bossCore": {
+      "file": "assets/sprites/boss/core.png",
+      "frameW": 16,
+      "frameH": 16,
+      "cols": 2,
+      "clips": {
+        "pulse": {
+          "frames": [
+            0,
+            1
+          ],
+          "fps": 6,
+          "loop": true
+        }
+      },
+      "density": 1,
+      "anchor": "center",
+      "anchorX": 8,
+      "anchorY": 8
+    },
+    "bolt": {
+      "file": "assets/sprites/fx/bolt.png",
+      "frameW": 14,
+      "frameH": 6,
+      "cols": 2,
+      "clips": {
+        "fly": {
+          "frames": [
+            0,
+            1
+          ],
+          "fps": 24,
+          "loop": true
+        }
+      },
+      "density": 1,
+      "anchor": "center",
+      "anchorX": 7,
+      "anchorY": 3
+    },
+    "shard": {
+      "file": "assets/sprites/fx/shard.png",
+      "frameW": 8,
+      "frameH": 8,
+      "cols": 2,
+      "clips": {
+        "spin": {
+          "frames": [
+            0,
+            1
+          ],
+          "fps": 12,
+          "loop": true
+        }
+      },
+      "density": 1,
+      "anchor": "center",
+      "anchorX": 4,
+      "anchorY": 4
+    },
+    "mine": {
+      "file": "assets/sprites/fx/mine.png",
+      "frameW": 12,
+      "frameH": 12,
+      "cols": 2,
+      "clips": {
+        "pulse": {
+          "frames": [
+            0,
+            1
+          ],
+          "fps": 8,
+          "loop": true
+        }
+      },
+      "density": 1,
+      "anchor": "center",
+      "anchorX": 6,
+      "anchorY": 6
+    },
+    "hudSeg": {
+      "file": "assets/sprites/ui/segments.png",
+      "frameW": 5,
+      "frameH": 8,
+      "cols": 4,
+      "clips": {
+        "off": {
+          "frames": [
+            0
+          ],
+          "fps": 1
+        },
+        "green": {
+          "frames": [
+            1
+          ],
+          "fps": 1
+        },
+        "yellow": {
+          "frames": [
+            2
+          ],
+          "fps": 1
+        },
+        "red": {
+          "frames": [
+            3
+          ],
+          "fps": 1
+        }
+      },
+      "density": 1,
+      "anchor": "center",
+      "anchorX": 0,
+      "anchorY": 0
+    },
+    "hudSpeaker": {
+      "file": "assets/sprites/ui/speaker.png",
+      "frameW": 10,
+      "frameH": 8,
+      "cols": 2,
+      "clips": {
+        "on": {
+          "frames": [
+            0
+          ],
+          "fps": 1
+        },
+        "muted": {
+          "frames": [
+            1
+          ],
+          "fps": 1
+        }
+      },
+      "density": 1,
+      "anchor": "center",
+      "anchorX": 0,
+      "anchorY": 0
     },
     "skyBlades": {
       "file": "assets/backgrounds/sky-blades.png",
-      "frameW": 640,
-      "frameH": 160,
+      "frameW": 384,
+      "frameH": 70,
       "cols": 6,
       "clips": {
         "spin": {
@@ -458,36 +646,51 @@ export const MANIFEST = {
       "anchor": "center",
       "anchorX": 0,
       "anchorY": 0,
-      "density": 2,
-      "y": 222
+      "density": 1,
+      "y": 106
     }
   },
   "images": {
     "tileset": {
       "file": "assets/tilesets/industrial.png",
-      "tileSize": 32,
+      "tileSize": 16,
       "worldTile": 16,
       "cols": 8
     },
+    "hudPlayer": {
+      "file": "assets/sprites/ui/panel-player.png",
+      "w": 104,
+      "h": 30
+    },
+    "hudScore": {
+      "file": "assets/sprites/ui/panel-score.png",
+      "w": 64,
+      "h": 30
+    },
+    "hudBoss": {
+      "file": "assets/sprites/ui/panel-boss.png",
+      "w": 128,
+      "h": 20
+    },
     "portrait": {
       "file": "assets/sprites/ui/portrait.png",
-      "w": 40,
-      "h": 40
+      "w": 20,
+      "h": 20
     },
     "sky": {
       "file": "assets/backgrounds/sky.png",
-      "w": 640,
-      "h": 480
+      "w": 384,
+      "h": 216
     },
     "siteMid": {
       "file": "assets/backgrounds/site-mid.png",
-      "w": 960,
-      "h": 400
+      "w": 576,
+      "h": 150
     },
     "siteNear": {
       "file": "assets/backgrounds/site-near.png",
-      "w": 1120,
-      "h": 200
+      "w": 768,
+      "h": 72
     }
   },
   "tiles": {
@@ -497,14 +700,22 @@ export const MANIFEST = {
     "edgeBottom": 3,
     "edgeLeft": 4,
     "edgeRight": 5,
-    "grate": 6,
-    "grateL": 7,
-    "grateR": 8,
-    "grateLR": 9,
-    "column": 10,
-    "columnTop": 11,
-    "pipe": 12,
-    "pipeTop": 13
+    "column": 6,
+    "columnTop": 7,
+    "pipe": 8,
+    "pipeTop": 9,
+    "bladeRoot": 10,
+    "bladeMid": 11,
+    "bladeTip": 12,
+    "trestle": 13,
+    "towerM": 14,
+    "towerL": 15,
+    "towerR": 16,
+    "cradle": 17,
+    "contL": 18,
+    "contM": 19,
+    "contR": 20,
+    "contLR": 21
   },
   "sebaSource": "seba-ai"
 } as const;

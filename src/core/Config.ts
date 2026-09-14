@@ -5,12 +5,16 @@
  */
 export const CONFIG = {
   view: {
-    /** Rozmiar świata w jednostkach (logika, kolizje, kamera). */
-    width: 320,
-    height: 240,
+    /** Natywna rozdzielczość retro (16:9) – 1 jednostka świata = 1 piksel. */
+    width: 384,
+    height: 216,
     tile: 16,
-    /** Gęstość pikseli grafiki: 1 jednostka świata = pixelScale pikseli canvasu (sprite'y mają 2x detalu). */
-    pixelScale: 2,
+    /** Gęstość pikseli grafiki (1 = prawdziwy low-res pixel art). */
+    pixelScale: 1,
+    /** Poziom ma 240 px wysokości – kamera pokazuje dolne 216 px (góra to puste niebo). */
+    cameraOffsetY: 24,
+    /** Wysokość poziomu w px (15 kafli). */
+    levelHeight: 240,
     fixedStep: 1 / 60,
     maxStepsPerFrame: 3,
   },
@@ -146,7 +150,7 @@ export const CONFIG = {
     /** Progi HP (ułamek) – przejście w fazę n następuje gdy HP <= próg. */
     phaseThresholds: [1.0, 0.66, 0.33],
     /** Pozycja hover względem lewej krawędzi areny. */
-    hoverOffsetX: 320 - 56,
+    hoverOffsetX: 384 - 56,
     hoverCenterY: 110,
     hoverAmplitude: 52,
     /** Długość wrażliwej końcówki skrzydła (winglet) – px od czubka. */

@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import { load, save, create, blit, bbox, scale } from './png.mjs';
 
 /** Gęstość pikseli gry (musi zgadzać się z CONFIG.view.pixelScale). Sheety 1x są podbijane ×D. */
-const D = 2;
+const D = 1;
 import { px, rect, hline, vline, line, circle, recolor, flipX, rotate45, rotate90ccw, hex } from './pixel.mjs';
 import { drawSky, drawSiteMid, drawSiteNear, drawSkyBlades, SKY_HORIZON } from './site-backgrounds.mjs';
 
@@ -206,31 +206,24 @@ const RUNNER_PALETTE = {
 }
 
 // ---------------------------------------------------------------------------
-// Makita DIY – wkrętarka z tarczą tnącą: 3 orientacje × 2 klatki tarczy
+// Makita DIY – wkrętarka akumulatorowa (bez tarczy): 3 orientacje × 2 klatki obrotu bitu
 // ---------------------------------------------------------------------------
 {
   const F = 28; // rozmiar klatki
-  function drawMakita(bladeFrame) {
+  function drawMakita(frame) {
     const im = create(F, F);
     const oy = 11; // oś lufy w wierszu 13
-    // korpus (teal Makity)
-    rect(im, 4, oy - 1, 11, 6, '#1ba39c'); rect(im, 4, oy - 1, 11, 1, '#4ed6cc'); rect(im, 4, oy + 4, 11, 1, '#0d6b66');
-    rect(im, 3, oy, 1, 4, '#0d6b66');
-    // bateria z tyłu + uchwyt
+    // korpus (teal Makity) z wentylacją
+    rect(im, 4, oy - 1, 12, 6, '#1ba39c'); rect(im, 4, oy - 1, 12, 1, '#4ed6cc'); rect(im, 4, oy + 4, 12, 1, '#0d6b66');
+    rect(im, 3, oy, 1, 4, '#0d6b66'); for (let x = 6; x < 12; x += 2) px(im, x, oy + 1, '#0d6b66');
+    // bateria z tyłu + uchwyt ze spustem
     rect(im, 1, oy, 3, 5, '#2b2f3a'); px(im, 1, oy, '#5a6170');
     rect(im, 6, oy + 5, 3, 6, '#2b2f3a'); rect(im, 6, oy + 10, 4, 2, '#1c1f27'); px(im, 7, oy + 6, '#5a6170');
-    // spust / znacznik
     px(im, 10, oy + 5, '#ffb300');
-    // uchwyt tarczy (chuck)
-    rect(im, 15, oy, 3, 4, '#8a8f99'); rect(im, 15, oy, 3, 1, '#c3c8d1');
-    // tarcza tnąca (promień 5), zęby zależne od klatki
-    const cx = 22, cy = oy + 2;
-    circle(im, cx, cy, 4, '#b8bec8', true); circle(im, cx, cy, 4, '#7c838f');
-    for (let k = 0; k < 8; k++) {
-      const a = (k / 8) * Math.PI * 2 + (bladeFrame ? Math.PI / 8 : 0);
-      px(im, Math.round(cx + Math.cos(a) * 5.2), Math.round(cy + Math.sin(a) * 5.2), '#e5e9ef');
-    }
-    px(im, cx, cy, '#2b2f3a'); px(im, cx + 1, cy - 1, '#ffffff');
+    // uchwyt wiertarski (chuck) – stożek
+    rect(im, 16, oy, 4, 4, '#8a8f99'); rect(im, 16, oy, 4, 1, '#c3c8d1'); rect(im, 20, oy + 1, 2, 2, '#6b7280');
+    // bit/wkrętak – obracający się (naprzemienne rowki)
+    rect(im, 22, oy + 1, 5, 2, '#b8bec8'); px(im, 22 + (frame ? 1 : 0), oy + 1, '#e5e9ef'); px(im, 24 + (frame ? 1 : 0), oy + 2, '#6b7280'); px(im, 26, oy + 1, '#ffffff');
     return im;
   }
   const h0 = drawMakita(0), h1 = drawMakita(1);
@@ -246,7 +239,7 @@ const RUNNER_PALETTE = {
     horizontal: { frames: [0, 1], fps: 30, loop: true },
     diagonal: { frames: [2, 3], fps: 30, loop: true },
     vertical: { frames: [4, 5], fps: 30, loop: true },
-  }, { anchor: 'pivot', pivots: { horizontal: pivot, diagonal: dPivot, vertical: vPivot }, muzzle: { horizontal: { x: 27, y: 13 }, diagonal: { x: 23, y: 4 }, vertical: { x: 13, y: 0 } } });
+  }, { anchor: 'pivot', pivots: { horizontal: pivot, diagonal: dPivot, vertical: vPivot }, muzzle: { horizontal: { x: 27, y: 12 }, diagonal: { x: 22, y: 5 }, vertical: { x: 12, y: 0 } } });
 }
 
 // ---------------------------------------------------------------------------
@@ -279,52 +272,155 @@ const RUNNER_PALETTE = {
 }
 
 // ---------------------------------------------------------------------------
-// Tileset industrialny: kafel 16 jednostek świata = 32 px (gęstość 2x) – płyty pancerne z nitami,
-// blacha ryflowana, krawędzie, słupy i rury planu drugiego
+// Tileset industrialny 16x16: blacha ryflowana z nitami, krawędzie, słupy, rury
+// + kafle platform semi-solid: łopata (nasada/środek/końcówka, cieniowana), kozioł, sekcja wieży, kołyska, kontener
 // ---------------------------------------------------------------------------
 {
-  const T = 16 * D;
-  const C = { K: '#161a20', P0: '#3b4048', P1: '#4f565f', P2: '#656d78', P3: '#7d8692', HI: '#98a1ad', R: '#b8c0ca', RUST: '#7a4a2e', RUST2: '#9a5c34', Y: '#d9a72c', YD: '#8a6a1a', G1: '#2f5f6b', G2: '#3f8291' };
+  const T = 16;
+  const C = { K: '#161a20', P0: '#3b4048', P1: '#4f565f', P2: '#656d78', P3: '#7d8692', HI: '#98a1ad', R: '#b8c0ca', RUST: '#7a4a2e', RUST2: '#9a5c34', Y: '#d9a72c', YD: '#8a6a1a', YL: '#f2c230', G1: '#2f5f6b', G2: '#3f8291' };
   const tiles = [];
   const tile = (fn) => { const im = create(T, T); fn(im); tiles.push(im); return tiles.length - 1; };
-  const rivet = (im, x, y) => { px(im, x, y, C.HI); px(im, x + 1, y, C.P3); px(im, x, y + 1, C.P3); px(im, x + 1, y + 1, C.K); };
+  const rivet = (im, x, y) => { px(im, x, y, C.HI); px(im, x + 1, y + 1, C.K); };
 
   const plateBase = (im) => {
     rect(im, 0, 0, T, T, C.P1);
-    // ryflowanie: ukośne cienkie rowki
-    for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) if ((x + y) % 8 === 0) px(im, x, y, C.P0);
-    // spoiny kafla
+    for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) if ((x + y) % 4 === 0) px(im, x, y, C.P0); // ryflowanie ukośne
     hline(im, 0, 0, T, C.P2); vline(im, 0, 0, T, C.P2); hline(im, 0, T - 1, T, C.P0); vline(im, T - 1, 0, T, C.P0);
   };
+  manifest.tiles.plate = tile((im) => { plateBase(im); rivet(im, 2, 2); rivet(im, T - 4, 2); rivet(im, 2, T - 4); rivet(im, T - 4, T - 4); });
+  manifest.tiles.plateB = tile((im) => { plateBase(im); rivet(im, 2, 2); rivet(im, T - 4, T - 4);
+    rect(im, 5, 6, 7, 5, C.P0); hline(im, 5, 6, 7, C.K); hline(im, 5, 8, 7, C.K); hline(im, 5, 10, 7, C.K); vline(im, T - 4, 3, 5, C.RUST); px(im, T - 4, 8, C.RUST2); });
+  manifest.tiles.edgeTop = tile((im) => { hline(im, 0, 0, T, C.R); hline(im, 0, 1, T, C.P3); hline(im, 0, 2, T, C.K); for (let x = 1; x < T; x += 4) px(im, x, 0, C.HI); });
+  manifest.tiles.edgeBottom = tile((im) => { hline(im, 0, T - 1, T, C.K); hline(im, 0, T - 2, T, C.P0); });
+  manifest.tiles.edgeLeft = tile((im) => { vline(im, 0, 0, T, C.HI); vline(im, 1, 0, T, C.K); });
+  manifest.tiles.edgeRight = tile((im) => { vline(im, T - 1, 0, T, C.P0); vline(im, T - 2, 0, T, C.K); });
+  // słup wsporczy, rura (plan drugi)
+  manifest.tiles.column = tile((im) => { rect(im, 5, 0, 6, T, C.P0); vline(im, 5, 0, T, C.P3); vline(im, 10, 0, T, C.K); for (let y = 3; y < T; y += 6) rivet(im, 7, y); });
+  manifest.tiles.columnTop = tile((im) => { rect(im, 3, 0, 10, 3, C.P2); hline(im, 3, 0, 10, C.HI); hline(im, 3, 2, 10, C.K); rect(im, 5, 3, 6, T - 3, C.P0); vline(im, 5, 3, T - 3, C.P3); vline(im, 10, 3, T - 3, C.K); });
+  manifest.tiles.pipe = tile((im) => { rect(im, 6, 0, 4, T, C.G1); vline(im, 6, 0, T, C.G2); vline(im, 9, 0, T, C.K); rect(im, 5, 6, 6, 2, C.P2); hline(im, 5, 7, 6, C.K); });
+  manifest.tiles.pipeTop = tile((im) => { rect(im, 6, 4, 4, T - 4, C.G1); vline(im, 6, 4, T - 4, C.G2); vline(im, 9, 4, T - 4, C.K); rect(im, 4, 2, 8, 3, C.P2); hline(im, 4, 4, 8, C.K); });
 
-  manifest.tiles.plate = tile((im) => { plateBase(im); for (const [x, y] of [[3, 3], [T - 6, 3], [3, T - 6], [T - 6, T - 6]]) rivet(im, x, y); });
-  manifest.tiles.plateB = tile((im) => { plateBase(im); rivet(im, 3, 3); rivet(im, T - 6, T - 6);
-    // właz / kratka wentylacyjna + zaciek rdzy
-    rect(im, 9, 11, 14, 10, C.P0); hline(im, 9, 11, 14, C.K); for (let y = 13; y < 21; y += 2) hline(im, 10, y, 12, C.K);
-    vline(im, T - 8, 5, 10, C.RUST); vline(im, T - 7, 7, 6, C.RUST2); px(im, T - 8, 15, C.RUST2); });
-  // nakładki krawędzi (przezroczyste tło)
-  manifest.tiles.edgeTop = tile((im) => { hline(im, 0, 0, T, C.R); hline(im, 0, 1, T, C.HI); hline(im, 0, 2, T, C.P3); hline(im, 0, 3, T, C.K); for (let x = 2; x < T; x += 8) px(im, x, 1, C.P2); });
-  manifest.tiles.edgeBottom = tile((im) => { hline(im, 0, T - 1, T, C.K); hline(im, 0, T - 2, T, C.K); hline(im, 0, T - 3, T, C.P0); });
-  manifest.tiles.edgeLeft = tile((im) => { vline(im, 0, 0, T, C.HI); vline(im, 1, 0, T, C.P3); vline(im, 2, 0, T, C.K); });
-  manifest.tiles.edgeRight = tile((im) => { vline(im, T - 1, 0, T, C.P0); vline(im, T - 2, 0, T, C.K); vline(im, T - 3, 0, T, C.K); });
-  // krata pomostowa (nieużywana bezpośrednio – platformy rysuje TileRenderer; zostaje dla kompatybilności)
-  const grate = (im) => { hline(im, 0, 0, T, C.G2); hline(im, 0, 1, T, C.G1); for (let y = 2; y < 12; y++) for (let x = 0; x < T; x++) if ((x + y) % 3 !== 0) px(im, x, y, y % 2 ? C.G1 : C.P0); hline(im, 0, 12, T, C.K); for (let x = 0; x < T; x++) px(im, x, 1, Math.floor(x / 4) % 2 ? C.Y : C.YD); };
-  manifest.tiles.grate = tile(grate); manifest.tiles.grateL = tile(grate); manifest.tiles.grateR = tile(grate); manifest.tiles.grateLR = tile(grate);
-  // dekoracje planu drugiego: słup wsporczy, rura pionowa, kabel
-  manifest.tiles.column = tile((im) => { rect(im, 10, 0, 12, T, C.P0); vline(im, 10, 0, T, C.P3); vline(im, 11, 0, T, C.P2); vline(im, 21, 0, T, C.K); vline(im, 20, 0, T, C.K); for (let y = 6; y < T; y += 12) rivet(im, 14, y); });
-  manifest.tiles.columnTop = tile((im) => { rect(im, 6, 0, 20, 6, C.P2); hline(im, 6, 0, 20, C.HI); hline(im, 6, 5, 20, C.K); rect(im, 10, 6, 12, T - 6, C.P0); vline(im, 10, 6, T - 6, C.P3); vline(im, 11, 6, T - 6, C.P2); vline(im, 21, 6, T - 6, C.K); });
-  manifest.tiles.pipe = tile((im) => { rect(im, 12, 0, 8, T, C.G1); vline(im, 12, 0, T, C.G2); vline(im, 13, 0, T, C.G2); vline(im, 19, 0, T, C.K); rect(im, 10, 12, 12, 4, C.P2); hline(im, 10, 15, 12, C.K); hline(im, 10, 12, 12, C.HI); });
-  manifest.tiles.pipeTop = tile((im) => { rect(im, 12, 8, 8, T - 8, C.G1); vline(im, 12, 8, T - 8, C.G2); vline(im, 13, 8, T - 8, C.G2); vline(im, 19, 8, T - 8, C.K); rect(im, 8, 4, 16, 6, C.P2); hline(im, 8, 4, 16, C.HI); hline(im, 8, 9, 16, C.K); });
+  // --- łopata: profil w górnych 10 px kafla; grzbiet oświetlony (ciepła biel) → spód w cieniu (szaro-niebieski) ---
+  const bladeCol = (im, x, top, th) => {
+    for (let k = 0; k < th; k++) { const u = k / th; px(im, x, top + k, u < 0.2 ? '#fff4e0' : u < 0.5 ? '#f1ede6' : u < 0.72 ? '#c9ced5' : u < 0.9 ? '#8f98a3' : '#5e6873'); }
+    px(im, x, top - 1, '#3a3f4a'); px(im, x, top + th, C.K);
+  };
+  manifest.tiles.bladeRoot = tile((im) => { for (let x = 0; x < T; x++) bladeCol(im, x, 1, 10); rect(im, 0, 0, 4, 12, '#b9c0c9'); vline(im, 0, 0, 12, C.K); px(im, 2, 3, C.K); px(im, 2, 8, C.K); });
+  manifest.tiles.bladeMid = tile((im) => { for (let x = 0; x < T; x++) bladeCol(im, x, 1, 10); vline(im, 8, 2, 8, '#dfe3e8'); });
+  manifest.tiles.bladeTip = tile((im) => { for (let x = 0; x < T; x++) { const t = x / T; bladeCol(im, x, 1 + Math.round(3 * t), Math.max(2, Math.round(10 * (1 - t * 0.8)))); } });
+  // kozioł montażowy (A-frame) pod łopatą – kafel poniżej platformy
+  manifest.tiles.trestle = tile((im) => { for (let k = 0; k < 13; k++) { const sp = Math.round(k * 0.45); px(im, 8 - sp, k, C.YL); px(im, 8 + sp, k, C.YL); px(im, 8 - sp - 1, k, C.K); px(im, 8 + sp + 1, k, C.K); } hline(im, 5, 8, 7, C.YL); hline(im, 5, 9, 7, C.YD); rect(im, 1, 13, 15, 2, '#3a3f4a'); hline(im, 1, 15, 15, C.K); rect(im, 5, 0, 7, 2, '#2b2f36'); });
+
+  // --- sekcja wieży leżąca: cylinder 14 px, kołnierze na końcach; kołyska w kaflu poniżej ---
+  const cyl = (im) => { rect(im, 0, 1, T, 14, '#c9cfd6'); rect(im, 0, 3, T, 4, '#f4f6f8'); rect(im, 0, 10, T, 3, '#9aa3ad'); rect(im, 0, 13, T, 2, '#6f7a86'); hline(im, 0, 0, T, C.K); hline(im, 0, 15, T, C.K); };
+  manifest.tiles.towerM = tile((im) => { cyl(im); px(im, 7, 4, '#ffffff'); px(im, 7, 11, '#5e6873'); });
+  manifest.tiles.towerL = tile((im) => { cyl(im); rect(im, 0, 0, 4, 16, '#8a94a3'); vline(im, 0, 0, 16, C.K); vline(im, 2, 1, 14, '#b8c0ca'); px(im, 2, 3, C.K); px(im, 2, 8, C.K); px(im, 2, 12, C.K); });
+  manifest.tiles.towerR = tile((im) => { cyl(im); rect(im, 12, 0, 4, 16, '#8a94a3'); vline(im, 15, 0, 16, C.K); vline(im, 13, 1, 14, '#b8c0ca'); px(im, 13, 3, C.K); px(im, 13, 8, C.K); px(im, 13, 12, C.K); });
+  manifest.tiles.cradle = tile((im) => { rect(im, 2, 0, 12, 5, '#4a505c'); hline(im, 2, 1, 12, '#7d8792'); hline(im, 2, 4, 12, C.K); rect(im, 4, 5, 3, 11, '#3a3f4a'); rect(im, 9, 5, 3, 11, '#3a3f4a'); hline(im, 2, 15, 12, C.K); });
+
+  // --- kontener techniczny (dach = platforma) ---
+  const cont = (im, l, r) => { rect(im, 0, 0, T, T, '#2e86c1'); for (let x = 2; x < T - 1; x += 3) vline(im, x, 2, T - 3, '#1f5f8a'); hline(im, 0, 0, T, '#5dade2'); hline(im, 0, T - 1, T, C.K); for (let x = 0; x < T; x += 4) rect(im, x, 1, 2, 1, C.YL);
+    if (l) { vline(im, 0, 0, T, C.K); vline(im, 1, 1, T - 2, '#5dade2'); } if (r) { vline(im, T - 1, 0, T, C.K); rect(im, T - 6, 3, 4, T - 5, '#2e86c1'); vline(im, T - 4, 3, T - 5, '#1f5f8a'); px(im, T - 3, 8, '#ffe36b'); } };
+  manifest.tiles.contL = tile((im) => cont(im, true, false)); manifest.tiles.contM = tile((im) => cont(im, false, false)); manifest.tiles.contR = tile((im) => cont(im, false, true)); manifest.tiles.contLR = tile((im) => cont(im, true, true));
+
   const p = pack(tiles, 8);
   save(p.sheet, 'assets/tilesets/industrial.png');
-  manifest.images.tileset = { file: 'assets/tilesets/industrial.png', tileSize: T, worldTile: 16, cols: p.cols };
+  manifest.images.tileset = { file: 'assets/tilesets/industrial.png', tileSize: T, worldTile: T, cols: p.cols };
+}
+
+// ---------------------------------------------------------------------------
+// Boss – skrzydło turbiny jako sprite (3 palety faz × [całe, pęknięte]) + rdzeń (2 klatki pulsu)
+// ---------------------------------------------------------------------------
+{
+  const W = 28, H = 96, WL = 28; // WL = długość wingletu (CONFIG.boss.wingletLength)
+  const K = '#050912';
+  const PAL = [
+    { l: '#c3c8d1', m: '#7d8794', d: '#3f4753' },
+    { l: '#f5c08a', m: '#d9782a', d: '#7a3b0f' },
+    { l: '#ff9a90', m: '#c8302a', d: '#5e1310' },
+  ];
+  const wing = (pal, cracked) => {
+    const im = create(W, H);
+    rect(im, 0, 0, W, H, K);
+    rect(im, 1, 1, W - 2, H - 2, pal.m);
+    hline(im, 1, 1, W - 2, pal.l); vline(im, 1, 1, H - 2, pal.l); hline(im, 1, H - 2, W - 2, pal.d); vline(im, W - 2, 1, H - 2, pal.d);
+    // płyty pancerne + nity
+    for (let k = 10; k < H - 6; k += 12) { hline(im, 2, k, W - 4, K); px(im, 4, k + 3, pal.l); px(im, W - 5, k + 3, pal.l); px(im, 5, k + 4, K); px(im, W - 4, k + 4, K); }
+    // receptory odgromowe na krawędzi natarcia (prawa krawędź; klatka odbijana dla lewej)
+    for (let k = 8; k < H - 6; k += 16) { rect(im, W - 2, k, 2, 2, '#5ec8ff'); px(im, W - 1, k, '#dff6ff'); }
+    if (!cracked) {
+      // winglet – jaśniejsza końcówka ze znacznikiem
+      rect(im, 2, H - WL, W - 4, WL - 2, pal.l); hline(im, 2, H - WL, W - 4, '#ffffff');
+      for (let k = H - WL + 3; k < H - 3; k += 6) hline(im, 3, k, W - 6, pal.m);
+      rect(im, W / 2 - 2, H - WL / 2 - 2, 4, 4, '#ffb300'); px(im, W / 2 - 1, H - WL / 2 - 1, '#ffe36b');
+    } else {
+      // pęknięcia rozchodzące się od piasty
+      for (const [dx, dy, len] of [[-1, -1, 30], [1, -1, 22], [-1, 1, 26], [1, 1, 34], [0, -1, 40], [0, 1, 38]]) {
+        let x = W / 2, y = H / 2; for (let i = 0; i < len; i++) { px(im, Math.round(x), Math.round(y), K); if (i % 3 === 0) px(im, Math.round(x) + 1, Math.round(y), '#ff2a2a'); x += dx * (0.35 + ((i * 7) % 3) * 0.2); y += dy * 0.9; }
+      }
+    }
+    // piasta
+    rect(im, W / 2 - 5, H / 2 - 5, 10, 10, K); rect(im, W / 2 - 4, H / 2 - 4, 8, 8, pal.d);
+    if (!cracked) { rect(im, W / 2 - 2, H / 2 - 2, 4, 4, pal.l); px(im, W / 2 - 1, H / 2 - 1, '#ffffff'); }
+    return im;
+  };
+  const frames = []; for (const pal of PAL) { frames.push(wing(pal, false)); frames.push(wing(pal, true)); }
+  const pw = pack(frames, 6);
+  emitSheet('bossWing', 'assets/sprites/boss/wing.png', pw, {
+    p1: { frames: [0], fps: 1 }, p1c: { frames: [1], fps: 1 }, p2: { frames: [2], fps: 1 }, p2c: { frames: [3], fps: 1 }, p3: { frames: [4], fps: 1 }, p3c: { frames: [5], fps: 1 },
+  }, { anchor: 'center', anchorX: W / 2, anchorY: H / 2 });
+  const core = (k) => { const im = create(16, 16); const r = k ? 6 : 5; circle(im, 8, 8, r + 2, '#7a1a1a', true); circle(im, 8, 8, r, k ? '#ff8a80' : '#ff2a2a', true); circle(im, 8, 8, 2, '#ffffff', true); return im; };
+  emitSheet('bossCore', 'assets/sprites/boss/core.png', pack([core(0), core(1)], 2), { pulse: { frames: [0, 1], fps: 6, loop: true } }, { anchor: 'center', anchorX: 8, anchorY: 8 });
+}
+
+// ---------------------------------------------------------------------------
+// Pociski wrogów jako sprite'y: wyładowanie, odłamek kompozytu, mina energetyczna
+// ---------------------------------------------------------------------------
+{
+  const bolt = (k) => { const im = create(14, 6); const c1 = k ? '#dff6ff' : '#5ec8ff'; let y = 3; for (let x = 0; x < 14; x++) { y = 3 + ((x + k) % 4 < 2 ? -1 : 1) * (x % 2); px(im, x, y, c1); px(im, x, y + 1, k ? '#5ec8ff' : '#2b8fd6'); } rect(im, 6, 2, 2, 2, '#ffffff'); return im; };
+  emitSheet('bolt', 'assets/sprites/fx/bolt.png', pack([bolt(0), bolt(1)], 2), { fly: { frames: [0, 1], fps: 24, loop: true } }, { anchor: 'center', anchorX: 7, anchorY: 3 });
+  const shard = (k) => { const im = create(8, 8); if (k) { rect(im, 0, 2, 8, 4, '#e5e9ef'); hline(im, 0, 5, 8, '#7d8794'); rect(im, 6, 2, 2, 1, '#2b2f36'); } else { rect(im, 2, 0, 4, 8, '#e5e9ef'); vline(im, 5, 0, 8, '#7d8794'); rect(im, 2, 6, 1, 2, '#2b2f36'); } return im; };
+  emitSheet('shard', 'assets/sprites/fx/shard.png', pack([shard(0), shard(1)], 2), { spin: { frames: [0, 1], fps: 12, loop: true } }, { anchor: 'center', anchorX: 4, anchorY: 4 });
+  const mine = (k) => { const im = create(12, 12); circle(im, 6, 6, 5, k ? '#2b6f8f' : '#1f4f66', true); circle(im, 6, 6, k ? 4 : 3, k ? '#dff6ff' : '#5ec8ff', true); rect(im, 5, 5, 2, 2, '#2b2f36'); return im; };
+  emitSheet('mine', 'assets/sprites/fx/mine.png', pack([mine(0), mine(1)], 2), { pulse: { frames: [0, 1], fps: 8, loop: true } }, { anchor: 'center', anchorX: 6, anchorY: 6 });
+}
+
+// ---------------------------------------------------------------------------
+// HUD – ramki i segmenty jako PNG (retro metal z nitami i rdzą), rozmiar dyskretny (narożniki)
+// ---------------------------------------------------------------------------
+{
+  const K = '#161a20', P0 = '#3b4048', P1 = '#4f565f', P3 = '#8a93a0', HI = '#aab3bf', RUST = '#7a4a2e';
+  const panel = (w, h, insets) => {
+    const im = create(w, h);
+    rect(im, 0, 0, w, h, K); rect(im, 1, 1, w - 2, h - 2, P1);
+    hline(im, 1, 1, w - 2, P3); vline(im, 1, 1, h - 2, P3); hline(im, 1, h - 2, w - 2, P0); vline(im, w - 2, 1, h - 2, P0);
+    for (const [x, y] of [[2, 2], [w - 4, 2], [2, h - 4], [w - 4, h - 4]]) { px(im, x, y, HI); px(im, x + 1, y + 1, K); }
+    vline(im, w - 7, 2, 5, RUST); px(im, w - 7, 7, '#9a5c34');
+    for (const [x, y, iw, ih] of insets) { rect(im, x, y, iw, ih, K); rect(im, x + 1, y + 1, iw - 2, ih - 2, '#23272e'); hline(im, x + 1, y + ih - 2, iw - 2, '#5a616b'); }
+    return im;
+  };
+  // panel gracza: portret 20x20 w ramce 24x24 + bateria 10×(5+1) w wgłębieniu + miejsce na etykietę
+  const pp = panel(104, 30, [[3, 3, 24, 24], [30, 3, 70, 12]]);
+  save(pp, 'assets/sprites/ui/panel-player.png'); manifest.images.hudPlayer = { file: 'assets/sprites/ui/panel-player.png', w: pp.width, h: pp.height };
+  const ps = panel(64, 30, [[4, 15, 56, 12]]);
+  save(ps, 'assets/sprites/ui/panel-score.png'); manifest.images.hudScore = { file: 'assets/sprites/ui/panel-score.png', w: ps.width, h: ps.height };
+  const pb = panel(128, 20, [[4, 4, 120, 8]]);
+  save(pb, 'assets/sprites/ui/panel-boss.png'); manifest.images.hudBoss = { file: 'assets/sprites/ui/panel-boss.png', w: pb.width, h: pb.height };
+  // segmenty baterii: off, zielony, żółty, czerwony (5x8)
+  const seg = (c, d) => { const im = create(5, 8); rect(im, 0, 0, 5, 8, c); if (d) { rect(im, 0, 6, 5, 2, d); px(im, 1, 1, '#ffffff'); } return im; };
+  const segs = pack([seg('#2f343b'), seg('#3ddc84', '#1c7a48'), seg('#ffb300', '#8a5f00'), seg('#ff3b3b', '#7a1a1a')], 4);
+  emitSheet('hudSeg', 'assets/sprites/ui/segments.png', segs, { off: { frames: [0], fps: 1 }, green: { frames: [1], fps: 1 }, yellow: { frames: [2], fps: 1 }, red: { frames: [3], fps: 1 } }, { anchor: 'center', anchorX: 0, anchorY: 0 });
+  // głośnik: włączony / wyciszony (10x8)
+  const spk = (muted) => { const im = create(10, 8); const c = muted ? '#7d8794' : '#2fb9b0'; rect(im, 0, 2, 3, 4, c); rect(im, 3, 1, 2, 6, c); vline(im, 5, 0, 8, c);
+    if (muted) { for (const [x, y] of [[7, 1], [8, 2], [9, 3], [9, 1], [7, 3]]) px(im, x, y, '#ff3b3b'); } else { vline(im, 7, 2, 4, c); vline(im, 9, 1, 6, c); } return im; };
+  emitSheet('hudSpeaker', 'assets/sprites/ui/speaker.png', pack([spk(false), spk(true)], 2), { on: { frames: [0], fps: 1 }, muted: { frames: [1], fps: 1 } }, { anchor: 'center', anchorX: 0, anchorY: 0 });
 }
 
 // ---------------------------------------------------------------------------
 // Portret Seby (HUD) 20x20 – z ekstraktora (twarz ze sheetu) albo rysowany
 // ---------------------------------------------------------------------------
 if (manifest.sebaSource === 'seba-ai') {
-  manifest.images.portrait = { file: 'assets/sprites/ui/portrait.png', w: 40, h: 40 };
+  manifest.images.portrait = { file: 'assets/sprites/ui/portrait.png', w: 20, h: 20 };
 } else {
   const im = create(20, 20);
   rect(im, 4, 1, 12, 7, '#eef1f5'); rect(im, 3, 3, 14, 5, '#eef1f5'); hline(im, 5, 1, 10, '#ffffff'); // kask
@@ -335,7 +431,7 @@ if (manifest.sebaSource === 'seba-ai') {
   rect(im, 6, 13, 8, 2, '#8a6a52'); rect(im, 8, 13, 4, 1, '#f1c9a5'); // zarost
   rect(im, 3, 16, 14, 4, '#e6ff3d'); hline(im, 3, 17, 14, '#c8ccd0'); px(im, 10, 19, '#ff7a1a'); // kurtka hi-vis + pas odblaskowy + karabińczyk
   save(scale(im, D), 'assets/sprites/ui/portrait.png');
-  manifest.images.portrait = { file: 'assets/sprites/ui/portrait.png', w: 40, h: 40 };
+  manifest.images.portrait = { file: 'assets/sprites/ui/portrait.png', w: 20, h: 20 };
 }
 
 // ---------------------------------------------------------------------------
@@ -348,7 +444,7 @@ if (manifest.sebaSource === 'seba-ai') {
   const BF = 6; const blades = Array.from({ length: BF }, (_, i) => drawSkyBlades(i, BF));
   const pb = pack(blades, BF); save(pb.sheet, 'assets/backgrounds/sky-blades.png');
   // uwaga: tła są już w gęstości canvasu – bez podbijania (nie przez emitSheet)
-  manifest.sheets.skyBlades = { file: 'assets/backgrounds/sky-blades.png', frameW: pb.frameW, frameH: pb.frameH, cols: BF, clips: { spin: { frames: [0, 1, 2, 3, 4, 5], fps: 5, loop: true } }, anchor: 'center', anchorX: 0, anchorY: 0, density: D, y: SKY_HORIZON - 150 };
+  manifest.sheets.skyBlades = { file: 'assets/backgrounds/sky-blades.png', frameW: pb.frameW, frameH: pb.frameH, cols: BF, clips: { spin: { frames: [0, 1, 2, 3, 4, 5], fps: 5, loop: true } }, anchor: 'center', anchorX: 0, anchorY: 0, density: D, y: SKY_HORIZON - 60 };
   const mid = drawSiteMid(); save(mid, 'assets/backgrounds/site-mid.png');
   manifest.images.siteMid = { file: 'assets/backgrounds/site-mid.png', w: mid.width, h: mid.height };
   const near = drawSiteNear(); save(near, 'assets/backgrounds/site-near.png');

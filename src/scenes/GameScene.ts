@@ -92,10 +92,10 @@ export class GameScene implements WorldContext {
       const D = CONFIG.view.pixelScale, HC = H * D; // parallax rysowany w px canvasu
       const bladesY = (MANIFEST.sheets as { skyBlades?: { y?: number } }).skyBlades?.y ?? 0;
       this.parallax = new Parallax([
-        { image: sky, scroll: 0.05, y: 0 },                                                                 // zachód słońca, pola, wieże turbin
+        { image: sky, scroll: 0.05, y: 0 },                                                                 // zachód słońca, pola, odległa wieża, farma wiatrowa
         ...(blades ? [{ image: blades.image, sheet: blades, clip: 'spin', scroll: 0.05, y: bladesY }] : []), // obracające się łopaty
-        { image: mid, scroll: 0.3, y: HC - 40 * D - mid.height },                                           // wieża turbiny, żuraw, zaplecze
-        { image: near, scroll: 0.7, y: HC - 30 * D - near.height },                                         // łopata na kozłach, sekcja wieży, płot
+        { image: mid, scroll: 0.3, y: HC - 32 * D - mid.height },                                           // żuraw gąsienicowy, sekcje masztów, zaplecze
+        { image: near, scroll: 0.7, y: HC - 26 * D - near.height },                                         // łopata na kozłach, sekcja wieży, płot, barierki
       ]);
     }
     if (Images.tryGet('tileset')) this.tiles = new TileRenderer(this.level);

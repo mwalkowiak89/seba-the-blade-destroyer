@@ -1,6 +1,7 @@
 import { CONFIG } from '../../core/Config';
 import { Sfx } from '../../render/Audio';
 import { PlaceholderVisual } from '../../render/Visual';
+import { Sheets } from '../../assets/AssetLoader';
 import { rectsOverlap } from '../../core/MathUtil';
 import { EnemyBase } from '../enemies/EnemyBase';
 import type { WorldContext } from '../../scenes/WorldContext';
@@ -277,76 +278,41 @@ export class TurbineBoss extends EnemyBase {
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
-    const flash = this.hitFlash > 0 || (this.telegraphing && Math.floor(this.age * 20) % 2 === 0);
-    const pal = BOSS_PALETTES[Math.max(0, Math.min(2, this.phaseIndex))];
-    const K = '#050912';
-    const w = this.w, h = this.h;
-    const vertical = w < h;
-
+    const wing = Sheets.tryGet('bossWing');
+    const flash = this.hitFlash > 0 || (this.telegraphing && Math.floor(this.age * 20) % 2 === 0) || this.dyingStage === 'hitstop';
     ctx.save();
-    // promień celowniczy szarży
+    // promień celowniczy szarży (pikselowa linia)
     if (this.laserY !== null) {
       ctx.globalAlpha = 0.5 + 0.4 * Math.abs(Math.sin(this.age * 25));
-      ctx.fillStyle = '#ff2a2a';
-      ctx.fillRect(this.arenaX, Math.round(this.laserY) - 1, this.arenaRight - this.arenaX, 2);
-      ctx.fillStyle = '#ffb3b3';
-      ctx.fillRect(this.arenaX, Math.round(this.laserY), this.arenaRight - this.arenaX, 1);
+      ctx.fillStyle = '#ff2a2a'; ctx.fillRect(this.arenaX, Math.round(this.laserY) - 1, this.arenaRight - this.arenaX, 2);
+      ctx.fillStyle = '#ffb3b3'; ctx.fillRect(this.arenaX, Math.round(this.laserY), this.arenaRight - this.arenaX, 1);
       ctx.globalAlpha = 1;
     }
-    // smuga ruchu
+    if (!wing) { // fallback (headless / brak zasobów)
+      const pal = BOSS_PALETTES[Math.max(0, Math.min(2, this.phaseIndex))];
+      ctx.fillStyle = flash ? '#ffffff' : pal.m; ctx.fillRect(Math.round(this.x), Math.round(this.y), this.w, this.h);
+      ctx.restore(); return;
+    }
+    const clip = `p${Math.max(1, Math.min(3, this.phaseIndex + 1))}${this.coreExposed ? 'c' : ''}`;
+    const frame = wing.frameAt(clip, 0, 'p1');
+    const ax = wing.def.anchorX ?? 14, ay = wing.def.anchorY ?? 48;
+    const horizontal = this.w > this.h;
+    const drawWing = (cx: number, cy: number, alpha: number) => {
+      ctx.save();
+      ctx.translate(Math.round(cx), Math.round(cy));
+      if (this.tilt) ctx.rotate(this.tilt * this.facing);
+      if (this.dyingStage === 'fall') ctx.rotate(this.fallRot);
+      if (horizontal) ctx.rotate(Math.PI / 2); // końcówka (dół klatki) → lewa strona
+      wing.drawAnchored(ctx, frame, 0, 0, ax, ay, { flipX: !horizontal && this.facing < 0, flash, alpha });
+      ctx.restore();
+    };
+    // smuga ruchu przy szarży / zamachu
     const speed = Math.hypot(this.x - this.prevX, this.y - this.prevY);
-    if (speed > 3) { ctx.globalAlpha = 0.3; ctx.fillStyle = pal.m; ctx.fillRect(Math.round(this.prevX), Math.round(this.prevY), w, h); ctx.globalAlpha = 1; }
-
-    // transformacja: środek + drgania + odchylenie (gust) + obrót przy upadku
-    ctx.translate(Math.round(this.cx) + Math.round(this.shakeOffset), Math.round(this.cy));
-    if (this.tilt) ctx.rotate(this.tilt * this.facing);
-    if (this.dyingStage === 'fall') ctx.rotate(this.fallRot);
-    const x = -Math.round(w / 2), y = -Math.round(h / 2);
-
-    // korpus: obrys, wypełnienie, krawędź światła i cienia
-    ctx.fillStyle = K; ctx.fillRect(x, y, w, h);
-    ctx.fillStyle = flash ? '#ffffff' : pal.m; ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
-    if (!flash) {
-      ctx.fillStyle = pal.l; ctx.fillRect(x + 1, y + 1, w - 2, 1); ctx.fillRect(x + 1, y + 1, 1, h - 2);
-      ctx.fillStyle = pal.d; ctx.fillRect(x + 1, y + h - 2, w - 2, 1); ctx.fillRect(x + w - 2, y + 1, 1, h - 2);
-      // płyty pancerne + nity wzdłuż dłuższej osi
-      const len = vertical ? h : w;
-      for (let k = 10; k < len - 6; k += 12) {
-        ctx.fillStyle = K;
-        if (vertical) { ctx.fillRect(x + 2, y + k, w - 4, 1); ctx.fillStyle = pal.l; ctx.fillRect(x + 4, y + k + 3, 1, 1); ctx.fillRect(x + w - 5, y + k + 3, 1, 1); }
-        else { ctx.fillRect(x + k, y + 2, 1, h - 4); ctx.fillStyle = pal.l; ctx.fillRect(x + k + 3, y + 3, 1, 1); }
-      }
-      // receptory odgromowe na krawędzi natarcia
-      ctx.fillStyle = '#5ec8ff';
-      for (let k = 8; k < len - 6; k += 16) {
-        if (vertical) ctx.fillRect(this.facing < 0 ? x - 1 : x + w, y + k, 1, 2);
-        else ctx.fillRect(x + k, y + h, 2, 1);
-      }
-      // winglet – wrażliwa końcówka (jaśniejsza, z pulsującym znacznikiem) dopóki rdzeń nie jest odsłonięty
-      if (!this.coreExposed) {
-        const L = B.wingletLength;
-        ctx.fillStyle = pal.l;
-        if (vertical) ctx.fillRect(x + 2, y + h - L, w - 4, L - 2); else ctx.fillRect(x + 2, y + 2, L - 2, h - 4);
-        ctx.fillStyle = Math.floor(this.age * 6) % 2 ? '#ffb300' : '#ffe36b';
-        if (vertical) ctx.fillRect(x + w / 2 - 2, y + h - L / 2 - 2, 4, 4); else ctx.fillRect(x + L / 2 - 2, y + h / 2 - 2, 4, 4);
-      }
-    }
-    // piasta
-    ctx.fillStyle = K; ctx.fillRect(-5, -5, 10, 10);
-    ctx.fillStyle = pal.d; ctx.fillRect(-4, -4, 8, 8);
-    if (this.coreExposed) {
-      // pęknięcia + pulsujący rdzeń (nowy hitbox)
-      ctx.fillStyle = K;
-      for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; ctx.fillRect(Math.round(Math.cos(a) * 9), Math.round(Math.sin(a) * 9), 2, 2); ctx.fillRect(Math.round(Math.cos(a) * 14), Math.round(Math.sin(a) * 14), 1, 1); }
-      const r = 5 + Math.sin(this.age * 10) * 1.5;
-      ctx.fillStyle = 'rgba(255,42,42,0.4)'; ctx.beginPath(); ctx.arc(0, 0, r + 4, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = Math.floor(this.age * 10) % 2 ? '#ff2a2a' : '#ff8a80'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(-1, -1, 2, 2);
-    } else {
-      ctx.fillStyle = pal.l; ctx.fillRect(-2, -2, 4, 4);
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(-1, -1, 1, 1);
-    }
-    if (this.dyingStage === 'hitstop') { ctx.globalAlpha = 0.6; ctx.fillStyle = '#ffffff'; ctx.fillRect(x, y, w, h); }
+    if (speed > 3) drawWing(this.prevX + this.w / 2, this.prevY + this.h / 2, 0.3);
+    drawWing(this.cx + this.shakeOffset, this.cy, 1);
+    // pulsujący rdzeń (faza 3) – nowy hitbox
+    const core = Sheets.tryGet('bossCore');
+    if (this.coreExposed && core && !flash) core.drawAnchored(ctx, core.frameAt('pulse', this.age), this.cx + this.shakeOffset, this.cy, core.def.anchorX ?? 8, core.def.anchorY ?? 8);
     ctx.restore();
   }
 }

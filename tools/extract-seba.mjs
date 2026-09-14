@@ -17,10 +17,10 @@ const SRC = 'assets/raw/seba-ai/source.jpeg';
 const OUT_SHEET = 'assets/sprites/player/seba.png';
 const OUT_JSON = 'assets/raw/seba-ai/seba.sheet.json';
 const OUT_PORTRAIT = 'assets/sprites/ui/portrait.png';
-const DENSITY = 2;
+const DENSITY = 1;
 
 /** Docelowa wysokość stojącej postaci (px) – ~ hitbox 42 + margines na kask. */
-const TARGET_HEIGHT = 96; // gęstość 2x: 1 jednostka świata = 2 px (hitbox 42 j. ≈ 84 px + kask)
+const TARGET_HEIGHT = 48; // natywny low-res: hitbox 42 px + kask
 const PALETTE_SIZE = 18;
 
 // Prostokąty wierszy w źródle (2048x2048) i mapowanie na klipy.
@@ -178,7 +178,7 @@ const K = idleH / TARGET_HEIGHT;
 console.log('klatki per wiersz:', Object.fromEntries(Object.entries(rowBlobs).map(([k, v]) => [k, v.length])), '| skala 1/' + K.toFixed(2));
 
 const frames = {}; // clip → [{w,h,px}]
-const PORTRAIT = 40;
+const PORTRAIT = 20;
 for (const [row, list] of Object.entries(rowBlobs)) frames[row] = list.map((b) => downscale(b, row === 'face' ? (b.y1 - b.y0 + 1) / PORTRAIT : K));
 
 const samples = Object.entries(frames).filter(([k]) => k !== 'face').flatMap(([, fs]) => fs.flatMap((f) => f.px));
@@ -213,7 +213,7 @@ list.forEach((f, i) => {
   const cx = (i % cols) * FW, cy = Math.floor(i / cols) * FH;
   // stopy do dołu klatki; klatki koziołka – środek bboxa na wysokości połowy hitboxa
   const ox = Math.floor((FW - f.w) / 2);
-  const oy = f.spin ? Math.round(FH - 42 - f.h / 2) : FH - 1 - f.h;
+  const oy = f.spin ? Math.round(FH - 21 - f.h / 2) : FH - 1 - f.h;
   for (const p of f.px) {
     const c = nearest(palette, p);
     sheet.data.set([c.r, c.g, c.b, 255], ((cy + oy + p.y) * sheet.width + (cx + ox + p.x)) * 4);
@@ -234,7 +234,7 @@ const meta = {
   file: OUT_SHEET, frameW: FW, frameH: FH, cols, clips,
   anchor: 'bottom', anchorX: Math.floor(FW / 2), density: DENSITY,
   // dłoń (względem środek-stopy): stojąc ~60% wysokości, w klęku niżej – korekta ręczna po podglądzie
-  pivots: { stand: { x: 10, y: -54 }, up: { x: 18, y: -38 }, crouch: { x: 18, y: -44 }, prone: { x: 48, y: -14 } },
+  pivots: { stand: { x: 5, y: -27 }, up: { x: 9, y: -19 }, crouch: { x: 9, y: -22 }, prone: { x: 24, y: -7 } },
 };
 fs.writeFileSync(OUT_JSON, JSON.stringify(meta, null, 2));
 console.log(`OK: ${list.length} klatek ${FW}x${FH}, paleta ${palette.length}`);

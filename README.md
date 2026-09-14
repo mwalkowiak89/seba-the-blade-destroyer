@@ -44,20 +44,24 @@ proceduralnie (plac budowy farmy wiatrowej o świcie) – szczegóły w `assets/
 Surowe pliki leżą w `assets/raw/`, a `npm run assets` (`tools/build-assets.mjs`) generuje z nich:
 
 - `assets/sprites/player/seba.png` – z wygenerowanego sheetu `assets/raw/seba-ai/source.jpeg` przez `tools/extract-seba.mjs`
-  (chroma-key, cięcie klatek, wymazanie karabinu, downscale do 96 px + paleta); `makita.png` (3 orientacje × 2 klatki tarczy),
-  sheety 1× (Warped City, FX) są podbijane ×2 w `emitSheet` razem z kotwicami,
+  (chroma-key, cięcie klatek, wymazanie karabinu, downscale do 48 px + paleta); `makita.png` – wkrętarka akumulatorowa
+  (3 orientacje × 2 klatki obrotu bitu),
 - `assets/sprites/enemies/{runner,drone,turret}.png`, `assets/sprites/fx/{shot,shot-hit,explosion,muzzle,saw}.png`,
-- `assets/tilesets/industrial.png` (kafel 32 px = 16 jednostek: płyty ryflowane z nitami, krawędzie, słupy, rury – autotiling w `TileRenderer`),
-- `assets/backgrounds/` (3 warstwy parallax 640×480 generowane w `tools/site-backgrounds.mjs` wg mockupu
-  `assets/raw/reference/mockup-scene.jpeg`: zachód słońca z farmą wiatrową 0.05, wieża turbiny + żuraw 0.3,
-  gigantyczna łopata na kozłach + sekcja wieży na naczepie 0.7),
+- `assets/tilesets/industrial.png` – kafle 16×16: blacha ryflowana z nitami, krawędzie, słupy, rury oraz kafle platform
+  (łopata nasada/środek/końcówka z cieniowaniem, kozioł, sekcja wieży L/M/R, kołyska, kontener L/M/R) – `TileRenderer` tylko blituje,
+- `assets/backgrounds/` – 3 warstwy parallax PNG w natywnej rozdzielczości (`tools/site-backgrounds.mjs`): zachód słońca,
+  odległa przygaszona wieża i farma wiatrowa 0.05; żuraw gąsienicowy, stawiana turbina, sekcje masztów 0.3;
+  łopata na kozłach (cieniowana), sekcja wieży na naczepie, płot, barierki, kontenery 0.7,
+- `assets/sprites/boss/` (skrzydło w 3 paletach × całe/pęknięte, rdzeń), `assets/sprites/fx/` (wkręt, wyładowanie, odłamek, mina),
+  `assets/sprites/ui/` (ramki HUD, segmenty baterii, głośnik) – **runtime nie rysuje kształtów, tylko blituje PNG**
+  (wyjątki pikselowe: cząstki 1–2 px, linie laserów, wypełnienie paska bossa).
 - `src/assets/manifest.generated.ts` – rozmiary klatek, klipy (nazwa → indeksy + fps), kotwice, punkty dłoni/wylotu broni.
 
 **Podmiana grafiki 1:1**: podmień PNG w `assets/raw/...` (te same nazwy i liczba klatek) i odpal `npm run assets`.
 Nazwy klipów = nazwy stanów FSM (`idle, run, run_shoot, shoot, crouch, jump, spin, hurt`) / trybów wrogów.
 
-Pixel-perfect: świat 320×240 jednostek, grafika w gęstości 2× (`CONFIG.view.pixelScale`, canvas 640×480 – sprite'y mają
-2× więcej detalu przy tej samej logice), skalowanie całkowite z letterboxem (odpowiednik `viewport` + `keep`),
+Pixel-perfect: **natywna rozdzielczość 384×216** (16:9, `CONFIG.view`), 1 jednostka świata = 1 piksel, poziom ma 240 px
+wysokości (kamera pokazuje dolne 216 – `cameraOffsetY`), skalowanie całkowite z letterboxem (odpowiednik `viewport` + `keep`),
 `image-rendering: pixelated` + `imageSmoothingEnabled = false` (Nearest), pozycje kamery i sprite'ów zaokrąglane do pełnych pikseli.
 
 ## Audio (chiptune syntezowany w Web Audio)

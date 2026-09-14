@@ -3,12 +3,16 @@
   // src/core/Config.ts
   var CONFIG = {
     view: {
-      /** Rozmiar świata w jednostkach (logika, kolizje, kamera). */
-      width: 320,
-      height: 240,
+      /** Natywna rozdzielczość retro (16:9) – 1 jednostka świata = 1 piksel. */
+      width: 384,
+      height: 216,
       tile: 16,
-      /** Gęstość pikseli grafiki: 1 jednostka świata = pixelScale pikseli canvasu (sprite'y mają 2x detalu). */
-      pixelScale: 2,
+      /** Gęstość pikseli grafiki (1 = prawdziwy low-res pixel art). */
+      pixelScale: 1,
+      /** Poziom ma 240 px wysokości – kamera pokazuje dolne 216 px (góra to puste niebo). */
+      cameraOffsetY: 24,
+      /** Wysokość poziomu w px (15 kafli). */
+      levelHeight: 240,
       fixedStep: 1 / 60,
       maxStepsPerFrame: 3
     },
@@ -135,7 +139,7 @@
       /** Progi HP (ułamek) – przejście w fazę n następuje gdy HP <= próg. */
       phaseThresholds: [1, 0.66, 0.33],
       /** Pozycja hover względem lewej krawędzi areny. */
-      hoverOffsetX: 320 - 56,
+      hoverOffsetX: 384 - 56,
       hoverCenterY: 110,
       hoverAmplitude: 52,
       /** Długość wrażliwej końcówki skrzydła (winglet) – px od czubka. */
@@ -271,7 +275,7 @@
   var Camera = class {
     constructor() {
       this.x = 0;
-      this.y = 0;
+      this.y = CONFIG.view.cameraOffsetY;
       this.width = CONFIG.view.width;
       this.height = CONFIG.view.height;
       /** Maksymalne x (szerokość poziomu - szerokość ekranu). */
@@ -1019,12 +1023,12 @@
 
   // src/assets/manifest.generated.ts
   var MANIFEST = {
-    "version": "mu11eafb",
+    "version": "mu142ex6",
     "sheets": {
       "seba": {
         "file": "assets/sprites/player/seba.png",
-        "frameW": 138,
-        "frameH": 96,
+        "frameW": 70,
+        "frameH": 49,
         "cols": 8,
         "clips": {
           "idle": {
@@ -1129,31 +1133,31 @@
           }
         },
         "anchor": "bottom",
-        "anchorX": 69,
-        "density": 2,
+        "anchorX": 35,
+        "density": 1,
         "pivots": {
           "stand": {
-            "x": 10,
-            "y": -54
+            "x": 5,
+            "y": -27
           },
           "up": {
-            "x": 18,
-            "y": -38
+            "x": 9,
+            "y": -19
           },
           "crouch": {
-            "x": 18,
-            "y": -44
+            "x": 9,
+            "y": -22
           },
           "prone": {
-            "x": 48,
-            "y": -14
+            "x": 24,
+            "y": -7
           }
         }
       },
       "runner": {
         "file": "assets/sprites/enemies/runner.png",
-        "frameW": 114,
-        "frameH": 106,
+        "frameW": 57,
+        "frameH": 53,
         "cols": 9,
         "clips": {
           "run": {
@@ -1185,14 +1189,14 @@
             "loop": true
           }
         },
-        "density": 2,
+        "density": 1,
         "anchor": "bottom",
-        "anchorX": 62
+        "anchorX": 31
       },
       "drone": {
         "file": "assets/sprites/enemies/drone.png",
-        "frameW": 72,
-        "frameH": 98,
+        "frameW": 36,
+        "frameH": 49,
         "cols": 4,
         "clips": {
           "patrol": {
@@ -1226,15 +1230,15 @@
             "loop": true
           }
         },
-        "density": 2,
+        "density": 1,
         "anchor": "center",
-        "anchorX": 36,
-        "anchorY": 32
+        "anchorX": 18,
+        "anchorY": 16
       },
       "turret": {
         "file": "assets/sprites/enemies/turret.png",
-        "frameW": 50,
-        "frameH": 46,
+        "frameW": 25,
+        "frameH": 23,
         "cols": 6,
         "clips": {
           "idle": {
@@ -1263,14 +1267,14 @@
             "loop": true
           }
         },
-        "density": 2,
+        "density": 1,
         "anchor": "bottom",
-        "anchorX": 26
+        "anchorX": 13
       },
       "shot": {
         "file": "assets/sprites/fx/shot.png",
-        "frameW": 30,
-        "frameH": 22,
+        "frameW": 15,
+        "frameH": 11,
         "cols": 3,
         "clips": {
           "fly": {
@@ -1283,15 +1287,15 @@
             "loop": true
           }
         },
-        "density": 2,
+        "density": 1,
         "anchor": "center",
-        "anchorX": 16,
-        "anchorY": 10
+        "anchorX": 8,
+        "anchorY": 5
       },
       "shotHit": {
         "file": "assets/sprites/fx/shot-hit.png",
-        "frameW": 30,
-        "frameH": 22,
+        "frameW": 15,
+        "frameH": 11,
         "cols": 3,
         "clips": {
           "play": {
@@ -1304,15 +1308,15 @@
             "loop": false
           }
         },
-        "density": 2,
+        "density": 1,
         "anchor": "center",
-        "anchorX": 14,
-        "anchorY": 10
+        "anchorX": 7,
+        "anchorY": 5
       },
       "explosion": {
         "file": "assets/sprites/fx/explosion.png",
-        "frameW": 110,
-        "frameH": 104,
+        "frameW": 55,
+        "frameH": 52,
         "cols": 6,
         "clips": {
           "play": {
@@ -1328,15 +1332,15 @@
             "loop": false
           }
         },
-        "density": 2,
+        "density": 1,
         "anchor": "center",
-        "anchorX": 54,
-        "anchorY": 52
+        "anchorX": 27,
+        "anchorY": 26
       },
       "makita": {
         "file": "assets/sprites/player/makita.png",
-        "frameW": 56,
-        "frameH": 56,
+        "frameW": 28,
+        "frameH": 28,
         "cols": 6,
         "clips": {
           "horizontal": {
@@ -1364,41 +1368,41 @@
             "loop": true
           }
         },
-        "density": 2,
+        "density": 1,
         "anchor": "pivot",
         "pivots": {
           "horizontal": {
-            "x": 12,
-            "y": 26
+            "x": 6,
+            "y": 13
           },
           "diagonal": {
-            "x": 16,
-            "y": 38
+            "x": 8,
+            "y": 19
           },
           "vertical": {
-            "x": 26,
-            "y": 42
+            "x": 13,
+            "y": 21
           }
         },
         "muzzle": {
           "horizontal": {
-            "x": 54,
-            "y": 26
+            "x": 27,
+            "y": 12
           },
           "diagonal": {
-            "x": 46,
-            "y": 8
+            "x": 22,
+            "y": 5
           },
           "vertical": {
-            "x": 26,
+            "x": 12,
             "y": 0
           }
         }
       },
       "muzzle": {
         "file": "assets/sprites/fx/muzzle.png",
-        "frameW": 24,
-        "frameH": 24,
+        "frameW": 12,
+        "frameH": 12,
         "cols": 2,
         "clips": {
           "flash": {
@@ -1410,15 +1414,15 @@
             "loop": false
           }
         },
-        "density": 2,
+        "density": 1,
         "anchor": "center",
-        "anchorX": 10,
-        "anchorY": 10
+        "anchorX": 5,
+        "anchorY": 5
       },
       "screw": {
         "file": "assets/sprites/fx/screw.png",
-        "frameW": 28,
-        "frameH": 12,
+        "frameW": 14,
+        "frameH": 6,
         "cols": 2,
         "clips": {
           "spin": {
@@ -1430,15 +1434,15 @@
             "loop": true
           }
         },
-        "density": 2,
+        "density": 1,
         "anchor": "center",
-        "anchorX": 20,
-        "anchorY": 6
+        "anchorX": 10,
+        "anchorY": 3
       },
       "saw": {
         "file": "assets/sprites/fx/saw.png",
-        "frameW": 24,
-        "frameH": 24,
+        "frameW": 12,
+        "frameH": 12,
         "cols": 2,
         "clips": {
           "spin": {
@@ -1450,15 +1454,203 @@
             "loop": true
           }
         },
-        "density": 2,
+        "density": 1,
         "anchor": "center",
-        "anchorX": 10,
-        "anchorY": 10
+        "anchorX": 5,
+        "anchorY": 5
+      },
+      "bossWing": {
+        "file": "assets/sprites/boss/wing.png",
+        "frameW": 28,
+        "frameH": 96,
+        "cols": 6,
+        "clips": {
+          "p1": {
+            "frames": [
+              0
+            ],
+            "fps": 1
+          },
+          "p1c": {
+            "frames": [
+              1
+            ],
+            "fps": 1
+          },
+          "p2": {
+            "frames": [
+              2
+            ],
+            "fps": 1
+          },
+          "p2c": {
+            "frames": [
+              3
+            ],
+            "fps": 1
+          },
+          "p3": {
+            "frames": [
+              4
+            ],
+            "fps": 1
+          },
+          "p3c": {
+            "frames": [
+              5
+            ],
+            "fps": 1
+          }
+        },
+        "density": 1,
+        "anchor": "center",
+        "anchorX": 14,
+        "anchorY": 48
+      },
+      "bossCore": {
+        "file": "assets/sprites/boss/core.png",
+        "frameW": 16,
+        "frameH": 16,
+        "cols": 2,
+        "clips": {
+          "pulse": {
+            "frames": [
+              0,
+              1
+            ],
+            "fps": 6,
+            "loop": true
+          }
+        },
+        "density": 1,
+        "anchor": "center",
+        "anchorX": 8,
+        "anchorY": 8
+      },
+      "bolt": {
+        "file": "assets/sprites/fx/bolt.png",
+        "frameW": 14,
+        "frameH": 6,
+        "cols": 2,
+        "clips": {
+          "fly": {
+            "frames": [
+              0,
+              1
+            ],
+            "fps": 24,
+            "loop": true
+          }
+        },
+        "density": 1,
+        "anchor": "center",
+        "anchorX": 7,
+        "anchorY": 3
+      },
+      "shard": {
+        "file": "assets/sprites/fx/shard.png",
+        "frameW": 8,
+        "frameH": 8,
+        "cols": 2,
+        "clips": {
+          "spin": {
+            "frames": [
+              0,
+              1
+            ],
+            "fps": 12,
+            "loop": true
+          }
+        },
+        "density": 1,
+        "anchor": "center",
+        "anchorX": 4,
+        "anchorY": 4
+      },
+      "mine": {
+        "file": "assets/sprites/fx/mine.png",
+        "frameW": 12,
+        "frameH": 12,
+        "cols": 2,
+        "clips": {
+          "pulse": {
+            "frames": [
+              0,
+              1
+            ],
+            "fps": 8,
+            "loop": true
+          }
+        },
+        "density": 1,
+        "anchor": "center",
+        "anchorX": 6,
+        "anchorY": 6
+      },
+      "hudSeg": {
+        "file": "assets/sprites/ui/segments.png",
+        "frameW": 5,
+        "frameH": 8,
+        "cols": 4,
+        "clips": {
+          "off": {
+            "frames": [
+              0
+            ],
+            "fps": 1
+          },
+          "green": {
+            "frames": [
+              1
+            ],
+            "fps": 1
+          },
+          "yellow": {
+            "frames": [
+              2
+            ],
+            "fps": 1
+          },
+          "red": {
+            "frames": [
+              3
+            ],
+            "fps": 1
+          }
+        },
+        "density": 1,
+        "anchor": "center",
+        "anchorX": 0,
+        "anchorY": 0
+      },
+      "hudSpeaker": {
+        "file": "assets/sprites/ui/speaker.png",
+        "frameW": 10,
+        "frameH": 8,
+        "cols": 2,
+        "clips": {
+          "on": {
+            "frames": [
+              0
+            ],
+            "fps": 1
+          },
+          "muted": {
+            "frames": [
+              1
+            ],
+            "fps": 1
+          }
+        },
+        "density": 1,
+        "anchor": "center",
+        "anchorX": 0,
+        "anchorY": 0
       },
       "skyBlades": {
         "file": "assets/backgrounds/sky-blades.png",
-        "frameW": 640,
-        "frameH": 160,
+        "frameW": 384,
+        "frameH": 70,
         "cols": 6,
         "clips": {
           "spin": {
@@ -1477,36 +1669,51 @@
         "anchor": "center",
         "anchorX": 0,
         "anchorY": 0,
-        "density": 2,
-        "y": 222
+        "density": 1,
+        "y": 106
       }
     },
     "images": {
       "tileset": {
         "file": "assets/tilesets/industrial.png",
-        "tileSize": 32,
+        "tileSize": 16,
         "worldTile": 16,
         "cols": 8
       },
+      "hudPlayer": {
+        "file": "assets/sprites/ui/panel-player.png",
+        "w": 104,
+        "h": 30
+      },
+      "hudScore": {
+        "file": "assets/sprites/ui/panel-score.png",
+        "w": 64,
+        "h": 30
+      },
+      "hudBoss": {
+        "file": "assets/sprites/ui/panel-boss.png",
+        "w": 128,
+        "h": 20
+      },
       "portrait": {
         "file": "assets/sprites/ui/portrait.png",
-        "w": 40,
-        "h": 40
+        "w": 20,
+        "h": 20
       },
       "sky": {
         "file": "assets/backgrounds/sky.png",
-        "w": 640,
-        "h": 480
+        "w": 384,
+        "h": 216
       },
       "siteMid": {
         "file": "assets/backgrounds/site-mid.png",
-        "w": 960,
-        "h": 400
+        "w": 576,
+        "h": 150
       },
       "siteNear": {
         "file": "assets/backgrounds/site-near.png",
-        "w": 1120,
-        "h": 200
+        "w": 768,
+        "h": 72
       }
     },
     "tiles": {
@@ -1516,14 +1723,22 @@
       "edgeBottom": 3,
       "edgeLeft": 4,
       "edgeRight": 5,
-      "grate": 6,
-      "grateL": 7,
-      "grateR": 8,
-      "grateLR": 9,
-      "column": 10,
-      "columnTop": 11,
-      "pipe": 12,
-      "pipeTop": 13
+      "column": 6,
+      "columnTop": 7,
+      "pipe": 8,
+      "pipeTop": 9,
+      "bladeRoot": 10,
+      "bladeMid": 11,
+      "bladeTip": 12,
+      "trestle": 13,
+      "towerM": 14,
+      "towerL": 15,
+      "towerR": 16,
+      "cradle": 17,
+      "contL": 18,
+      "contM": 19,
+      "contR": 20,
+      "contLR": 21
     },
     "sebaSource": "seba-ai"
   };
@@ -1775,7 +1990,7 @@
       this.tileSize = CONFIG.view.tile;
       this.markers = [];
       const screenCols = CONFIG.view.width / this.tileSize;
-      this.rows = CONFIG.view.height / this.tileSize;
+      this.rows = CONFIG.view.levelHeight / this.tileSize;
       this.cols = screens.length * screenCols;
       this.widthPx = this.cols * this.tileSize;
       this.heightPx = this.rows * this.tileSize;
@@ -1840,7 +2055,6 @@
       this.cache = null;
       this.image = Images.get("tileset");
       this.ts = MANIFEST.images.tileset.tileSize;
-      this.wt = MANIFEST.images.tileset.worldTile;
       this.cols = MANIFEST.images.tileset.cols;
       this.buildDecorations();
       this.prerender();
@@ -1853,22 +2067,19 @@
       const g = c.getContext("2d");
       if (!g) return;
       g.imageSmoothingEnabled = false;
+      g.scale(D2, D2);
       this.drawAll(g);
       this.cache = c;
     }
-    /** Rysuje w px canvasu (współrzędne świata × D). */
     drawAll(g) {
-      this.drawDecorations(g);
+      for (const d of this.decos) this.blit(g, d.tile, d.col, d.row);
       this.drawTiles(g);
       this.drawPlatforms(g);
     }
     /** Rysuje widoczny wycinek prerenderowanej planszy (ctx ma już transformację świata). */
     draw(ctx, camX, camW) {
       if (!this.cache) {
-        ctx.save();
-        ctx.scale(1 / D2, 1 / D2);
         this.drawAll(ctx);
-        ctx.restore();
         return;
       }
       const x = Math.max(0, Math.floor(camX)), w = Math.min(this.level.widthPx - x, Math.ceil(camW) + 1);
@@ -1877,19 +2088,37 @@
     blit(g, tile, col, row) {
       const idx = MANIFEST.tiles[tile];
       const sx = idx % this.cols * this.ts, sy = Math.floor(idx / this.cols) * this.ts;
-      g.drawImage(this.image, sx, sy, this.ts, this.ts, col * this.wt * D2, row * this.wt * D2, this.ts, this.ts);
+      g.drawImage(this.image, sx, sy, this.ts, this.ts, col * this.ts, row * this.ts, this.ts, this.ts);
+    }
+    /** Typ platformy dla runu one-way: pod snajperem kontener, dalej naprzemiennie łopata / sekcja wieży. */
+    platformKind(c0, c1, r, runIndex) {
+      for (const m of this.level.markers) if (m.type === "sniper" && m.row + 1 === r && m.col >= c0 && m.col <= c1) return "container";
+      return runIndex % 2 === 0 ? "blade" : "tower";
+    }
+    forEachRun(fn) {
+      const L = this.level;
+      let runIndex = 0;
+      for (let r = 0; r < L.rows; r++) for (let c = 0; c < L.cols; c++) {
+        if (L.tileAt(c, r) !== 2 /* OneWay */ || L.tileAt(c - 1, r) === 2 /* OneWay */) continue;
+        let c1 = c;
+        while (L.tileAt(c1 + 1, r) === 2 /* OneWay */) c1++;
+        fn(c, c1, r, this.platformKind(c, c1, r, runIndex));
+        runIndex++;
+        c = c1;
+      }
     }
     buildDecorations() {
       const L = this.level;
-      for (let r = 0; r < L.rows; r++) for (let c = 0; c < L.cols; c++) {
-        if (L.tileAt(c, r) !== 2 /* OneWay */) continue;
-        const isEnd = L.tileAt(c - 1, r) !== 2 /* OneWay */ || L.tileAt(c + 1, r) !== 2 /* OneWay */;
-        if (!isEnd) continue;
-        for (let k = 1; k <= 8 && r + k < L.rows; k++) {
-          if (L.tileAt(c, r + k) !== 0 /* Empty */) break;
-          this.decos.push({ col: c, row: r + k, tile: k === 1 ? "columnTop" : "column" });
+      this.forEachRun((c0, c1, r, kind) => {
+        if (kind === "container") return;
+        const ends = c1 - c0 >= 2 ? [c0 + 1, c1 - 1] : [c0, c1];
+        for (const c of new Set(ends)) {
+          for (let k = 1; k <= 8 && r + k < L.rows; k++) {
+            if (L.tileAt(c, r + k) !== 0 /* Empty */) break;
+            this.decos.push({ col: c, row: r + k, tile: k === 1 ? kind === "blade" ? "trestle" : "cradle" : k === 2 ? "columnTop" : "column" });
+          }
         }
-      }
+      });
       for (let c = 0; c < L.cols; c++) {
         if ((c * 7 + 3) % 11 !== 0) continue;
         for (let r = 1; r < L.rows; r++) {
@@ -1904,115 +2133,28 @@
         }
       }
     }
-    drawDecorations(g) {
-      for (const d of this.decos) this.blit(g, d.tile, d.col, d.row);
-    }
     drawTiles(g) {
       const L = this.level;
-      for (let r = 0; r < L.rows; r++) {
-        for (let c = 0; c < L.cols; c++) {
-          if (L.tileAt(c, r) !== 1 /* Solid */) continue;
-          this.blit(g, (c * 31 + r * 17) % 5 === 0 ? "plateB" : "plate", c, r);
-          if (L.tileAt(c, r - 1) !== 1 /* Solid */) this.blit(g, "edgeTop", c, r);
-          if (L.tileAt(c, r + 1) !== 1 /* Solid */ && r + 1 < L.rows) this.blit(g, "edgeBottom", c, r);
-          if (L.tileAt(c - 1, r) !== 1 /* Solid */) this.blit(g, "edgeLeft", c, r);
-          if (L.tileAt(c + 1, r) !== 1 /* Solid */) this.blit(g, "edgeRight", c, r);
-        }
+      for (let r = 0; r < L.rows; r++) for (let c = 0; c < L.cols; c++) {
+        if (L.tileAt(c, r) !== 1 /* Solid */) continue;
+        this.blit(g, (c * 31 + r * 17) % 5 === 0 ? "plateB" : "plate", c, r);
+        if (L.tileAt(c, r - 1) !== 1 /* Solid */) this.blit(g, "edgeTop", c, r);
+        if (L.tileAt(c, r + 1) !== 1 /* Solid */ && r + 1 < L.rows) this.blit(g, "edgeBottom", c, r);
+        if (L.tileAt(c - 1, r) !== 1 /* Solid */) this.blit(g, "edgeLeft", c, r);
+        if (L.tileAt(c + 1, r) !== 1 /* Solid */) this.blit(g, "edgeRight", c, r);
       }
     }
-    /**
-     * Platformy semi-solid jako elementy placu montażu (w px canvasu = jednostki świata × D).
-     * Kolizja pozostaje na górnej krawędzi kafla.
-     */
     drawPlatforms(g) {
-      const L = this.level, wt = this.wt;
-      const sniperCols = new Set(L.markers.filter((m) => m.type === "sniper").map((m) => `${m.col},${m.row + 1}`));
-      let runIndex = 0;
-      for (let r = 0; r < L.rows; r++) {
-        for (let c = 0; c < L.cols; c++) {
-          if (L.tileAt(c, r) !== 2 /* OneWay */ || L.tileAt(c - 1, r) === 2 /* OneWay */) continue;
-          let c1 = c;
-          while (L.tileAt(c1 + 1, r) === 2 /* OneWay */) c1++;
-          const x0 = c * wt * D2, x1 = (c1 + 1) * wt * D2, y = r * wt * D2;
-          let hasSniper = false;
-          for (let k = c; k <= c1; k++) if (sniperCols.has(`${k},${r}`)) hasSniper = true;
-          if (hasSniper) this.drawContainerRoof(g, x0, y, x1 - x0);
-          else if (runIndex % 2 === 0) this.drawBladePlatform(g, x0, y, x1 - x0);
-          else this.drawTowerPlatform(g, x0, y, x1 - x0);
-          runIndex++;
-          c = c1;
+      this.forEachRun((c0, c1, r, kind) => {
+        for (let c = c0; c <= c1; c++) {
+          const first = c === c0, last = c === c1;
+          let t;
+          if (kind === "blade") t = first ? "bladeRoot" : last ? "bladeTip" : "bladeMid";
+          else if (kind === "tower") t = first && last ? "towerM" : first ? "towerL" : last ? "towerR" : "towerM";
+          else t = first && last ? "contLR" : first ? "contL" : last ? "contR" : "contM";
+          this.blit(g, t, c, r);
         }
-      }
-    }
-    R(g, x, y, w, h, c) {
-      g.fillStyle = c;
-      g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
-    }
-    /** Łopata z włókna szklanego na żółtych stojakach montażowych (nasada po lewej, końcówka po prawej). */
-    drawBladePlatform(g, x, y, w) {
-      const K = "#2b2f36", W1 = "#f4f6f8", W2 = "#dfe3e8", W3 = "#b9c0c9", W4 = "#8f98a3";
-      const T = 16 * D2;
-      for (let i = 0; i < w; i++) {
-        const t = i / w;
-        const th = Math.max(5, Math.round(T * 0.55 * (1 - t * 0.55)));
-        const top = y + 2 + Math.round(T * 0.12 * t);
-        this.R(g, x + i, top, 1, th, W1);
-        this.R(g, x + i, top + Math.floor(th * 0.55), 1, Math.ceil(th * 0.25), W2);
-        this.R(g, x + i, top + th - 3, 1, 2, W3);
-        this.R(g, x + i, top + th - 1, 1, 1, W4);
-        this.R(g, x + i, top - 1, 1, 1, K);
-        this.R(g, x + i, top + th, 1, 1, K);
-      }
-      this.R(g, x, y, 10, T * 0.8, W3);
-      this.R(g, x, y, 2, T * 0.8, K);
-      for (let k = 4; k < T * 0.8 - 2; k += 6) this.R(g, x + 5, y + k, 2, 2, K);
-      for (let sx = x + 12; sx < x + w - 12; sx += Math.max(64, w - 24)) {
-        this.R(g, sx, y + T * 0.55, 12, T * 0.45, "#f2c230");
-        this.R(g, sx + 2, y + T * 0.6, 8, 2, "#ffe08a");
-        this.R(g, sx, y + T * 0.55, 12, 1, K);
-        this.R(g, sx, y + T - 3, 12, 3, "#2b2f36");
-        this.R(g, sx - 3, y + T - 2, 18, 2, K);
-      }
-    }
-    /** Cylindryczna sekcja wieży leżąca poziomo, na kołyskach. */
-    drawTowerPlatform(g, x, y, w) {
-      const K = "#2b2f36", T = 16 * D2;
-      this.R(g, x, y + 1, w, T - 2, "#c9cfd6");
-      this.R(g, x, y + 3, w, T * 0.28, "#f4f6f8");
-      this.R(g, x, y + T * 0.62, w, T * 0.25, "#9aa3ad");
-      this.R(g, x, y + T * 0.87, w, T * 0.1, "#6f7a86");
-      this.R(g, x, y, w, 1, K);
-      this.R(g, x, y + T - 1, w, 1, K);
-      for (const fx of [x, x + w - 6]) {
-        this.R(g, fx, y - 1, 6, T + 2, "#8a94a3");
-        this.R(g, fx + 2, y + 1, 2, T - 2, "#b8c0ca");
-        for (let k = 3; k < T - 2; k += 6) this.R(g, fx + 2, y + k, 2, 2, K);
-      }
-      this.R(g, x, y - 1, 1, T + 2, K);
-      this.R(g, x + w - 1, y - 1, 1, T + 2, K);
-      for (let i = x + 20; i < x + w - 12; i += 28) {
-        this.R(g, i, y + 6, 2, 2, "#ffffff");
-        this.R(g, i, y + T * 0.7, 2, 1, "#5e6873");
-      }
-      for (let sx = x + 8; sx < x + w - 16; sx += Math.max(56, w - 32)) {
-        this.R(g, sx, y + T - 7, 16, 7, "#4a505c");
-        this.R(g, sx + 2, y + T - 6, 12, 1, "#7d8792");
-        this.R(g, sx, y + T - 1, 16, 1, K);
-      }
-    }
-    /** Dach kontenera technicznego (stanowisko snajpera). */
-    drawContainerRoof(g, x, y, w) {
-      const K = "#2b2f36", base = "#2e86c1", dark = "#1f5f8a", light = "#5dade2", T = 16 * D2;
-      this.R(g, x, y, w, T, base);
-      for (let i = x + 4; i < x + w - 4; i += 6) this.R(g, i, y + 4, 2, T - 6, dark);
-      this.R(g, x, y, w, 2, light);
-      this.R(g, x + 6, y + 6, 16, 6, light);
-      this.R(g, x + 8, y + 8, 12, 2, "#ffffff");
-      this.R(g, x, y + T - 2, w, 2, K);
-      this.R(g, x, y, 2, T, K);
-      this.R(g, x + w - 2, y, 2, T, K);
-      this.R(g, x + w - 8, y + T / 2, 2, 2, "#ffe36b");
-      for (let i = x + 2; i < x + w - 2; i += 8) this.R(g, i, y + 2, 4, 2, "#f2c230");
+      });
     }
   };
 
@@ -2148,6 +2290,13 @@
           return;
         }
         if (b.owner === "enemy") {
+          const sheet = b.kind === "bolt" ? Sheets.tryGet("bolt") : b.kind === "shard" ? Sheets.tryGet("shard") : b.kind === "mine" ? Sheets.tryGet("mine") : saw;
+          if (sheet) {
+            const clip = b.kind === "bolt" ? "fly" : b.kind === "mine" ? "pulse" : "spin";
+            const rotation = b.kind === "bolt" ? Math.atan2(b.vy, b.vx) : b.kind === "shard" ? Math.round(b.age * 6) * (Math.PI / 2) : b.kind === "mine" ? 0 : Math.round(b.age * 8) * (Math.PI / 4);
+            sheet.drawAnchored(ctx, sheet.frameAt(clip, b.age), b.x, b.y, sheet.def.anchorX ?? 6, sheet.def.anchorY ?? 6, { rotation });
+            return;
+          }
           if (b.kind === "bolt") {
             drawBolt(ctx, b);
             return;
@@ -2158,10 +2307,6 @@
           }
           if (b.kind === "mine") {
             drawMine(ctx, b);
-            return;
-          }
-          if (saw) {
-            saw.drawAnchored(ctx, saw.frameAt("spin", b.age), b.x, b.y, saw.def.anchorX ?? 10, saw.def.anchorY ?? 10, { rotation: b.age * 14 });
             return;
           }
         }
@@ -2188,7 +2333,7 @@
   };
 
   // src/world/TestLevel.ts
-  var TEST_LEVEL = [
+  var SCREENS_20 = [
     // Ekran 0 – start, płasko
     [
       "....................",
@@ -2334,6 +2479,10 @@
       "####################"
     ]
   ];
+  var COLS = 384 / 16;
+  var TEST_LEVEL = SCREENS_20.map(
+    (screen) => screen.map((row) => row + (row.endsWith("#") ? "#" : ".").repeat(COLS - row.length))
+  );
 
   // src/render/Visual.ts
   var PlaceholderVisual = class {
@@ -2944,7 +3093,7 @@
       this.updateWeaponPose();
       if (aim && this.input.held("fire")) this.fire(world);
       if (!this.isDead && this.weaponVisible) this.sawSparks(dt, world);
-      Sfx.setLoop("saw", !this.isDead && this.weaponVisible, this.isFiring ? 1 : 0.35);
+      Sfx.setLoop("saw", !this.isDead && this.weaponVisible, this.isFiring ? 1 : 0.25);
     }
     /** Lewa krawędź ekranu = ściana; w arenie bossa także prawa. */
     clampToCamera(world) {
@@ -3002,7 +3151,7 @@
         world.particles.emit({ x: origin.x, y: origin.y, count: 2, color: ["#ffe36b", "#ffffff"], speed: [20, 60], life: [0.05, 0.12], size: [1, 2], angle: [Math.atan2(this.aim.y, this.aim.x) - 0.4, Math.atan2(this.aim.y, this.aim.x) + 0.4] });
       }
     }
-    /** Ciągły strumień iskier z pracującej tarczy. */
+    /** Iskry z pracującej wkrętarki (przy wylocie). */
     sawSparks(dt, world) {
       this.sparkAcc += dt * CONFIG.vfx.sawSparkRate * (this.isFiring ? 2 : 1);
       while (this.sparkAcc >= 1) {
@@ -4054,11 +4203,8 @@
       this.facing = world.player.cx < this.cx ? -1 : 1;
     }
     draw(ctx) {
-      const flash = this.hitFlash > 0 || this.telegraphing && Math.floor(this.age * 20) % 2 === 0;
-      const pal = BOSS_PALETTES[Math.max(0, Math.min(2, this.phaseIndex))];
-      const K = "#050912";
-      const w = this.w, h = this.h;
-      const vertical = w < h;
+      const wing = Sheets.tryGet("bossWing");
+      const flash = this.hitFlash > 0 || this.telegraphing && Math.floor(this.age * 20) % 2 === 0 || this.dyingStage === "hitstop";
       ctx.save();
       if (this.laserY !== null) {
         ctx.globalAlpha = 0.5 + 0.4 * Math.abs(Math.sin(this.age * 25));
@@ -4068,90 +4214,31 @@
         ctx.fillRect(this.arenaX, Math.round(this.laserY), this.arenaRight - this.arenaX, 1);
         ctx.globalAlpha = 1;
       }
+      if (!wing) {
+        const pal = BOSS_PALETTES[Math.max(0, Math.min(2, this.phaseIndex))];
+        ctx.fillStyle = flash ? "#ffffff" : pal.m;
+        ctx.fillRect(Math.round(this.x), Math.round(this.y), this.w, this.h);
+        ctx.restore();
+        return;
+      }
+      const clip = `p${Math.max(1, Math.min(3, this.phaseIndex + 1))}${this.coreExposed ? "c" : ""}`;
+      const frame = wing.frameAt(clip, 0, "p1");
+      const ax = wing.def.anchorX ?? 14, ay = wing.def.anchorY ?? 48;
+      const horizontal = this.w > this.h;
+      const drawWing = (cx, cy, alpha) => {
+        ctx.save();
+        ctx.translate(Math.round(cx), Math.round(cy));
+        if (this.tilt) ctx.rotate(this.tilt * this.facing);
+        if (this.dyingStage === "fall") ctx.rotate(this.fallRot);
+        if (horizontal) ctx.rotate(Math.PI / 2);
+        wing.drawAnchored(ctx, frame, 0, 0, ax, ay, { flipX: !horizontal && this.facing < 0, flash, alpha });
+        ctx.restore();
+      };
       const speed = Math.hypot(this.x - this.prevX, this.y - this.prevY);
-      if (speed > 3) {
-        ctx.globalAlpha = 0.3;
-        ctx.fillStyle = pal.m;
-        ctx.fillRect(Math.round(this.prevX), Math.round(this.prevY), w, h);
-        ctx.globalAlpha = 1;
-      }
-      ctx.translate(Math.round(this.cx) + Math.round(this.shakeOffset), Math.round(this.cy));
-      if (this.tilt) ctx.rotate(this.tilt * this.facing);
-      if (this.dyingStage === "fall") ctx.rotate(this.fallRot);
-      const x = -Math.round(w / 2), y = -Math.round(h / 2);
-      ctx.fillStyle = K;
-      ctx.fillRect(x, y, w, h);
-      ctx.fillStyle = flash ? "#ffffff" : pal.m;
-      ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
-      if (!flash) {
-        ctx.fillStyle = pal.l;
-        ctx.fillRect(x + 1, y + 1, w - 2, 1);
-        ctx.fillRect(x + 1, y + 1, 1, h - 2);
-        ctx.fillStyle = pal.d;
-        ctx.fillRect(x + 1, y + h - 2, w - 2, 1);
-        ctx.fillRect(x + w - 2, y + 1, 1, h - 2);
-        const len = vertical ? h : w;
-        for (let k = 10; k < len - 6; k += 12) {
-          ctx.fillStyle = K;
-          if (vertical) {
-            ctx.fillRect(x + 2, y + k, w - 4, 1);
-            ctx.fillStyle = pal.l;
-            ctx.fillRect(x + 4, y + k + 3, 1, 1);
-            ctx.fillRect(x + w - 5, y + k + 3, 1, 1);
-          } else {
-            ctx.fillRect(x + k, y + 2, 1, h - 4);
-            ctx.fillStyle = pal.l;
-            ctx.fillRect(x + k + 3, y + 3, 1, 1);
-          }
-        }
-        ctx.fillStyle = "#5ec8ff";
-        for (let k = 8; k < len - 6; k += 16) {
-          if (vertical) ctx.fillRect(this.facing < 0 ? x - 1 : x + w, y + k, 1, 2);
-          else ctx.fillRect(x + k, y + h, 2, 1);
-        }
-        if (!this.coreExposed) {
-          const L = B2.wingletLength;
-          ctx.fillStyle = pal.l;
-          if (vertical) ctx.fillRect(x + 2, y + h - L, w - 4, L - 2);
-          else ctx.fillRect(x + 2, y + 2, L - 2, h - 4);
-          ctx.fillStyle = Math.floor(this.age * 6) % 2 ? "#ffb300" : "#ffe36b";
-          if (vertical) ctx.fillRect(x + w / 2 - 2, y + h - L / 2 - 2, 4, 4);
-          else ctx.fillRect(x + L / 2 - 2, y + h / 2 - 2, 4, 4);
-        }
-      }
-      ctx.fillStyle = K;
-      ctx.fillRect(-5, -5, 10, 10);
-      ctx.fillStyle = pal.d;
-      ctx.fillRect(-4, -4, 8, 8);
-      if (this.coreExposed) {
-        ctx.fillStyle = K;
-        for (let i = 0; i < 6; i++) {
-          const a = i / 6 * Math.PI * 2;
-          ctx.fillRect(Math.round(Math.cos(a) * 9), Math.round(Math.sin(a) * 9), 2, 2);
-          ctx.fillRect(Math.round(Math.cos(a) * 14), Math.round(Math.sin(a) * 14), 1, 1);
-        }
-        const r = 5 + Math.sin(this.age * 10) * 1.5;
-        ctx.fillStyle = "rgba(255,42,42,0.4)";
-        ctx.beginPath();
-        ctx.arc(0, 0, r + 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = Math.floor(this.age * 10) % 2 ? "#ff2a2a" : "#ff8a80";
-        ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(-1, -1, 2, 2);
-      } else {
-        ctx.fillStyle = pal.l;
-        ctx.fillRect(-2, -2, 4, 4);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(-1, -1, 1, 1);
-      }
-      if (this.dyingStage === "hitstop") {
-        ctx.globalAlpha = 0.6;
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(x, y, w, h);
-      }
+      if (speed > 3) drawWing(this.prevX + this.w / 2, this.prevY + this.h / 2, 0.3);
+      drawWing(this.cx + this.shakeOffset, this.cy, 1);
+      const core = Sheets.tryGet("bossCore");
+      if (this.coreExposed && core && !flash) core.drawAnchored(ctx, core.frameAt("pulse", this.age), this.cx + this.shakeOffset, this.cy, core.def.anchorX ?? 8, core.def.anchorY ?? 8);
       ctx.restore();
     }
   };
@@ -4164,7 +4251,7 @@
   // src/ui/HUD.ts
   var D4 = CONFIG.view.pixelScale;
   var FONT = (px) => `${px}px ${PIXEL_FONT}, monospace`;
-  var C = { K: "#161a20", P0: "#3b4048", P1: "#4f565f", P2: "#656d78", P3: "#8a93a0", HI: "#aab3bf", RUST: "#7a4a2e", Y: "#d9a72c", G: "#3ddc84", GD: "#1c7a48", T: "#2fb9b0" };
+  var K = "#161a20";
   var PL = { \u0105: "a", \u0107: "c", \u0119: "e", \u0142: "l", \u0144: "n", \u00F3: "o", \u015B: "s", \u017A: "z", \u017C: "z", \u0104: "A", \u0106: "C", \u0118: "E", \u0141: "L", \u0143: "N", \u00D3: "O", \u015A: "S", \u0179: "Z", \u017B: "Z", "\u2013": "-" };
   var ascii = (t) => t.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ–]/g, (c) => PL[c] ?? c);
   var HUD = class {
@@ -4181,109 +4268,61 @@
     }
     label(ctx, text, x, y, color) {
       const t = ascii(text);
-      ctx.fillStyle = C.K;
-      ctx.fillText(t, x + 2, y + 2);
+      ctx.fillStyle = K;
+      ctx.fillText(t, x + 1, y + 1);
       ctx.fillStyle = color;
       ctx.fillText(t, x, y);
-    }
-    /** Metalowa obudowa: obrys, płyta, krawędzie, nity w rogach, zaciek rdzy. */
-    panel(ctx, x, y, w, h) {
-      ctx.fillStyle = C.K;
-      ctx.fillRect(x, y, w, h);
-      ctx.fillStyle = C.P1;
-      ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
-      ctx.fillStyle = C.P3;
-      ctx.fillRect(x + 2, y + 2, w - 4, 2);
-      ctx.fillRect(x + 2, y + 2, 2, h - 4);
-      ctx.fillStyle = C.P0;
-      ctx.fillRect(x + 2, y + h - 4, w - 4, 2);
-      ctx.fillRect(x + w - 4, y + 2, 2, h - 4);
-      ctx.fillStyle = C.RUST;
-      ctx.fillRect(x + w - 14, y + 4, 3, 10);
-      ctx.fillRect(x + w - 13, y + 14, 1, 6);
-      ctx.fillStyle = C.HI;
-      for (const [rx, ry] of [[x + 5, y + 5], [x + w - 8, y + 5], [x + 5, y + h - 8], [x + w - 8, y + h - 8]]) {
-        ctx.fillRect(rx, ry, 3, 3);
-        ctx.fillStyle = C.K;
-        ctx.fillRect(rx + 2, ry + 2, 1, 1);
-        ctx.fillStyle = C.HI;
-      }
-    }
-    /** Wgłębiony ekran (ciemne pole z jasną dolną krawędzią). */
-    inset(ctx, x, y, w, h) {
-      ctx.fillStyle = C.K;
-      ctx.fillRect(x, y, w, h);
-      ctx.fillStyle = "#23272e";
-      ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
-      ctx.fillStyle = C.P2;
-      ctx.fillRect(x + 2, y + h - 3, w - 4, 1);
     }
     draw(ctx, player, score, boss, time) {
       const W = CONFIG.view.width * D4;
       ctx.save();
       ctx.textBaseline = "top";
-      ctx.font = FONT(24);
-      const px = 12, py = 12, pw = 268, ph = 84;
-      this.panel(ctx, px, py, pw, ph);
-      this.inset(ctx, px + 8, py + 8, 56, 56);
+      ctx.font = FONT(16);
+      const panel = Images.tryGet("hudPlayer");
+      const px = 4, py = 4;
+      if (panel) ctx.drawImage(panel, px, py);
       const portrait = Images.tryGet("portrait");
-      if (portrait) ctx.drawImage(portrait, px + 16, py + 16, 40, 40);
-      else {
-        ctx.fillStyle = "#4f8fd6";
-        ctx.fillRect(px + 20, py + 20, 32, 32);
-      }
-      ctx.fillStyle = C.P3;
-      ctx.fillRect(px + 14, py + 66, 44, 4);
-      const segs = 10, segW = 14, segH = 18, gap = 2;
-      const bx = px + 74, by = py + 10;
-      this.inset(ctx, bx, by, segs * (segW + gap) + 10, segH + 12);
+      if (portrait) ctx.drawImage(portrait, px + 5, py + 5);
+      const segs = Sheets.tryGet("hudSeg");
       const f = player.health.fraction;
-      const lit = Math.ceil(f * segs);
-      const col = f > 0.5 ? C.G : f > 0.25 ? "#ffb300" : "#ff3b3b";
-      const colDark = f > 0.5 ? C.GD : f > 0.25 ? "#8a5f00" : "#7a1a1a";
-      for (let i = 0; i < segs; i++) {
-        const sx = bx + 6 + i * (segW + gap), sy = by + 6;
+      const lit = Math.ceil(f * 10);
+      const clip = f > 0.5 ? "green" : f > 0.25 ? "yellow" : "red";
+      for (let i = 0; i < 10; i++) {
         const on = i < lit && !(f <= 0.25 && f > 0 && Math.floor(time * 6) % 2 === 0 && i === lit - 1);
-        ctx.fillStyle = on ? col : "#2f343b";
-        ctx.fillRect(sx, sy, segW, segH);
-        if (on) {
-          ctx.fillStyle = colDark;
-          ctx.fillRect(sx, sy + segH - 4, segW, 4);
-          ctx.fillStyle = "#e9ffe9";
-          ctx.fillRect(sx + 2, sy + 2, 2, 2);
-          ctx.fillStyle = "#bfffd8";
-          ctx.fillRect(sx + 2, sy + 5, 1, segH - 10);
+        const sx = px + 33 + i * 6, sy = py + 5;
+        if (segs) segs.drawAnchored(ctx, segs.frameAt(on ? clip : "off", 0, "off"), sx, sy, 0, 0);
+        else {
+          ctx.fillStyle = on ? "#3ddc84" : "#2f343b";
+          ctx.fillRect(sx, sy, 5, 8);
         }
       }
-      ctx.fillStyle = C.P3;
-      ctx.fillRect(bx + segs * (segW + gap) + 10, by + 10, 4, segH - 8);
-      this.label(ctx, "SEBA", bx + 6, by + segH + 20, "#e6e9ed");
-      this.label(ctx, `${Math.ceil(player.health.current)}`, bx + 96, by + segH + 20, C.G);
-      const sw = 160, sx0 = W - 12 - sw;
-      this.panel(ctx, sx0, 12, sw, 84);
+      this.label(ctx, "SEBA", px + 31, py + 17, "#e6e9ed");
+      this.label(ctx, `${Math.ceil(player.health.current)}`, px + 70, py + 17, "#3ddc84");
+      const sp = Images.tryGet("hudScore");
+      const sw = sp?.width ?? 64, sx0 = W - 4 - sw;
+      if (sp) ctx.drawImage(sp, sx0, 4);
       ctx.textAlign = "right";
-      this.label(ctx, "SCORE", sx0 + sw - 12, 20, C.Y);
-      this.inset(ctx, sx0 + 12, 50, sw - 24, 34);
-      this.label(ctx, score.toString().padStart(6, "0"), sx0 + sw - 20, 56, "#ffffff");
+      this.label(ctx, "SCORE", sx0 + sw - 6, 5, "#d9a72c");
+      this.label(ctx, score.toString().padStart(6, "0"), sx0 + sw - 8, 18, "#ffffff");
       ctx.textAlign = "left";
       if (boss && boss.alive) {
-        const bw = 200, bh = 14, bxx = Math.round((W - bw) / 2), byy = 112;
-        this.panel(ctx, bxx - 10, byy - 8, bw + 20, bh + 40);
-        this.inset(ctx, bxx - 4, byy - 2, bw + 8, bh + 4);
+        const bp = Images.tryGet("hudBoss");
+        const bw = bp?.width ?? 128, bx = Math.round((W - bw) / 2), by = 4;
+        if (bp) ctx.drawImage(bp, bx, by);
         ctx.fillStyle = boss.tint;
-        ctx.fillRect(bxx, byy, Math.round(bw * boss.health.fraction), bh);
+        ctx.fillRect(bx + 5, by + 5, Math.round(118 * boss.health.fraction), 6);
         ctx.fillStyle = "rgba(255,255,255,0.35)";
-        ctx.fillRect(bxx, byy, Math.round(bw * boss.health.fraction), 3);
+        ctx.fillRect(bx + 5, by + 5, Math.round(118 * boss.health.fraction), 1);
         ctx.fillStyle = "#ffffff";
-        for (const t of CONFIG.boss.phaseThresholds.slice(1)) ctx.fillRect(Math.round(bxx + bw * t), byy - 2, 2, bh + 4);
+        for (const t of CONFIG.boss.phaseThresholds.slice(1)) ctx.fillRect(Math.round(bx + 5 + 118 * t), by + 4, 1, 8);
         ctx.textAlign = "center";
-        this.label(ctx, CONFIG.boss.name, W / 2, byy + bh + 8, "#ff9a90");
+        this.label(ctx, CONFIG.boss.name, W / 2, by + 22, "#ff9a90");
         ctx.textAlign = "left";
       }
       if (this.phaseBannerTimer > 0 && Math.floor(time * 8) % 2 === 0) {
         ctx.textAlign = "center";
-        ctx.font = FONT(40);
-        this.label(ctx, this.phaseBanner, W / 2, 180, "#ffdd59");
+        ctx.font = FONT(24);
+        this.label(ctx, this.phaseBanner, W / 2, 60, "#ffdd59");
       }
       ctx.restore();
     }
@@ -4292,13 +4331,12 @@
       ctx.save();
       ctx.fillStyle = "rgba(5,9,18,0.6)";
       ctx.fillRect(0, 0, W, H);
-      this.panel(ctx, 80, H / 2 - 60, W - 160, 120);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.font = FONT(56);
-      this.label(ctx, title, W / 2, H / 2 - 18, color);
-      ctx.font = FONT(24);
-      this.label(ctx, subtitle, W / 2, H / 2 + 28, "#ddd");
+      ctx.font = FONT(32);
+      this.label(ctx, title, W / 2, H / 2 - 12, color);
+      ctx.font = FONT(16);
+      this.label(ctx, subtitle, W / 2, H / 2 + 14, "#ddd");
       ctx.restore();
     }
     drawHint(ctx, alpha, gamepad = false) {
@@ -4307,32 +4345,23 @@
       ctx.globalAlpha = alpha;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.font = FONT(24);
-      this.label(ctx, gamepad ? "D-PAD/GA\u0141KA: RUCH   A: SKOK   B/X/RT: OGIE\u0143   D\xD3\u0141+A: LE\u017BENIE" : "STRZA\u0141KI: RUCH   Z: SKOK   X: OGIE\u0143   D\xD3\u0141: LE\u017BENIE   D\xD3\u0141+Z: ZESKOK", W / 2, H - 26, "#ffffff");
+      ctx.font = FONT(16);
+      this.label(ctx, gamepad ? "D-PAD/GA\u0141KA: RUCH   A: SKOK   B/X/RT: OGIE\u0143   D\xD3\u0141: LE\u017BENIE" : "STRZA\u0141KI: RUCH   Z: SKOK   X: OGIE\u0143   D\xD3\u0141: LE\u017BENIE   D\xD3\u0141+Z: ZESKOK", W / 2, H - 12, "#ffffff");
       ctx.restore();
     }
     /** Ikona głośnika (prawy dolny róg) + podpowiedź, gdy przeglądarka czeka na gest użytkownika. */
     drawAudioState(ctx, muted, unlocked) {
       const W = CONFIG.view.width * D4, H = CONFIG.view.height * D4;
-      const x = W - 30, y = H - 26, s = 2;
+      const spk = Sheets.tryGet("hudSpeaker");
+      const x = W - 16, y = H - 12;
       ctx.save();
       ctx.globalAlpha = 0.85;
-      ctx.fillStyle = muted || !unlocked ? "#7d8794" : C.T;
-      ctx.fillRect(x, y + 2 * s, 3 * s, 4 * s);
-      ctx.fillRect(x + 3 * s, y + s, 2 * s, 6 * s);
-      ctx.fillRect(x + 5 * s, y, s, 8 * s);
-      if (muted || !unlocked) {
-        ctx.fillStyle = "#ff3b3b";
-        for (const [dx, dy] of [[7, 1], [8, 2], [9, 3], [9, 1], [7, 3]]) ctx.fillRect(x + dx * s, y + dy * s, s, s);
-      } else {
-        ctx.fillRect(x + 7 * s, y + 2 * s, s, 4 * s);
-        ctx.fillRect(x + 9 * s, y + s, s, 6 * s);
-      }
+      if (spk) spk.drawAnchored(ctx, spk.frameAt(muted || !unlocked ? "muted" : "on", 0, "on"), x, y, 0, 0);
       if (!unlocked) {
-        ctx.font = FONT(24);
+        ctx.font = FONT(16);
         ctx.textAlign = "right";
         ctx.textBaseline = "bottom";
-        this.label(ctx, "DOWOLNY KLAWISZ: D\u0179WI\u0118K", x - 8, H - 4, "#ffffff");
+        this.label(ctx, "DOWOLNY KLAWISZ: D\u0179WI\u0118K", x - 4, H - 2, "#ffffff");
       }
       ctx.restore();
     }
@@ -4341,14 +4370,14 @@
       ctx.fillStyle = "#161a20";
       ctx.fillRect(0, 0, W, H);
       ctx.fillStyle = "#3b4048";
-      ctx.fillRect(W / 2 - 120, H / 2, 240, 12);
+      ctx.fillRect(W / 2 - 60, H / 2, 120, 6);
       ctx.fillStyle = "#2fb9b0";
-      ctx.fillRect(W / 2 - 120, H / 2, Math.round(240 * (total ? done / total : 0)), 12);
-      ctx.font = "16px monospace";
+      ctx.fillRect(W / 2 - 60, H / 2, Math.round(120 * (total ? done / total : 0)), 6);
+      ctx.font = "8px monospace";
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.fillStyle = "#c3c8d1";
-      ctx.fillText("LADOWANIE...", W / 2, H / 2 - 10);
+      ctx.fillText("LADOWANIE...", W / 2, H / 2 - 6);
     }
   };
 
@@ -4415,13 +4444,13 @@
         const bladesY = MANIFEST.sheets.skyBlades?.y ?? 0;
         this.parallax = new Parallax([
           { image: sky, scroll: 0.05, y: 0 },
-          // zachód słońca, pola, wieże turbin
+          // zachód słońca, pola, odległa wieża, farma wiatrowa
           ...blades ? [{ image: blades.image, sheet: blades, clip: "spin", scroll: 0.05, y: bladesY }] : [],
           // obracające się łopaty
-          { image: mid, scroll: 0.3, y: HC - 40 * D5 - mid.height },
-          // wieża turbiny, żuraw, zaplecze
-          { image: near, scroll: 0.7, y: HC - 30 * D5 - near.height }
-          // łopata na kozłach, sekcja wieży, płot
+          { image: mid, scroll: 0.3, y: HC - 32 * D5 - mid.height },
+          // żuraw gąsienicowy, sekcje masztów, zaplecze
+          { image: near, scroll: 0.7, y: HC - 26 * D5 - near.height }
+          // łopata na kozłach, sekcja wieży, płot, barierki
         ]);
       }
       if (Images.tryGet("tileset")) this.tiles = new TileRenderer(this.level);

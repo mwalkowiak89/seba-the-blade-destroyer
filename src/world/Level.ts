@@ -37,7 +37,7 @@ export class Level {
    */
   constructor(screens: string[][]) {
     const screenCols = CONFIG.view.width / this.tileSize;
-    this.rows = CONFIG.view.height / this.tileSize;
+    this.rows = CONFIG.view.levelHeight / this.tileSize;
     this.cols = screens.length * screenCols;
     this.widthPx = this.cols * this.tileSize;
     this.heightPx = this.rows * this.tileSize;

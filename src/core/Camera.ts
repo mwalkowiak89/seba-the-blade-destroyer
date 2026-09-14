@@ -8,7 +8,7 @@ import { CONFIG } from './Config';
  */
 export class Camera {
   x = 0;
-  y = 0;
+  y = CONFIG.view.cameraOffsetY;
   readonly width = CONFIG.view.width;
   readonly height = CONFIG.view.height;
   /** Maksymalne x (szerokość poziomu - szerokość ekranu). */

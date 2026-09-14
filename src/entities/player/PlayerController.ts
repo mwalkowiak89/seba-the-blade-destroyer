@@ -149,7 +149,7 @@ export class PlayerController extends Entity {
     this.updateWeaponPose();
     if (aim && this.input.held('fire')) this.fire(world);
     if (!this.isDead && this.weaponVisible) this.sawSparks(dt, world);
-    Sfx.setLoop('saw', !this.isDead && this.weaponVisible, this.isFiring ? 1 : 0.35);
+    Sfx.setLoop('saw', !this.isDead && this.weaponVisible, this.isFiring ? 1 : 0.25);
   }
 
   /** Lewa krawędź ekranu = ściana; w arenie bossa także prawa. */
@@ -213,7 +213,7 @@ export class PlayerController extends Entity {
     }
   }
 
-  /** Ciągły strumień iskier z pracującej tarczy. */
+  /** Iskry z pracującej wkrętarki (przy wylocie). */
   private sawSparks(dt: number, world: WorldContext): void {
     this.sparkAcc += dt * CONFIG.vfx.sawSparkRate * (this.isFiring ? 2 : 1);
     while (this.sparkAcc >= 1) {

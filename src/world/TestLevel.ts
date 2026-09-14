@@ -1,5 +1,5 @@
 /**
- * Poziom testowy – 8 ekranów po 20x15 kafli (16px) = 2560 px.
+ * Poziom testowy – 8 ekranów po 24x15 kafli (16px) = 3072 px (zapis w 20 kolumnach + dopełnienie).
  *
  * Legenda:
  *   .  pusto             #  blok pełny (kolizja z każdej strony)
@@ -9,7 +9,8 @@
  *   B  początek areny bossa (kamera blokuje się na tym ekranie)
  *   X  pozycja startowa bossa
  */
-export const TEST_LEVEL: string[][] = [
+/** Ekrany zapisane w 20 kolumnach; dopełniane do szerokości widoku (24 kafle) – ziemia '#', reszta '.'. */
+const SCREENS_20: string[][] = [
   // Ekran 0 – start, płasko
   [
     '....................',
@@ -155,3 +156,8 @@ export const TEST_LEVEL: string[][] = [
     '####################',
   ],
 ];
+
+const COLS = 384 / 16;
+export const TEST_LEVEL: string[][] = SCREENS_20.map((screen) =>
+  screen.map((row) => row + (row.endsWith('#') ? '#' : '.').repeat(COLS - row.length)),
+);
