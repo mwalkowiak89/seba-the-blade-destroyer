@@ -9,6 +9,8 @@ export interface ParallaxLayer {
   y: number;
   /** Czy powtarzać w poziomie. */
   repeat?: boolean;
+  /** Naprzemienne odbicie nieba łączy identyczne krawędzie bez widocznego szwu. */
+  mirrorRepeat?: boolean;
   /** Dodatkowe przesunięcie X (px). */
   offsetX?: number;
   /** Przezroczystość warstwy (czytelność planu gry). */
@@ -33,11 +35,18 @@ export class Parallax {
       ctx.globalAlpha = l.alpha ?? 1;
       if (l.repeat === false) { ctx.drawImage(l.image, -shift, l.y); continue; }
       let x = -(((shift % w) + w) % w);
-      for (; x < W; x += w) {
+      let tileIndex = Math.floor(shift / w);
+      for (; x < W; x += w, tileIndex++) {
         if (l.sheet) {
           const f = l.sheet.frameAt(l.clip ?? 'spin', time);
           const sx = (f % l.sheet.def.cols) * l.sheet.frameW, sy = Math.floor(f / l.sheet.def.cols) * l.sheet.frameH;
           ctx.drawImage(l.sheet.image, sx, sy, l.sheet.frameW, l.sheet.frameH, x, Math.round(l.y), l.sheet.frameW, l.sheet.frameH);
+        } else if (l.mirrorRepeat && Math.abs(tileIndex % 2) === 1) {
+          ctx.save();
+          ctx.translate(x + w, Math.round(l.y));
+          ctx.scale(-1, 1);
+          ctx.drawImage(l.image, 0, 0);
+          ctx.restore();
         } else ctx.drawImage(l.image, x, Math.round(l.y));
       }
     }

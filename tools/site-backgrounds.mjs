@@ -169,13 +169,20 @@ function cableReel(im, x, y, r) {
   circle(im, x, y, r, '#8b5a2b', true); circle(im, x, y, r, K); circle(im, x, y, r - 3, '#2b2f36', true); circle(im, x, y, r - 4, '#3a3f4a', true); px(im, x, y, '#8b5a2b');
 }
 
-export function drawSiteNear(W = 768, H = 72) {
+export function drawSiteNear(W = 768, H = 72, sparse = false) {
   const im = create(W, H);
   const g = H - 8;
   // płyty drogowe / żwir
   rect(im, 0, g, W, 8, '#a8a294'); hline(im, 0, g, W, '#6f6a60'); for (let x = 0; x < W; x += 48) vline(im, x, g, 8, '#8f8a7d');
   // ogrodzenie budowlane (za obiektami)
   fence(im, 0, g - 20, 120); fence(im, 300, g - 20, 72); fence(im, 580, g - 20, 72);
+  if (sparse) {
+    // Duże maszyny i kontenery są już w warstwie referencyjnej; z przodu tylko niski płot i żwir.
+    rect(im, 0, g - 10, W, 18, '#777266');
+    hline(im, 0, g - 10, W, '#9d8f78');
+    for (let x = 9; x < W; x += 17) { px(im, x, g - 6, '#b5a284'); px(im, x + 3, g - 2, '#5d5954'); }
+    return im;
+  }
   // kontenery (część piętrowo)
   container(im, 10, g - 22, 56, 22, '#2e86c1', '#1f5f8a', '#5dade2');
   container(im, 66, g - 22, 56, 22, '#c0392b', '#7d2318', '#e07b6c');

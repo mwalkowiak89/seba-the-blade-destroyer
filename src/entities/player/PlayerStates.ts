@@ -30,6 +30,7 @@ function tryGroundTransitions(p: PlayerController, world: WorldContext): boolean
       p.startDropThrough();
       p.setState(FALL, world);
     } else {
+      if (!p.canStand(world)) return false;
       p.setState(JUMP, world);
     }
     return true;
@@ -37,9 +38,14 @@ function tryGroundTransitions(p: PlayerController, world: WorldContext): boolean
   return false;
 }
 
+function groundState(p: PlayerController, world: WorldContext): PlayerState {
+  if (p.input.held('down') || !p.canStand(world)) return PRONE;
+  return p.input.axisX !== 0 ? RUN : IDLE;
+}
+
 export const IDLE: PlayerState = {
   name: 'idle',
-  enter(p) { p.vx = 0; p.setStanding(); },
+  enter(p, world) { p.vx = 0; p.setStanding(world); },
   update(p, _dt, world) {
     p.vx = 0;
     if (tryGroundTransitions(p, world)) return;
@@ -51,7 +57,7 @@ export const IDLE: PlayerState = {
 
 export const RUN: PlayerState = {
   name: 'run',
-  enter(p) { p.setStanding(); },
+  enter(p, world) { p.setStanding(world); },
   update(p, _dt, world) {
     const ax = p.input.axisX;
     if (ax !== 0) p.facing = ax as 1 | -1;
@@ -72,16 +78,16 @@ export const PRONE: PlayerState = {
     if (ax !== 0) p.facing = ax as 1 | -1;
     p.vx = ax * P.crawlSpeed; // czołganie
     if (tryGroundTransitions(p, world)) return;
-    if (!p.input.held('down')) { p.setState(IDLE, world); return; }
+    if (!p.input.held('down') && p.canStand(world)) { p.setState(groundState(p, world), world); return; }
   },
-  exit(p) { p.setStanding(); },
+  exit() {},
 };
 
 /** Skok obrotowy – stała trajektoria, brak zmiennej wysokości. */
 export const JUMP: PlayerState = {
   name: 'jump',
-  enter(p) {
-    p.setStanding();
+  enter(p, world) {
+    p.setStanding(world);
     p.vy = P.jumpVelocity;
     p.onGround = false;
     p.somersaultTime = 0;
@@ -91,8 +97,10 @@ export const JUMP: PlayerState = {
     airControl(p);
     p.somersaultTime += dt;
     if (p.onGround && p.vy >= 0) {
-      p.setState(p.input.axisX !== 0 ? RUN : IDLE, world);
+      p.setState(groundState(p, world), world);
+      return;
     }
+    if (p.input.justPressed('jump')) p.tryAirJump(world);
   },
   exit(p) { p.somersaultTime = -1; },
 };
@@ -100,18 +108,20 @@ export const JUMP: PlayerState = {
 /** Spadanie bez koziołka (zejście z krawędzi, zeskok przez platformę, po hurt). */
 export const FALL: PlayerState = {
   name: 'fall',
-  enter(p) { p.setStanding(); },
+  enter(p, world) { p.setStanding(world); },
   update(p, _dt, world) {
     airControl(p);
-    if (p.onGround) p.setState(p.input.axisX !== 0 ? RUN : IDLE, world);
+    if (p.onGround) { p.setState(groundState(p, world), world); return; }
+    p.setStanding(world);
+    if (p.input.justPressed('jump')) p.tryAirJump(world);
   },
   exit() {},
 };
 
 export const HURT: PlayerState = {
   name: 'hurt',
-  enter(p) {
-    p.setStanding();
+  enter(p, world) {
+    p.setStanding(world);
     p.hurtTimer = P.hurtTime;
     p.vx = p.knockbackDir * P.hurtKnockbackX;
     p.vy = P.hurtKnockbackY;
@@ -119,7 +129,7 @@ export const HURT: PlayerState = {
   },
   update(p, dt, world) {
     p.hurtTimer -= dt;
-    if (p.hurtTimer <= 0) p.setState(p.onGround ? IDLE : FALL, world);
+    if (p.hurtTimer <= 0) p.setState(p.onGround ? groundState(p, world) : FALL, world);
   },
   exit() {},
 };

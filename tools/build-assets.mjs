@@ -6,7 +6,7 @@
  * Podmiana grafiki 1:1: podmień PNG w assets/raw/... zachowując nazwy i liczbę klatek, odpal ponownie.
  */
 import fs from 'node:fs';
-import { load, save, create, blit, bbox, scale } from './png.mjs';
+import { load, save, create, blit, bbox, scale, resizeNearest } from './png.mjs';
 
 /** Gęstość pikseli gry (musi zgadzać się z CONFIG.view.pixelScale). Sheety 1x są podbijane ×D. */
 const D = 1;
@@ -291,6 +291,27 @@ const RUNNER_PALETTE = {
   manifest.tiles.plate = tile((im) => { plateBase(im); rivet(im, 2, 2); rivet(im, T - 4, 2); rivet(im, 2, T - 4); rivet(im, T - 4, T - 4); });
   manifest.tiles.plateB = tile((im) => { plateBase(im); rivet(im, 2, 2); rivet(im, T - 4, T - 4);
     rect(im, 5, 6, 7, 5, C.P0); hline(im, 5, 6, 7, C.K); hline(im, 5, 8, 7, C.K); hline(im, 5, 10, 7, C.K); vline(im, T - 4, 3, 5, C.RUST); px(im, T - 4, 8, C.RUST2); });
+  // Górna powierzchnia pomostu: jasna, zużyta stal + głęboki rant i rury pod spodem.
+  const deck = (im, grate) => {
+    rect(im, 0, 0, T, T, '#333940');
+    rect(im, 1, 0, 14, 7, '#8e8980');
+    hline(im, 1, 0, 14, '#e1c9a4');
+    hline(im, 1, 6, 14, '#5b534e');
+    if (grate) {
+      for (let y = 2; y < 6; y += 2) for (let x = 2; x < 14; x += 3) {
+        rect(im, x, y, 2, 1, '#292e33'); px(im, x, y + 1, '#b2a38e');
+      }
+    } else {
+      line(im, 3, 4, 6, 2, '#bab1a0'); line(im, 9, 5, 12, 3, '#6a6259');
+      px(im, 2, 5, '#ae784d'); px(im, 3, 5, '#6d4b3a');
+    }
+    hline(im, 0, 7, T, '#1c2229'); hline(im, 0, 8, T, '#8a7b66');
+    rect(im, 0, 10, T, 3, '#223b41'); hline(im, 0, 10, T, '#54747b');
+    rect(im, 12, 8, 3, 8, '#41434a'); vline(im, 12, 8, 8, '#b0a089');
+    rivet(im, 2, 8); rivet(im, 13, 13);
+  };
+  manifest.tiles.deckPlate = tile((im) => deck(im, false));
+  manifest.tiles.deckGrate = tile((im) => deck(im, true));
   manifest.tiles.edgeTop = tile((im) => { hline(im, 0, 0, T, '#e8cfa8'); hline(im, 0, 1, T, C.P3); hline(im, 0, 2, T, C.K); for (let x = 1; x < T; x += 4) px(im, x, 0, '#fff0d0'); });
   manifest.tiles.edgeBottom = tile((im) => { hline(im, 0, T - 1, T, C.K); hline(im, 0, T - 2, T, C.P0); });
   manifest.tiles.edgeLeft = tile((im) => { vline(im, 0, 0, T, C.HI); vline(im, 1, 0, T, C.K); });
@@ -426,9 +447,9 @@ const RUNNER_PALETTE = {
     return im;
   };
   // panel gracza: portret 20x20 w ramce 24x24 + bateria 10×(5+1) w wgłębieniu + miejsce na etykietę
-  const pp = panel(94, 26, [[1, 1, 24, 24], [27, 1, 66, 10]]);
+  const pp = panel(94, 30, [[1, 1, 24, 28], [27, 1, 66, 10], [27, 13, 66, 15]]);
   save(pp, 'assets/sprites/ui/panel-player.png'); manifest.images.hudPlayer = { file: 'assets/sprites/ui/panel-player.png', w: pp.width, h: pp.height };
-  const ps = panel(58, 26, [[2, 13, 54, 11]]);
+  const ps = panel(58, 30, [[2, 14, 54, 14]]);
   save(ps, 'assets/sprites/ui/panel-score.png'); manifest.images.hudScore = { file: 'assets/sprites/ui/panel-score.png', w: ps.width, h: ps.height };
   const pb = panel(128, 20, [[4, 4, 120, 8]]);
   save(pb, 'assets/sprites/ui/panel-boss.png'); manifest.images.hudBoss = { file: 'assets/sprites/ui/panel-boss.png', w: pb.width, h: pb.height };
@@ -467,7 +488,8 @@ if (manifest.sebaSource === 'seba-ai') {
   // Zewnętrzna grafika ma pierwszeństwo: assets/raw/art/backgrounds/{sky-source|sky,site-mid,site-near}.png (PNG, natywna skala)
   const ART = 'assets/raw/art/backgrounds';
   const external = (names) => { for (const n of names) if (fs.existsSync(`${ART}/${n}.png`)) return load(`${ART}/${n}.png`); return null; };
-  const sky = external(['sky-source', 'sky']) ?? drawSky(); save(sky, 'assets/backgrounds/sky.png');
+  const referenceSky = external(['sky-reference']);
+  const sky = referenceSky ? resizeNearest(referenceSky, 384, 216) : external(['sky-source', 'sky']) ?? drawSky(); save(sky, 'assets/backgrounds/sky.png');
   if (sky.width !== 384 || sky.height !== 216) console.warn(`UWAGA: sky.png ma ${sky.width}x${sky.height}, oczekiwano 384x216`);
   manifest.images.sky = { file: 'assets/backgrounds/sky.png', w: sky.width, h: sky.height };
   // animowane łopaty turbin: 6 klatek obrotu w jednym pasku
@@ -475,9 +497,13 @@ if (manifest.sebaSource === 'seba-ai') {
   const pb = pack(blades, BF); save(pb.sheet, 'assets/backgrounds/sky-blades.png');
   // uwaga: tła są już w gęstości canvasu – bez podbijania (nie przez emitSheet)
   manifest.sheets.skyBlades = { file: 'assets/backgrounds/sky-blades.png', frameW: pb.frameW, frameH: pb.frameH, cols: BF, clips: { spin: { frames: [0, 1, 2, 3, 4, 5], fps: 5, loop: true } }, anchor: 'center', anchorX: 0, anchorY: 0, density: D, y: SKY_HORIZON - 60 };
-  const mid = external(['site-mid']) ?? drawSiteMid(); save(mid, 'assets/backgrounds/site-mid.png');
+  const referenceSite = external(['site-reference']);
+  // Usuń wyłącznie przezroczysty margines pod podporami, aby stały na wspólnej linii ziemi.
+  const mid = referenceSite
+    ? resizeNearest(crop(referenceSite, { x0: 0, y0: 0, x1: referenceSite.width - 1, y1: bbox(referenceSite).y1 }), 384)
+    : external(['site-mid']) ?? drawSiteMid(); save(mid, 'assets/backgrounds/site-mid.png');
   manifest.images.siteMid = { file: 'assets/backgrounds/site-mid.png', w: mid.width, h: mid.height };
-  const near = external(['site-near']) ?? drawSiteNear(); save(near, 'assets/backgrounds/site-near.png');
+  const near = external(['site-near']) ?? drawSiteNear(768, 72, !!referenceSite); save(near, 'assets/backgrounds/site-near.png');
   manifest.images.siteNear = { file: 'assets/backgrounds/site-near.png', w: near.width, h: near.height };
 }
 

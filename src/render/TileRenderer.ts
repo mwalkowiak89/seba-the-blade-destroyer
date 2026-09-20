@@ -169,8 +169,8 @@ export class TileRenderer {
         this.blit(g, t, c, r);
         continue;
       }
-      this.blit(g, ((c * 31 + r * 17) % 5 === 0) ? 'plateB' : 'plate', c, r);
-      if (L.tileAt(c, r - 1) !== Tile.Solid) this.blit(g, 'edgeTop', c, r);
+      const surface = L.tileAt(c, r - 1) !== Tile.Solid;
+      this.blit(g, surface ? (c % 6 < 2 ? 'deckGrate' : 'deckPlate') : ((c * 31 + r * 17) % 5 === 0) ? 'plateB' : 'plate', c, r);
       if (L.tileAt(c, r + 1) !== Tile.Solid && r + 1 < L.rows) this.blit(g, 'edgeBottom', c, r);
       if (L.tileAt(c - 1, r) !== Tile.Solid) this.blit(g, 'edgeLeft', c, r);
       if (L.tileAt(c + 1, r) !== Tile.Solid) this.blit(g, 'edgeRight', c, r);

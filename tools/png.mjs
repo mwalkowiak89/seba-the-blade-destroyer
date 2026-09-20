@@ -32,6 +32,17 @@ export function scale(src, k) {
   }
   return out;
 }
+/** Eksport grafiki źródłowej na natywną siatkę gry, bez rozmywania i bez utraty alfy. */
+export function resizeNearest(src, width, height = Math.round(src.height * width / src.width)) {
+  const out = create(width, height);
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    const sx = Math.min(src.width - 1, Math.floor((x + 0.5) * src.width / width));
+    const sy = Math.min(src.height - 1, Math.floor((y + 0.5) * src.height / height));
+    const si = (sy * src.width + sx) * 4;
+    out.data.set(src.data.subarray(si, si + 4), (y * width + x) * 4);
+  }
+  return out;
+}
 export function grid(png, step, rgba = [255, 0, 255, 120]) {
   for (let y = 0; y < png.height; y++) for (let x = 0; x < png.width; x++) {
     if (x % step === 0 || y % step === 0) { const i = (y * png.width + x) * 4; png.data.set(rgba, i); }

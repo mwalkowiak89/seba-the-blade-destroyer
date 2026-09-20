@@ -22,7 +22,7 @@ npm test             # headless smoke test: bot przechodzi poziom i pokonuje bos
 | Akcja | Klawisze |
 |---|---|
 | Ruch / celowanie | Strzałki lub WASD |
-| Skok (koziołek) | Z / K / Spacja |
+| Skok / drugie odbicie w powietrzu | Z / K / Spacja (puść i naciśnij ponownie) |
 | Ogień (auto) | X / J |
 | Leżenie / czołganie (hurtbox 50%) | Dół (+ lewo/prawo) |
 | Zeskok przez platformę | Dół + Skok |
@@ -33,6 +33,15 @@ npm test             # headless smoke test: bot przechodzi poziom i pokonuje bos
 **Gamepad** (standard mapping, np. Xbox / Steam Deck): D-pad lub lewa gałka – ruch/celowanie,
 **A** – skok, **B / X / RT** – ogień, **Start** – restart. Mapowanie w `GAMEPAD_BINDINGS` (`src/core/Input.ts`).
 Chrome zgłasza pad dopiero po pierwszym naciśnięciu dowolnego przycisku.
+
+**Podwójny skok:** jedno dodatkowe odbicie na nowe naciśnięcie klawisza (lub A na padzie),
+z odnowieniem po lądowaniu. Przytrzymanie nie wykonuje drugiego skoku. Po zejściu z krawędzi
+pozostaje jedno odbicie ratunkowe. W niskim tunelu Seba pozostaje w pozycji leżącej,
+również po puszczeniu DÓŁ lub trafieniu, i wstaje dopiero przy wolnym miejscu nad głową.
+
+**Oprawa według mockupu:** nowe niebo i przezroczysta sceneria z wieżą, żurawiem oraz łopatą,
+przewijane niezależnie; pomost ma zużytą stal i kraty. Źródła, pipeline i prompty:
+[docs/ART_DIRECTION.md](docs/ART_DIRECTION.md).
 
 Celowanie 8-kierunkowe wg reguł Contry: stojąc – prosto lub w górę; w biegu – prosto,
 skos góra/dół; leżąc – prosto tuż nad ziemią; w powietrzu – dowolny z 8 kierunków.

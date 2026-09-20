@@ -1,6 +1,6 @@
 /* WYGENEROWANE przez tools/build-assets.mjs – nie edytuj ręcznie. */
 export const MANIFEST = {
-  "version": "mu182hne",
+  "version": "muae72ik",
   "sheets": {
     "seba": {
       "file": "assets/sprites/player/seba.png",
@@ -695,12 +695,12 @@ export const MANIFEST = {
     "hudPlayer": {
       "file": "assets/sprites/ui/panel-player.png",
       "w": 94,
-      "h": 26
+      "h": 30
     },
     "hudScore": {
       "file": "assets/sprites/ui/panel-score.png",
       "w": 58,
-      "h": 26
+      "h": 30
     },
     "hudBoss": {
       "file": "assets/sprites/ui/panel-boss.png",
@@ -719,8 +719,8 @@ export const MANIFEST = {
     },
     "siteMid": {
       "file": "assets/backgrounds/site-mid.png",
-      "w": 576,
-      "h": 150
+      "w": 384,
+      "h": 211
     },
     "siteNear": {
       "file": "assets/backgrounds/site-near.png",
@@ -772,38 +772,40 @@ export const MANIFEST = {
   "tiles": {
     "plate": 0,
     "plateB": 1,
-    "edgeTop": 2,
-    "edgeBottom": 3,
-    "edgeLeft": 4,
-    "edgeRight": 5,
-    "column": 6,
-    "columnTop": 7,
-    "pipe": 8,
-    "pipeTop": 9,
-    "bladeRoot": 10,
-    "bladeMid": 11,
-    "bladeTip": 12,
-    "trestle": 13,
-    "towerM": 14,
-    "towerL": 15,
-    "towerR": 16,
-    "cradle": 17,
-    "contL": 18,
-    "contM": 19,
-    "contR": 20,
-    "contLR": 21,
-    "contBL": 22,
-    "contBM": 23,
-    "contBR": 24,
-    "contBLR": 25,
-    "bigRootT": 26,
-    "bigRootB": 27,
-    "bigMidT": 28,
-    "bigMidB": 29,
-    "bigTipT": 30,
-    "bigTipB": 31,
-    "trestleBig": 32,
-    "trestleBigFoot": 33
+    "deckPlate": 2,
+    "deckGrate": 3,
+    "edgeTop": 4,
+    "edgeBottom": 5,
+    "edgeLeft": 6,
+    "edgeRight": 7,
+    "column": 8,
+    "columnTop": 9,
+    "pipe": 10,
+    "pipeTop": 11,
+    "bladeRoot": 12,
+    "bladeMid": 13,
+    "bladeTip": 14,
+    "trestle": 15,
+    "towerM": 16,
+    "towerL": 17,
+    "towerR": 18,
+    "cradle": 19,
+    "contL": 20,
+    "contM": 21,
+    "contR": 22,
+    "contLR": 23,
+    "contBL": 24,
+    "contBM": 25,
+    "contBR": 26,
+    "contBLR": 27,
+    "bigRootT": 28,
+    "bigRootB": 29,
+    "bigMidT": 30,
+    "bigMidB": 31,
+    "bigTipT": 32,
+    "bigTipB": 33,
+    "trestleBig": 34,
+    "trestleBigFoot": 35
   },
   "sebaSource": "seba-ai"
 } as const;
