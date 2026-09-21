@@ -4,8 +4,8 @@
   "description": "Contra-style 2D run-and-gun prototype (HTML5 / Canvas / TypeScript)",
   "private": true,
   "scripts": {
-    "build": "esbuild src/main.ts --bundle --format=iife --target=es2020 --outfile=dist/game.js --sourcemap",
-    "build:prod": "esbuild src/main.ts --bundle --format=iife --target=es2020 --outfile=dist/game.js --minify",
+    "build": "esbuild src/main.ts --bundle --format=iife --target=es2020 --outfile=dist/game.js --sourcemap && node tools/stamp-build.mjs",
+    "build:prod": "esbuild src/main.ts --bundle --format=iife --target=es2020 --outfile=dist/game.js --minify && node tools/stamp-build.mjs",
     "watch": "esbuild src/main.ts --bundle --format=iife --target=es2020 --outfile=dist/game.js --sourcemap --watch --servedir=.",
     "serve": "esbuild src/main.ts --bundle --format=iife --target=es2020 --outfile=dist/game.js --sourcemap --servedir=.",
     "assets": "node tools/build-assets.mjs",
