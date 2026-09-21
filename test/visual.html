@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="pl">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<base href="../">
+<title>Seba — przegląd grafiki</title>
+<style>
+  body { background:#171b22; color:#eee4d2; font:15px system-ui; margin:24px auto; max-width:1152px; padding:0 16px; }
+  h1 { font-size:24px; } nav { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  button, a { color:inherit; } button { cursor:pointer; border:1px solid #666; border-radius:4px; padding:8px 14px; background:#303743; }
+  button[aria-pressed="true"] { color:#171b22; background:#ffd088; }
+  canvas { width:100%; height:auto; image-rendering:pixelated; background:#111; }
+  img { max-width:100%; image-rendering:pixelated; background:repeating-conic-gradient(#252c35 0% 25%,#3b424b 0% 50%) 0 0/16px 16px; }
+  p { color:#bbb6af; }
+</style>
+<h1>Seba — przegląd grafiki</h1>
+<p>Statyczne kadry rysowane przez silnik gry. <a href="index.html">Przejdź do gry</a></p>
+<nav aria-label="Fragment poziomu">
+  <button data-scene="start" aria-pressed="true">Początek</button>
+  <button data-scene="blade" aria-pressed="false">Łopata i podpory</button>
+  <button data-scene="tunnel" aria-pressed="false">Tunel</button>
+  <button data-scene="arena" aria-pressed="false">Arena</button>
+</nav>
+<canvas width="384" height="216" aria-label="Podgląd poziomu"></canvas>
+<p id="status" role="status">Ładowanie…</p>
+<h2>Klatki postaci</h2>
+<img src="assets/sprites/player/seba.png" alt="Atlas animacji Seby">
+<script src="dist/visual.test.js"></script>
+</html>

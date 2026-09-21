@@ -68,12 +68,26 @@ const standSegs = segments(ROWS.stands, 6, 2000);
 const samples = [...blade.px, ...standSegs.flatMap((s) => downscale(s, K).px)];
 const pal = kmeans(samples, PALETTE); pal.push({ r: 255, g: 255, b: 255 });
 
-const bladeImg = create(BLADE_TILES * TILE, blade.h + 2);
+let bladeImg = create(BLADE_TILES * TILE, blade.h + 2);
 paint(blade, pal, bladeImg, 1, 1);
 // profil: górna krawędź (y pierwszego piksela) i dolna per kolumna – do wyrównania kolizji i stojaków
 const top = [], bottom = [];
 for (let x = 0; x < bladeImg.width; x++) { let t = -1, b = -1; for (let y = 0; y < bladeImg.height; y++) if (bladeImg.data[(y * bladeImg.width + x) * 4 + 3]) { if (t < 0) t = y; b = y; } top.push(t); bottom.push(b); }
-const flatTop = Math.min(...top.filter((v) => v >= 0).slice(40, 300)); // górna powierzchnia głównej części (bez kołnierza nasady)
+// Grywalna łopata ma płaską kolizję. Wyrównaj do niej górny obrys każdej kolumny,
+// zamiast używać najwyższego punktu wypukłej grafiki (postać wtedy wisiała w powietrzu).
+// Dolny profil zachowuje zwężenie łopaty i nadal wyznacza miejsca podparcia.
+const aligned = create(bladeImg.width, bladeImg.height);
+for (let x = 0; x < bladeImg.width; x++) {
+  if (top[x] < 0) continue;
+  for (let y = top[x]; y <= bottom[x]; y++) {
+    const src = (y * bladeImg.width + x) * 4;
+    const dst = ((y - top[x]) * aligned.width + x) * 4;
+    aligned.data.set(bladeImg.data.subarray(src, src + 4), dst);
+  }
+  bottom[x] -= top[x];
+}
+bladeImg = aligned;
+const flatTop = 0;
 save(bladeImg, 'assets/sprites/props/blade-big.png');
 
 // --- stojaki A-frame: wybierz 4 najszersze (pomiń wąskie słupki), skaluj do STAND_H, wspólna klatka ---

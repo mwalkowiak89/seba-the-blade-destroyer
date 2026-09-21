@@ -1,6 +1,6 @@
 /* WYGENEROWANE przez tools/build-assets.mjs – nie edytuj ręcznie. */
 export const MANIFEST = {
-  "version": "muae72ik",
+  "version": "muas4ubi",
   "sheets": {
     "seba": {
       "file": "assets/sprites/player/seba.png",
@@ -113,6 +113,10 @@ export const MANIFEST = {
       "anchorX": 36,
       "density": 1,
       "pivots": {
+        "idle": {
+          "x": 5,
+          "y": -15
+        },
         "stand": {
           "x": 5,
           "y": -27
@@ -734,38 +738,38 @@ export const MANIFEST = {
       "tiles": 32,
       "flatTop": 0,
       "bottom": [
-        61,
-        61,
+        56,
+        56,
+        50,
+        50,
+        52,
+        55,
         58,
-        58,
-        58,
-        59,
         60,
         60,
-        60,
-        59,
-        59,
         57,
-        57,
-        57,
-        57,
-        55,
-        55,
-        55,
-        53,
-        53,
+        56,
         53,
         52,
-        52,
         51,
-        51,
-        49,
-        49,
-        48,
-        48,
+        50,
         47,
-        46,
-        44
+        45,
+        44,
+        41,
+        40,
+        39,
+        37,
+        37,
+        34,
+        33,
+        29,
+        28,
+        26,
+        24,
+        23,
+        21,
+        14
       ]
     }
   },

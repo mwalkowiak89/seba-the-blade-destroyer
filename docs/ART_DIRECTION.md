@@ -11,7 +11,11 @@ Wbudowane narzędzie ImageGen wygenerowało dwa nowe źródła; obraz referencyj
 
 Odtwarzanie: `npm run assets && npm run build:prod`. Zasoby źródłowe są w repozytorium; ponowny build nie wymaga wywołania AI.
 
-Ta zmiana podnosi jakość otoczenia i dopasowuje kolorystykę do referencji. Postać, jej animacje, wrogowie i boss nadal korzystają z dotychczasowych sheetów; nie jest to pełne odtworzenie wszystkich elementów referencji 1:1. Duża łopata w tle jest dekoracją; platformy grywalne nadal wynikają z tilemapy.
+Ta zmiana podnosi jakość otoczenia i dopasowuje kolorystykę do referencji. Postać korzysta z dotychczasowej grafiki źródłowej, ale ma poprawiony eksport: maska błysku nie usuwa już skóry z twarzy i portretu, a paleta ma 32 kolory. W spoczynku broń znajduje się przy opuszczonej dłoni. Wrogowie i boss zachowują dotychczasowe sheety; nie jest to pełne odtworzenie wszystkich elementów referencji 1:1.
+
+Duża łopata w tle jest dekoracją; platformy grywalne nadal wynikają z tilemapy. Eksport grywalnej łopaty wyrównuje górny obrys do płaskiej krawędzi kolizji, aby Seba nie wisiał nad grafiką. Podpory są zakotwiczone stopami na podłożu. Kontenery mają przygaszoną paletę stali, przetarcia i zamki; wolnostojące rury z pierwszego planu zostały usunięte.
+
+Kontrola: `npm test` sprawdza przebieg poziomu, podwójny skok, tunele i 113 używanych klatek atlasów. `npm run preview:visual` udostępnia statyczną galerię fragmentów poziomu pod `/test/visual.html` (nie symuluje walki).
 
 ## Prompty użyte w ImageGen
 
@@ -22,4 +26,3 @@ Use case: stylized-concept. Asset type: transparent PNG scenery layer for a side
 ### Niebo
 
 Use case: stylized-concept. Asset type: seamless horizontal sunset sky background for a 2D pixel-art run-and-gun game. Input image 1 is the art-style reference only. Create only the SKY behind the scene, with absolutely no tower, no machinery, no turbines, no foreground, no text, no HUD, no characters. Panoramic 1536x864 opaque PNG. Match the reference: muted slate mauve high sky, layered peach dusty pink clouds with irregular sculpted forms and darker violet undersides, golden amber and pale yellow light toward the low horizon at 90 percent height. Clouds occupy middle and upper regions with varied sizes and thin long illuminated edges. Crisp expertly hand-pixelled 16-bit game art, deliberate pixel clusters and subtly dithered tonal transitions, no rounded cartoon capsule clouds, no smooth photorealistic gradients, no white outlines. Subtle atmospheric hills only in the lowest 5 percent. Both vertical edges should visually join seamlessly when tiled horizontally. Rich warm sunset illumination and nuanced color depth as in the reference, pleasant contrast, no giant sun disk.
-

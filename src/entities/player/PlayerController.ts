@@ -218,9 +218,10 @@ export class PlayerController extends Entity {
   /** Punkt dłoni w świecie (kotwica nakładki broni). */
   private handPoint(): { x: number; y: number } {
     type Pt = { x: number; y: number };
-    const pivots = MANIFEST.sheets.seba.pivots as { stand: Pt; crouch: Pt; prone?: Pt; up?: Pt };
+    const pivots = MANIFEST.sheets.seba.pivots as { stand: Pt; crouch: Pt; idle?: Pt; prone?: Pt; up?: Pt };
     const pv = this.state.name === 'prone' || this.isDead ? (pivots.prone ?? pivots.crouch)
       : this.animName() === 'shoot_up' ? (pivots.up ?? pivots.stand)
+      : this.state.name === 'idle' && !this.isFiring && !this.input.held('fire') ? (pivots.idle ?? pivots.stand)
       : pivots.stand;
     return { x: this.cx + (pv.x / D) * this.facing, y: this.bottom + pv.y / D };
   }

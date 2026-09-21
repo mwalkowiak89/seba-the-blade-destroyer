@@ -343,11 +343,23 @@ const RUNNER_PALETTE = {
   // --- kontener techniczny (dach = platforma) ---
   // kontener techniczny: blacha falista, ciepłe podświetlenie od słońca (góra + prawa krawędź), drzwi po prawej
   const cont = (im, l, r, top) => {
-    rect(im, 0, 0, T, T, '#2e86c1'); for (let x = 2; x < T - 1; x += 3) vline(im, x, top ? 2 : 0, top ? T - 2 : T, '#1f5f8a');
-    if (top) { hline(im, 0, 0, T, '#9ad7ff'); for (let x = 0; x < T; x += 4) rect(im, x, 1, 2, 1, C.YL); }
-    if (l) { vline(im, 0, 0, T, C.K); vline(im, 1, 0, T, '#1f5f8a'); }
-    if (r) { vline(im, T - 1, 0, T, '#8fd3ff'); vline(im, T - 2, 0, T, '#5dade2'); rect(im, T - 7, top ? 3 : 0, 4, top ? T - 3 : T, '#2e86c1'); vline(im, T - 5, top ? 3 : 0, top ? T - 3 : T, '#1f5f8a'); if (top) px(im, T - 4, 8, '#ffe36b'); }
-    else px(im, T - 1, 5, '#5dade2');
+    rect(im, 0, 0, T, T, '#536169');
+    for (let x = 2; x < T - 1; x += 4) {
+      vline(im, x, top ? 3 : 0, top ? T - 3 : T, '#2d3b43');
+      vline(im, x + 1, top ? 3 : 0, top ? T - 3 : T, '#758185');
+    }
+    if (top) {
+      hline(im, 0, 0, T, '#d0b993'); hline(im, 0, 1, T, '#929083'); hline(im, 0, 2, T, '#2a343b');
+      px(im, 3, 1, '#6f4934'); px(im, 11, 2, '#b38353');
+    }
+    hline(im, 3, 10, 3, '#9b8e79'); px(im, 4, 11, '#7b5039');
+    if (l) { vline(im, 0, 0, T, C.K); vline(im, 1, 0, T, '#899391'); rivet(im, 1, top ? 4 : 12); }
+    if (r) {
+      vline(im, T - 1, 0, T, '#b4a68e'); vline(im, T - 2, 0, T, '#303941');
+      rect(im, T - 7, top ? 3 : 0, 4, top ? T - 3 : T, '#47525b');
+      vline(im, T - 5, top ? 3 : 0, top ? T - 3 : T, '#9da297');
+      rect(im, T - 6, top ? 7 : 4, 3, 2, '#252c32'); px(im, T - 4, top ? 7 : 4, '#c5b79a');
+    }
   };
   manifest.tiles.contL = tile((im) => cont(im, true, false, true)); manifest.tiles.contM = tile((im) => cont(im, false, false, true)); manifest.tiles.contR = tile((im) => cont(im, false, true, true)); manifest.tiles.contLR = tile((im) => cont(im, true, true, true));
   manifest.tiles.contBL = tile((im) => cont(im, true, false, false)); manifest.tiles.contBM = tile((im) => cont(im, false, false, false)); manifest.tiles.contBR = tile((im) => cont(im, false, true, false)); manifest.tiles.contBLR = tile((im) => cont(im, true, true, false));
