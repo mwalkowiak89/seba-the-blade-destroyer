@@ -95,7 +95,7 @@ export class GameScene implements WorldContext {
       const D = CONFIG.view.pixelScale, HC = H * D; // parallax rysowany w px canvasu
       const bladesY = (MANIFEST.sheets as { skyBlades?: { y?: number } }).skyBlades?.y ?? 0;
       this.parallax = new Parallax([
-        { image: sky, scroll: 0.05, y: 0 },                                                                 // zachód słońca, pola, odległa wieża, farma wiatrowa
+        { image: sky, scroll: 0.05, y: 0, mirrorRepeat: true },                                               // niebo bez szwów na łączeniach
         ...(blades ? [{ image: blades.image, sheet: blades, clip: 'spin', scroll: 0.05, y: bladesY }] : []), // obracające się łopaty
         { image: mid, scroll: 0.3, y: HC - 32 * D - mid.height },                                           // żuraw gąsienicowy, sekcje masztów, zaplecze
         { image: near, scroll: 0.7, y: HC - 26 * D - near.height },                                         // łopata na kozłach, sekcja wieży, płot, barierki
@@ -297,7 +297,7 @@ export class GameScene implements WorldContext {
     if (this.parallax) {
       this.parallax.draw(ctx, this.camera.x, this.time);
       // delikatna mgiełka – lekko odsuwa tło od planu gry
-      ctx.fillStyle = 'rgba(240,225,200,0.10)';
+      ctx.fillStyle = 'rgba(240,225,200,0.025)';
       ctx.fillRect(0, 0, W, H);
     } else {
       ctx.fillStyle = '#141826';

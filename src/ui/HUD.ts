@@ -38,14 +38,15 @@ export class HUD {
     const W = CONFIG.view.width * D;
     ctx.save();
     ctx.textBaseline = 'top';
-    ctx.font = FONT(16);
+    ctx.textAlign = 'left';
+    ctx.font = FONT(14);
 
     // --- panel gracza (lewy górny róg): portret + bateria + etykieta ---
     const panel = Images.tryGet('hudPlayer');
     const px = 2, py = 2;
     if (panel) ctx.drawImage(panel, px, py);
     const portrait = Images.tryGet('portrait');
-    if (portrait) ctx.drawImage(portrait, px + 3, py + 3);
+    if (portrait) ctx.drawImage(portrait, px + 3, py + 5);
     const segs = Sheets.tryGet('hudSeg');
     const f = player.health.fraction;
     const lit = Math.ceil(f * 10);
@@ -56,8 +57,8 @@ export class HUD {
       if (segs) segs.drawAnchored(ctx, segs.frameAt(on ? clip : 'off', 0, 'off'), sx, sy, 0, 0);
       else { ctx.fillStyle = on ? '#3ddc84' : '#2f343b'; ctx.fillRect(sx, sy, 5, 8); }
     }
-    this.label(ctx, 'SEBA', px + 28, py + 13, '#e6e9ed');
-    this.label(ctx, `${Math.ceil(player.health.current)}`, px + 64, py + 13, '#3ddc84');
+    this.label(ctx, 'SEBA', px + 28, py + 12, '#e6e9ed');
+    this.label(ctx, `${Math.ceil(player.health.current)}`, px + 65, py + 12, '#3ddc84');
 
     // --- punkty (prawy górny róg) ---
     const sp = Images.tryGet('hudScore');
@@ -114,8 +115,8 @@ export class HUD {
     ctx.textBaseline = 'middle';
     ctx.font = FONT(16);
     this.label(ctx, gamepad
-      ? 'D-PAD/GAŁKA: RUCH   A: SKOK   B/X/RT: OGIEŃ   DÓŁ: LEŻENIE'
-      : 'STRZAŁKI: RUCH   Z: SKOK   X: OGIEŃ   DÓŁ: LEŻENIE   DÓŁ+Z: ZESKOK', W / 2, H - 12, '#ffffff');
+      ? 'D-PAD: RUCH   A, A: 2x SKOK   B/X/RT: OGIEŃ'
+      : 'STRZAŁKI: RUCH   Z, Z: 2x SKOK   X: OGIEŃ   DÓŁ: LEŻENIE', W / 2, H - 12, '#ffffff');
     ctx.restore();
   }
 

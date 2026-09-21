@@ -40,7 +40,7 @@ export const CONFIG = {
     maxParticleLife: 0.4,
     shake: { playerHit: 3, enemyDeath: 1.5, bossPhase: 4, bossDeath: 7, sweepLand: 2 },
     /** Globalny tint zachodu (mnożenie): kolory bliskie białym = delikatny efekt. */
-    sunsetTint: { top: '#e6dcf2', mid: '#fbe8d8', bottom: '#ffe3c2' },
+    sunsetTint: { top: '#f4f0fa', mid: '#fff9ef', bottom: '#fff4e4' },
   },
 
   camera: {
@@ -59,6 +59,8 @@ export const CONFIG = {
     runSpeed: 105,
     /** Skok o stałej wysokości (bez zmiennej wysokości – jak w Contrze). */
     jumpVelocity: -470,
+    /** Drugie odbicie w powietrzu – ponowne naciśnięcie skoku. */
+    airJumpVelocity: -470,
     /** Liczba pełnych obrotów koziołka w trakcie jednego skoku. */
     somersaultTurns: 1,
     somersaultDuration: 0.66,

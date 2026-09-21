@@ -7,13 +7,14 @@ import { Sheets } from '../../assets/AssetLoader';
 import { D } from '../../assets/SpriteSheet';
 import { MANIFEST } from '../../assets/manifest.generated';
 import { fullySupported, moveAndCollide } from '../../world/Physics';
+import { Tile } from '../../world/Level';
 import { Entity } from '../Entity';
 import { HealthComponent } from '../HealthComponent';
 import { MakitaGun } from '../weapons/MakitaGun';
 import type { WeaponBase } from '../weapons/WeaponBase';
 import type { WorldContext } from '../../scenes/WorldContext';
 import { resolveAim } from './Aim';
-import { DEAD, FALL, HURT, IDLE, type PlayerState } from './PlayerStates';
+import { DEAD, FALL, HURT, IDLE, JUMP, type PlayerState } from './PlayerStates';
 
 const P = CONFIG.player;
 const MAKITA = MANIFEST.sheets.makita;
@@ -52,6 +53,7 @@ export class PlayerController extends Entity {
   /** Mikro-odrzut broni (px wzdłuż kierunku celowania, zanika). */
   private recoil = 0;
   private wasOnGround = false;
+  private airJumpUsed = false;
 
   constructor(public input: Input, x: number, y: number) {
     super();
@@ -74,10 +76,39 @@ export class PlayerController extends Entity {
     next.enter(this, world);
   }
 
-  setStanding(): void {
-    if (this.h === P.standHeight) return;
+  canStand(world: WorldContext): boolean {
+    const ts = world.level.tileSize;
+    const top = this.bottom - P.standHeight;
+    for (let r = Math.floor(top / ts); r <= Math.floor((this.bottom - 0.001) / ts); r++) {
+      for (let c = Math.floor(this.x / ts); c <= Math.floor((this.x + this.w - 0.001) / ts); c++) {
+        if (world.level.tileAt(c, r) === Tile.Solid) return false;
+      }
+    }
+    return true;
+  }
+
+  setStanding(world: WorldContext): void {
+    if (this.h === P.standHeight || !this.canStand(world)) return;
     this.y -= P.standHeight - this.h;
     this.h = P.standHeight;
+  }
+
+  /** Jeden dodatkowy skok na nowe naciśnięcie; lądowanie odnawia możliwość odbicia. */
+  tryAirJump(world: WorldContext): boolean {
+    if (this.onGround || this.airJumpUsed || !this.canStand(world)) return false;
+    this.airJumpUsed = true;
+    const alreadyJumping = this.state === JUMP;
+    this.setState(JUMP, world);
+    this.vy = P.airJumpVelocity;
+    this.somersaultTime = 0;
+    this.stateTime = 0;
+    if (alreadyJumping) Sfx.play('jump');
+    world.particles.emit({
+      x: this.cx, y: this.bottom, count: 12, color: ['#fff4d0', '#a9dadd', '#ffe3a0'],
+      speed: [30, 80], life: [0.15, 0.3], size: [1, 2],
+      angle: [0, Math.PI], gravity: 180, spreadX: 8,
+    });
+    return true;
   }
 
   setProne(): void {
@@ -130,6 +161,7 @@ export class PlayerController extends Entity {
     this.pushVx = 0;
     this.onGround = res.onGround;
     if (res.onGround) {
+      this.airJumpUsed = false;
       if (this.vy > 0) this.vy = 0;
       // bezpieczny respawn tylko, gdy stoimy całą szerokością na podłożu (nie na krawędzi szczeliny)
       if (fullySupported(this, world.level)) {
@@ -186,9 +218,10 @@ export class PlayerController extends Entity {
   /** Punkt dłoni w świecie (kotwica nakładki broni). */
   private handPoint(): { x: number; y: number } {
     type Pt = { x: number; y: number };
-    const pivots = MANIFEST.sheets.seba.pivots as { stand: Pt; crouch: Pt; prone?: Pt; up?: Pt };
+    const pivots = MANIFEST.sheets.seba.pivots as { stand: Pt; crouch: Pt; idle?: Pt; prone?: Pt; up?: Pt };
     const pv = this.state.name === 'prone' || this.isDead ? (pivots.prone ?? pivots.crouch)
       : this.animName() === 'shoot_up' ? (pivots.up ?? pivots.stand)
+      : this.state.name === 'idle' && !this.isFiring && !this.input.held('fire') ? (pivots.idle ?? pivots.stand)
       : pivots.stand;
     return { x: this.cx + (pv.x / D) * this.facing, y: this.bottom + pv.y / D };
   }

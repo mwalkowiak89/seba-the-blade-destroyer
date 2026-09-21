@@ -12,7 +12,8 @@
     "deploy": "bash tools/deploy.sh",
     "assets:seba": "node tools/extract-seba.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "esbuild test/smoke.ts --bundle --platform=node --target=es2020 --outfile=dist/smoke.test.cjs --log-level=error && node dist/smoke.test.cjs"
+    "test": "esbuild test/smoke.ts --bundle --platform=node --target=es2020 --outfile=dist/smoke.test.cjs --log-level=error && node dist/smoke.test.cjs && node test/assets.mjs",
+    "preview:visual": "esbuild test/visual.ts --bundle --format=iife --target=es2020 --outfile=dist/visual.test.js --servedir=."
   },
   "devDependencies": {
     "@types/pngjs": "^6.0.5",

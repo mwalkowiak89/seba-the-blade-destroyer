@@ -6,7 +6,8 @@
  * Podmiana grafiki 1:1: podmień PNG w assets/raw/... zachowując nazwy i liczbę klatek, odpal ponownie.
  */
 import fs from 'node:fs';
-import { load, save, create, blit, bbox, scale } from './png.mjs';
+import { MACHINE_PALETTE, IMPACT_PALETTE, EXPLOSION_PALETTE, turbineWing } from './combat-art.mjs';
+import { load, save, create, blit, bbox, scale, resizeNearest } from './png.mjs';
 
 /** Gęstość pikseli gry (musi zgadzać się z CONFIG.view.pixelScale). Sheety 1x są podbijane ×D. */
 const D = 1;
@@ -122,11 +123,11 @@ const SEBA_PALETTE = {
 };
 /** Blaszak – biegacz: metal, czerwony wizjer. */
 const RUNNER_PALETTE = {
-  '#ffd800': '#7d8794', '#ec7809': '#4b5563',
-  '#ffb164': '#aab3bf', '#b15c51': '#6b7482', // skóra → metal
+  '#ffd800': '#b8b8a8', '#ec7809': '#66747a',
+  '#ffb164': '#c2c6bb', '#b15c51': '#75858b', // skóra → metal
   '#442b61': '#1c2029', '#81709a': '#3a4250', '#a096d1': '#2b3038',
   '#fcfcfc': '#d9dee5', '#ff2245': '#ff2a2a',
-  [H.base]: '#3a4250', [H.hi]: '#6b7482', [H.visor]: '#101010', [H.glow]: '#ff2a2a', [H.lamp]: '#ff2a2a', [H.stripe]: '#4b5563', [H.pants]: '#aab3bf',
+  [H.base]: '#596875', [H.hi]: '#d3cdb4', [H.visor]: '#101010', [H.glow]: '#ff2a2a', [H.lamp]: '#ff2a2a', [H.stripe]: '#d6a559', [H.pants]: '#8b9a9d',
 };
 
 // ---------------------------------------------------------------------------
@@ -184,12 +185,12 @@ const RUNNER_PALETTE = {
 // ---------------------------------------------------------------------------
 {
   const drone = frames('misc/drone', 'drone', 4); const u = unionBbox(drone);
-  const p = pack(drone.map((im) => crop(im, u)), 4);
+  const p = pack(drone.map((im) => recolor(crop(im, u), MACHINE_PALETTE)), 4);
   emitSheet('drone', 'assets/sprites/enemies/drone.png', p, { patrol: { frames: [0, 1, 2, 3], fps: 10, loop: true }, charge: { frames: [0, 1, 2, 3], fps: 20, loop: true }, return: { frames: [0, 1, 2, 3], fps: 10, loop: true } },
     { anchor: 'center', anchorX: Math.round(p.frameW / 2), anchorY: 16 });
 
   const turret = frames('misc/turret', 'turret', 6); const ut = unionBbox(turret);
-  const pt = pack(turret.map((im) => crop(im, ut)), 6);
+  const pt = pack(turret.map((im) => recolor(crop(im, ut), MACHINE_PALETTE)), 6);
   emitSheet('turret', 'assets/sprites/enemies/turret.png', pt, { idle: { frames: [0], fps: 1, loop: true }, aim: { frames: [1, 2, 3, 4, 5], fps: 10, loop: false }, cooldown: { frames: [0], fps: 1, loop: true } },
     { anchor: 'bottom', anchorX: Math.round(pt.frameW / 2) });
 
@@ -198,11 +199,11 @@ const RUNNER_PALETTE = {
   emitSheet('shot', 'assets/sprites/fx/shot.png', ps, { fly: { frames: [0, 1, 2], fps: 18, loop: true } }, { anchor: 'center', anchorX: 8, anchorY: 5 });
 
   const hit = frames('misc/shot-hit', 'shot-hit', 3);
-  const ph = pack(hit, 3);
+  const ph = pack(hit.map((im) => recolor(im, IMPACT_PALETTE)), 3);
   emitSheet('shotHit', 'assets/sprites/fx/shot-hit.png', ph, { play: { frames: [0, 1, 2], fps: 24, loop: false } }, { anchor: 'center', anchorX: 7, anchorY: 5 });
 
   const expl = frames('misc/enemy-explosion', 'enemy-explosion', 6);
-  const pe = pack(expl, 6);
+  const pe = pack(expl.map((im) => recolor(im, EXPLOSION_PALETTE)), 6);
   emitSheet('explosion', 'assets/sprites/fx/explosion.png', pe, { play: { frames: [0, 1, 2, 3, 4, 5], fps: 16, loop: false } }, { anchor: 'center', anchorX: 27, anchorY: 26 });
 }
 
@@ -291,6 +292,27 @@ const RUNNER_PALETTE = {
   manifest.tiles.plate = tile((im) => { plateBase(im); rivet(im, 2, 2); rivet(im, T - 4, 2); rivet(im, 2, T - 4); rivet(im, T - 4, T - 4); });
   manifest.tiles.plateB = tile((im) => { plateBase(im); rivet(im, 2, 2); rivet(im, T - 4, T - 4);
     rect(im, 5, 6, 7, 5, C.P0); hline(im, 5, 6, 7, C.K); hline(im, 5, 8, 7, C.K); hline(im, 5, 10, 7, C.K); vline(im, T - 4, 3, 5, C.RUST); px(im, T - 4, 8, C.RUST2); });
+  // Górna powierzchnia pomostu: jasna, zużyta stal + głęboki rant i rury pod spodem.
+  const deck = (im, grate) => {
+    rect(im, 0, 0, T, T, '#333940');
+    rect(im, 1, 0, 14, 7, '#8e8980');
+    hline(im, 1, 0, 14, '#e1c9a4');
+    hline(im, 1, 6, 14, '#5b534e');
+    if (grate) {
+      for (let y = 2; y < 6; y += 2) for (let x = 2; x < 14; x += 3) {
+        rect(im, x, y, 2, 1, '#292e33'); px(im, x, y + 1, '#b2a38e');
+      }
+    } else {
+      line(im, 3, 4, 6, 2, '#bab1a0'); line(im, 9, 5, 12, 3, '#6a6259');
+      px(im, 2, 5, '#ae784d'); px(im, 3, 5, '#6d4b3a');
+    }
+    hline(im, 0, 7, T, '#1c2229'); hline(im, 0, 8, T, '#8a7b66');
+    rect(im, 0, 10, T, 3, '#223b41'); hline(im, 0, 10, T, '#54747b');
+    rect(im, 12, 8, 3, 8, '#41434a'); vline(im, 12, 8, 8, '#b0a089');
+    rivet(im, 2, 8); rivet(im, 13, 13);
+  };
+  manifest.tiles.deckPlate = tile((im) => deck(im, false));
+  manifest.tiles.deckGrate = tile((im) => deck(im, true));
   manifest.tiles.edgeTop = tile((im) => { hline(im, 0, 0, T, '#e8cfa8'); hline(im, 0, 1, T, C.P3); hline(im, 0, 2, T, C.K); for (let x = 1; x < T; x += 4) px(im, x, 0, '#fff0d0'); });
   manifest.tiles.edgeBottom = tile((im) => { hline(im, 0, T - 1, T, C.K); hline(im, 0, T - 2, T, C.P0); });
   manifest.tiles.edgeLeft = tile((im) => { vline(im, 0, 0, T, C.HI); vline(im, 1, 0, T, C.K); });
@@ -322,11 +344,23 @@ const RUNNER_PALETTE = {
   // --- kontener techniczny (dach = platforma) ---
   // kontener techniczny: blacha falista, ciepłe podświetlenie od słońca (góra + prawa krawędź), drzwi po prawej
   const cont = (im, l, r, top) => {
-    rect(im, 0, 0, T, T, '#2e86c1'); for (let x = 2; x < T - 1; x += 3) vline(im, x, top ? 2 : 0, top ? T - 2 : T, '#1f5f8a');
-    if (top) { hline(im, 0, 0, T, '#9ad7ff'); for (let x = 0; x < T; x += 4) rect(im, x, 1, 2, 1, C.YL); }
-    if (l) { vline(im, 0, 0, T, C.K); vline(im, 1, 0, T, '#1f5f8a'); }
-    if (r) { vline(im, T - 1, 0, T, '#8fd3ff'); vline(im, T - 2, 0, T, '#5dade2'); rect(im, T - 7, top ? 3 : 0, 4, top ? T - 3 : T, '#2e86c1'); vline(im, T - 5, top ? 3 : 0, top ? T - 3 : T, '#1f5f8a'); if (top) px(im, T - 4, 8, '#ffe36b'); }
-    else px(im, T - 1, 5, '#5dade2');
+    rect(im, 0, 0, T, T, '#536169');
+    for (let x = 2; x < T - 1; x += 4) {
+      vline(im, x, top ? 3 : 0, top ? T - 3 : T, '#2d3b43');
+      vline(im, x + 1, top ? 3 : 0, top ? T - 3 : T, '#758185');
+    }
+    if (top) {
+      hline(im, 0, 0, T, '#d0b993'); hline(im, 0, 1, T, '#929083'); hline(im, 0, 2, T, '#2a343b');
+      px(im, 3, 1, '#6f4934'); px(im, 11, 2, '#b38353');
+    }
+    hline(im, 3, 10, 3, '#9b8e79'); px(im, 4, 11, '#7b5039');
+    if (l) { vline(im, 0, 0, T, C.K); vline(im, 1, 0, T, '#899391'); rivet(im, 1, top ? 4 : 12); }
+    if (r) {
+      vline(im, T - 1, 0, T, '#b4a68e'); vline(im, T - 2, 0, T, '#303941');
+      rect(im, T - 7, top ? 3 : 0, 4, top ? T - 3 : T, '#47525b');
+      vline(im, T - 5, top ? 3 : 0, top ? T - 3 : T, '#9da297');
+      rect(im, T - 6, top ? 7 : 4, 3, 2, '#252c32'); px(im, T - 4, top ? 7 : 4, '#c5b79a');
+    }
   };
   manifest.tiles.contL = tile((im) => cont(im, true, false, true)); manifest.tiles.contM = tile((im) => cont(im, false, false, true)); manifest.tiles.contR = tile((im) => cont(im, false, true, true)); manifest.tiles.contLR = tile((im) => cont(im, true, true, true));
   manifest.tiles.contBL = tile((im) => cont(im, true, false, false)); manifest.tiles.contBM = tile((im) => cont(im, false, false, false)); manifest.tiles.contBR = tile((im) => cont(im, false, true, false)); manifest.tiles.contBLR = tile((im) => cont(im, true, true, false));
@@ -358,39 +392,11 @@ const RUNNER_PALETTE = {
 // Boss – skrzydło turbiny jako sprite (3 palety faz × [całe, pęknięte]) + rdzeń (2 klatki pulsu)
 // ---------------------------------------------------------------------------
 {
-  const W = 28, H = 96, WL = 28; // WL = długość wingletu (CONFIG.boss.wingletLength)
-  const K = '#050912';
-  const PAL = [
-    { l: '#c3c8d1', m: '#7d8794', d: '#3f4753' },
-    { l: '#f5c08a', m: '#d9782a', d: '#7a3b0f' },
-    { l: '#ff9a90', m: '#c8302a', d: '#5e1310' },
-  ];
-  const wing = (pal, cracked) => {
-    const im = create(W, H);
-    rect(im, 0, 0, W, H, K);
-    rect(im, 1, 1, W - 2, H - 2, pal.m);
-    hline(im, 1, 1, W - 2, pal.l); vline(im, 1, 1, H - 2, pal.l); hline(im, 1, H - 2, W - 2, pal.d); vline(im, W - 2, 1, H - 2, pal.d);
-    // płyty pancerne + nity
-    for (let k = 10; k < H - 6; k += 12) { hline(im, 2, k, W - 4, K); px(im, 4, k + 3, pal.l); px(im, W - 5, k + 3, pal.l); px(im, 5, k + 4, K); px(im, W - 4, k + 4, K); }
-    // receptory odgromowe na krawędzi natarcia (prawa krawędź; klatka odbijana dla lewej)
-    for (let k = 8; k < H - 6; k += 16) { rect(im, W - 2, k, 2, 2, '#5ec8ff'); px(im, W - 1, k, '#dff6ff'); }
-    if (!cracked) {
-      // winglet – jaśniejsza końcówka ze znacznikiem
-      rect(im, 2, H - WL, W - 4, WL - 2, pal.l); hline(im, 2, H - WL, W - 4, '#ffffff');
-      for (let k = H - WL + 3; k < H - 3; k += 6) hline(im, 3, k, W - 6, pal.m);
-      rect(im, W / 2 - 2, H - WL / 2 - 2, 4, 4, '#ffb300'); px(im, W / 2 - 1, H - WL / 2 - 1, '#ffe36b');
-    } else {
-      // pęknięcia rozchodzące się od piasty
-      for (const [dx, dy, len] of [[-1, -1, 30], [1, -1, 22], [-1, 1, 26], [1, 1, 34], [0, -1, 40], [0, 1, 38]]) {
-        let x = W / 2, y = H / 2; for (let i = 0; i < len; i++) { px(im, Math.round(x), Math.round(y), K); if (i % 3 === 0) px(im, Math.round(x) + 1, Math.round(y), '#ff2a2a'); x += dx * (0.35 + ((i * 7) % 3) * 0.2); y += dy * 0.9; }
-      }
-    }
-    // piasta
-    rect(im, W / 2 - 5, H / 2 - 5, 10, 10, K); rect(im, W / 2 - 4, H / 2 - 4, 8, 8, pal.d);
-    if (!cracked) { rect(im, W / 2 - 2, H / 2 - 2, 4, 4, pal.l); px(im, W / 2 - 1, H / 2 - 1, '#ffffff'); }
-    return im;
-  };
-  const frames = []; for (const pal of PAL) { frames.push(wing(pal, false)); frames.push(wing(pal, true)); }
+  const W = 28, H = 96;
+  const frames = [];
+  for (let phase = 0; phase < 3; phase++) {
+    frames.push(turbineWing(phase, false), turbineWing(phase, true));
+  }
   const pw = pack(frames, 6);
   emitSheet('bossWing', 'assets/sprites/boss/wing.png', pw, {
     p1: { frames: [0], fps: 1 }, p1c: { frames: [1], fps: 1 }, p2: { frames: [2], fps: 1 }, p2c: { frames: [3], fps: 1 }, p3: { frames: [4], fps: 1 }, p3c: { frames: [5], fps: 1 },
@@ -426,9 +432,9 @@ const RUNNER_PALETTE = {
     return im;
   };
   // panel gracza: portret 20x20 w ramce 24x24 + bateria 10×(5+1) w wgłębieniu + miejsce na etykietę
-  const pp = panel(94, 26, [[1, 1, 24, 24], [27, 1, 66, 10]]);
+  const pp = panel(94, 30, [[1, 1, 24, 28], [27, 1, 66, 10], [27, 13, 66, 15]]);
   save(pp, 'assets/sprites/ui/panel-player.png'); manifest.images.hudPlayer = { file: 'assets/sprites/ui/panel-player.png', w: pp.width, h: pp.height };
-  const ps = panel(58, 26, [[2, 13, 54, 11]]);
+  const ps = panel(58, 30, [[2, 14, 54, 14]]);
   save(ps, 'assets/sprites/ui/panel-score.png'); manifest.images.hudScore = { file: 'assets/sprites/ui/panel-score.png', w: ps.width, h: ps.height };
   const pb = panel(128, 20, [[4, 4, 120, 8]]);
   save(pb, 'assets/sprites/ui/panel-boss.png'); manifest.images.hudBoss = { file: 'assets/sprites/ui/panel-boss.png', w: pb.width, h: pb.height };
@@ -467,7 +473,8 @@ if (manifest.sebaSource === 'seba-ai') {
   // Zewnętrzna grafika ma pierwszeństwo: assets/raw/art/backgrounds/{sky-source|sky,site-mid,site-near}.png (PNG, natywna skala)
   const ART = 'assets/raw/art/backgrounds';
   const external = (names) => { for (const n of names) if (fs.existsSync(`${ART}/${n}.png`)) return load(`${ART}/${n}.png`); return null; };
-  const sky = external(['sky-source', 'sky']) ?? drawSky(); save(sky, 'assets/backgrounds/sky.png');
+  const referenceSky = external(['sky-reference']);
+  const sky = referenceSky ? resizeNearest(referenceSky, 384, 216) : external(['sky-source', 'sky']) ?? drawSky(); save(sky, 'assets/backgrounds/sky.png');
   if (sky.width !== 384 || sky.height !== 216) console.warn(`UWAGA: sky.png ma ${sky.width}x${sky.height}, oczekiwano 384x216`);
   manifest.images.sky = { file: 'assets/backgrounds/sky.png', w: sky.width, h: sky.height };
   // animowane łopaty turbin: 6 klatek obrotu w jednym pasku
@@ -475,9 +482,13 @@ if (manifest.sebaSource === 'seba-ai') {
   const pb = pack(blades, BF); save(pb.sheet, 'assets/backgrounds/sky-blades.png');
   // uwaga: tła są już w gęstości canvasu – bez podbijania (nie przez emitSheet)
   manifest.sheets.skyBlades = { file: 'assets/backgrounds/sky-blades.png', frameW: pb.frameW, frameH: pb.frameH, cols: BF, clips: { spin: { frames: [0, 1, 2, 3, 4, 5], fps: 5, loop: true } }, anchor: 'center', anchorX: 0, anchorY: 0, density: D, y: SKY_HORIZON - 60 };
-  const mid = external(['site-mid']) ?? drawSiteMid(); save(mid, 'assets/backgrounds/site-mid.png');
+  const referenceSite = external(['site-reference']);
+  // Usuń wyłącznie przezroczysty margines pod podporami, aby stały na wspólnej linii ziemi.
+  const mid = referenceSite
+    ? resizeNearest(crop(referenceSite, { x0: 0, y0: 0, x1: referenceSite.width - 1, y1: bbox(referenceSite).y1 }), 384)
+    : external(['site-mid']) ?? drawSiteMid(); save(mid, 'assets/backgrounds/site-mid.png');
   manifest.images.siteMid = { file: 'assets/backgrounds/site-mid.png', w: mid.width, h: mid.height };
-  const near = external(['site-near']) ?? drawSiteNear(); save(near, 'assets/backgrounds/site-near.png');
+  const near = external(['site-near']) ?? drawSiteNear(768, 72, !!referenceSite); save(near, 'assets/backgrounds/site-near.png');
   manifest.images.siteNear = { file: 'assets/backgrounds/site-near.png', w: near.width, h: near.height };
 }
 

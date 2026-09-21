@@ -21,7 +21,7 @@ const DENSITY = 1;
 
 /** Docelowa wysokość stojącej postaci (px) – ~ hitbox 42 + margines na kask. */
 const TARGET_HEIGHT = 48; // natywny low-res: hitbox 42 px + kask
-const PALETTE_SIZE = 14; // mniej odcieni = ostrzejszy pixel art, spójny z kaflami
+const PALETTE_SIZE = 30; // zachowaj modelunek twarzy, odblasków i ubrań przy natywnej skali
 const OUTLINE = [43, 47, 54];  // kontur 1 px jak w sprite'ach otoczenia
 
 // Prostokąty wierszy w źródle (2048x2048) i mapowanie na klipy.
@@ -40,12 +40,18 @@ const ROWS = {
 const img = jpeg.decode(fs.readFileSync(SRC), { useTArray: true });
 const W = img.width, H = img.height;
 const alpha = new Uint8Array(W * H);
+const MUZZLE_ROWS = [ROWS.fire, ROWS.kneel];
 for (let i = 0; i < W * H; i++) {
   const r = img.data[i * 4], g = img.data[i * 4 + 1], b = img.data[i * 4 + 2];
   const isGreen = (g > 150 && g - Math.max(r, b) > 55) || (g > 200 && r > 150 && Math.abs(r - b) < 30 && g - Math.max(r, b) > 25); // tło + jasnozielone pola etykiet
   // błyski wylotu (pomarańcz) usuwamy – gra ma własny muzzle flash, a błyski sklejają klatki
-  const isFlash = (r > 200 && r >= g - 5 && b < 170)      // pomarańcz/żółć (kurtka hi-vis ma G > R)
-    || (r > 220 && g > 200 && b < 240 && r - b > 20);      // kremowy środek błysku (kask jest neutralnie biały: r ≈ b)
+  const x = i % W, y = Math.floor(i / W);
+  // Kolor skóry mieści się w zakresie błysków. Maska dotyczy tylko pasa broni
+  // w klatkach ognia, nigdy twarzy, kasku, portretu ani pozostałych animacji.
+  const inMuzzleBand = MUZZLE_ROWS.some((row) =>
+    x >= row.x && x < row.x + row.w && y >= row.y + row.h * 0.4 && y < row.y + row.h);
+  const isFlash = inMuzzleBand && ((r > 200 && r >= g - 5 && b < 170)
+    || (r > 220 && g > 200 && b < 240 && r - b > 20));
   alpha[i] = isGreen || isFlash ? 0 : 255;
 }
 // despill: zielona obwódka na krawędziach → przyciągnij G do max(R,B)
@@ -246,7 +252,7 @@ const meta = {
   file: OUT_SHEET, frameW: FW, frameH: FH, cols, clips,
   anchor: 'bottom', anchorX: Math.floor(FW / 2), density: DENSITY,
   // dłoń (względem środek-stopy): stojąc ~60% wysokości, w klęku niżej – korekta ręczna po podglądzie
-  pivots: { stand: { x: 5, y: -27 }, up: { x: 9, y: -19 }, crouch: { x: 9, y: -22 }, prone: { x: 24, y: -7 } },
+  pivots: { idle: { x: 5, y: -15 }, stand: { x: 5, y: -27 }, up: { x: 9, y: -19 }, crouch: { x: 9, y: -22 }, prone: { x: 24, y: -7 } },
 };
 fs.writeFileSync(OUT_JSON, JSON.stringify(meta, null, 2));
 console.log(`OK: ${list.length} klatek ${FW}x${FH}, paleta ${palette.length}`);

@@ -7,6 +7,7 @@ import { GameScene } from '../src/scenes/GameScene';
 import { Input, KEY_BINDINGS, type Action } from '../src/core/Input';
 import { CONFIG } from '../src/core/Config';
 import { Tile } from '../src/world/Level';
+import { PRONE } from '../src/entities/player/PlayerStates';
 
 // ---- mock DOM ----------------------------------------------------------
 const listeners: Record<string, ((e: unknown) => void)[]> = {};
@@ -125,6 +126,89 @@ if (bossSpawned) {
   check(phases.includes(1) && phases.includes(2), 'boss przeszedł przez fazy 2 i 3');
   check(scene.state === 'victory', 'boss pokonany → victory');
 }
+
+// Regresje tunelu z ekranu 3: testujemy kontroler bez przeciwników i teleportów bota.
+function tunnelScene(): GameScene {
+  for (const action of Object.keys(KEY_BINDINGS) as Action[]) setAction(action, false);
+  input.update();
+  const world = new GameScene(input);
+  world.camera.x = 3 * CONFIG.view.width;
+  world.player.x = 79 * world.level.tileSize;
+  world.player.y = 13 * world.level.tileSize - CONFIG.player.standHeight;
+  world.player.onGround = true;
+  world.player.setState(PRONE, world);
+  return world;
+}
+function playerTick(world: GameScene, n = 1): void {
+  for (let i = 0; i < n; i++) { input.update(); world.player.update(step, world); }
+}
+function overlapsSolid(world: GameScene): boolean {
+  const p = world.player, ts = world.level.tileSize;
+  for (let r = Math.floor(p.y / ts); r <= Math.floor((p.bottom - 0.001) / ts); r++) {
+    for (let c = Math.floor(p.x / ts); c <= Math.floor((p.x + p.w - 0.001) / ts); c++) {
+      if (world.level.tileAt(c, r) === Tile.Solid) return true;
+    }
+  }
+  return false;
+}
+const tunnel = tunnelScene();
+playerTick(tunnel, 2);
+check(tunnel.player.h === CONFIG.player.proneHeight && !overlapsSolid(tunnel), 'puszczenie dół w tunelu nie wciska gracza w sufit');
+setAction('jump', true); playerTick(tunnel); setAction('jump', false);
+check(tunnel.player.state.name === 'prone' && !overlapsSolid(tunnel), 'skok w tunelu jest blokowany bez miejsca do wstania');
+setAction('right', true); playerTick(tunnel, 300); setAction('right', false);
+check(tunnel.player.x >= 88 * tunnel.level.tileSize && tunnel.player.h === CONFIG.player.standHeight && !overlapsSolid(tunnel), 'gracz wyczołguje się z tunelu i wstaje po wyjściu');
+
+const hurtInTunnel = tunnelScene();
+hurtInTunnel.player.takeDamage(10, hurtInTunnel.player.cx - 20, hurtInTunnel);
+check(hurtInTunnel.player.h === CONFIG.player.proneHeight && !overlapsSolid(hurtInTunnel), 'trafienie w tunelu zachowuje niski hitbox');
+playerTick(hurtInTunnel, 30);
+check(hurtInTunnel.player.state.name === 'prone' && !overlapsSolid(hurtInTunnel), 'po odrzucie gracz wraca do czołgania pod sufitem');
+
+const platform = tunnelScene();
+platform.player.x = 32 * platform.level.tileSize;
+platform.player.y = 6 * platform.level.tileSize - platform.player.h;
+platform.camera.x = CONFIG.view.width;
+setAction('down', true); setAction('jump', true); playerTick(platform, 3);
+check(platform.player.bottom > 6 * platform.level.tileSize, 'dół + skok nadal pozwala zeskoczyć przez łopatę');
+
+// Podwójny skok: rzeczywiste krawędzie wejścia, bez bezpośredniej zmiany prędkości.
+for (const action of Object.keys(KEY_BINDINGS) as Action[]) setAction(action, false);
+input.update();
+const jumping = new GameScene(input);
+playerTick(jumping, 15);
+const floorY = jumping.player.y;
+setAction('jump', true); playerTick(jumping, 12);
+const heldVelocity = jumping.player.vy;
+check(heldVelocity > CONFIG.player.jumpVelocity + 150, 'przytrzymanie skoku nie wywołuje drugiego odbicia');
+setAction('jump', false); playerTick(jumping, 10);
+setAction('jump', true); playerTick(jumping);
+check(jumping.player.vy < -400, 'drugie naciśnięcie daje odbicie w powietrzu');
+setAction('jump', false); playerTick(jumping, 4);
+const beforeThird = jumping.player.vy;
+setAction('jump', true); playerTick(jumping);
+check(jumping.player.vy > beforeThird, 'trzecie naciśnięcie nie daje kolejnego odbicia');
+setAction('jump', false);
+let doublePeak = jumping.player.y;
+for (let i = 0; i < 100; i++) { playerTick(jumping); doublePeak = Math.min(doublePeak, jumping.player.y); if (jumping.player.onGround) break; }
+check(floorY - doublePeak > 130 && jumping.player.onGround, 'podwójny skok daje większy zasięg i kończy się lądowaniem');
+playerTick(jumping, 2);
+setAction('jump', true); playerTick(jumping, 8);
+setAction('jump', false); playerTick(jumping, 8);
+setAction('jump', true); playerTick(jumping);
+check(jumping.player.vy < -400, 'lądowanie odnawia dodatkowy skok');
+// Zejście z krawędzi również zostawia jedno ratunkowe odbicie.
+for (const action of Object.keys(KEY_BINDINGS) as Action[]) setAction(action, false);
+input.update();
+const ledge = new GameScene(input);
+ledge.player.y = 80;
+playerTick(ledge, 2);
+setAction('jump', true); playerTick(ledge);
+check(ledge.player.vy < -400, 'po spadnięciu z krawędzi można wykonać skok w powietrzu');
+setAction('jump', false); playerTick(ledge, 4);
+const ledgeVelocity = ledge.player.vy;
+setAction('jump', true); playerTick(ledge);
+check(ledge.player.vy > ledgeVelocity, 'po zejściu z krawędzi dostępne jest tylko jedno odbicie');
 
 console.log(failures === 0 ? '\nSMOKE TEST OK' : `\nSMOKE TEST: ${failures} błędów`);
 process.exit(failures === 0 ? 0 : 1);

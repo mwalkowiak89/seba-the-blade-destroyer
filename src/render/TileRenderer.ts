@@ -54,11 +54,12 @@ export class TileRenderer {
       const underside = yTop + (bs.bottom[Math.min(bs.bottom.length - 1, Math.floor((c - c0)))] ?? 0);
       if (stands) {
         const sh = stands.frameH;
-        const standTop = underside + 3; // lekkie zachodzenie pod łopatę
-        // kolumny od ziemi w górę do spodu stojaka
-        for (let y = groundY - ts; y >= standTop + sh - 8; y -= ts) this.blit(g, 'column', c, Math.round(y / ts));
+        const standTop = groundY - sh;
+        // Stopy zawsze na podłożu. Wyższy prześwit uzupełnia kolumna NAD stojakiem;
+        // przy niskiej łopacie jej sprite zasłania nadmiar górnej części podpory.
+        for (let y = underside; y < standTop + 8; y += ts) this.blit(g, 'column', c, y / ts);
         const frame = stands.frameAt(`s${k++ % stands.def.cols}`, 0, 's0');
-        stands.drawAnchored(g, frame, c * ts + ts / 2, standTop + sh, stands.def.anchorX ?? stands.frameW / 2, sh);
+        stands.drawAnchored(g, frame, c * ts + ts / 2, groundY, stands.def.anchorX ?? stands.frameW / 2, sh);
       } else {
         for (let gy = groundY - ts; gy > underside; gy -= ts) this.blit(g, 'column', c, gy / ts);
       }
@@ -141,20 +142,7 @@ export class TileRenderer {
         }
       }
     });
-    // rury pionowe na ziemi (deterministycznie co kilka kolumn, gdzie nad ziemią jest miejsce)
-    for (let c = 0; c < L.cols; c++) {
-      if ((c * 7 + 3) % 11 !== 0) continue;
-      for (let r = 1; r < L.rows; r++) {
-        if (L.tileAt(c, r) === Tile.Solid && L.tileAt(c, r - 1) === Tile.Empty) {
-          const h = 2 + (c % 3);
-          let ok = true;
-          for (let k = 1; k <= h; k++) if (L.tileAt(c, r - k) !== Tile.Empty) ok = false;
-          if (!ok) break;
-          for (let k = 1; k <= h; k++) this.decos.push({ col: c, row: r - k, tile: k === h ? 'pipeTop' : 'pipe' });
-          break;
-        }
-      }
-    }
+    // Wolny plan ruchu: rury są w pomoście, a maszty oświetleniowe w scenerii parallax.
   }
 
   private drawTiles(g: CanvasRenderingContext2D): void {
@@ -169,8 +157,8 @@ export class TileRenderer {
         this.blit(g, t, c, r);
         continue;
       }
-      this.blit(g, ((c * 31 + r * 17) % 5 === 0) ? 'plateB' : 'plate', c, r);
-      if (L.tileAt(c, r - 1) !== Tile.Solid) this.blit(g, 'edgeTop', c, r);
+      const surface = L.tileAt(c, r - 1) !== Tile.Solid;
+      this.blit(g, surface ? (c % 6 < 2 ? 'deckGrate' : 'deckPlate') : ((c * 31 + r * 17) % 5 === 0) ? 'plateB' : 'plate', c, r);
       if (L.tileAt(c, r + 1) !== Tile.Solid && r + 1 < L.rows) this.blit(g, 'edgeBottom', c, r);
       if (L.tileAt(c - 1, r) !== Tile.Solid) this.blit(g, 'edgeLeft', c, r);
       if (L.tileAt(c + 1, r) !== Tile.Solid) this.blit(g, 'edgeRight', c, r);
