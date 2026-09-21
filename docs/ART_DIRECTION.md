@@ -17,6 +17,8 @@ Maszyny zachowują dotychczasowe animacje, z nową paletą kompozytu, stali i bu
 
 Duża łopata w tle jest dekoracją; platformy grywalne nadal wynikają z tilemapy. Eksport grywalnej łopaty wyrównuje górny obrys do płaskiej krawędzi kolizji, aby Seba nie wisiał nad grafiką. Podpory są zakotwiczone stopami na podłożu. Kontenery mają przygaszoną paletę stali, przetarcia i zamki; wolnostojące rury z pierwszego planu zostały usunięte.
 
+Wkrętarka jest generowana przez `tools/weapon-art.mjs`: turkusowy profilowany korpus, gumowy chwyt, akumulator pod rękojeścią, metalowa przekładnia i obracający się bit. Atlas ma sześć klatek 40×40 (przezroczyste marginesy zabezpieczają obroty); kotwice dłoni i wylotu są przeliczane wraz z orientacją. Pozycje chwytu Seby uwzględniają nowy uchwyt, a rysowanie, odrzut i błysk korzystają ze wspólnego punktu. W spoczynku bit nie zmienia klatek. Po wycięciu starego karabinu eksport postaci usuwa również odłączone fragmenty błysku. Przycisk „Broń” w galerii pokazuje sześć kontrolowanych póz.
+
 Kontrola: `npm test` sprawdza przebieg poziomu, podwójny skok, tunele i 113 używanych klatek atlasów. `npm run preview:visual` udostępnia statyczną galerię fragmentów poziomu, przeciwników oraz trzech faz i poziomego zamachu bossa pod `/test/visual.html` (nie symuluje walki).
 
 ## Prompty użyte w ImageGen

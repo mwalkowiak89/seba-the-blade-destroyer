@@ -46,3 +46,19 @@ for (let x = 1; x < blade.width - 1; x++) {
   assert(blade.data[(bladeDef.flatTop * blade.width + x) * 4 + 3] > 0, `łopata: niewidoczna powierzchnia pod stopami w kolumnie ${x}`);
 }
 console.log(`ASSET TEST OK: ${checkedFrames} klatek; portret zachował ${skinPixels} piksele skóry`);
+
+// Obroty nie mogą ucinać baterii/bitu ani umieszczać kotwic poza klatką.
+const weapon = manifest.sheets.makita, weaponImage = load(weapon.file);
+for (const orientation of ['horizontal', 'diagonal', 'vertical']) {
+  for (const point of [weapon.pivots[orientation], weapon.muzzle[orientation]]) {
+    assert(point.x >= 0 && point.x < weapon.frameW && point.y >= 0 && point.y < weapon.frameH, `broń/${orientation}: kotwica poza klatką`);
+  }
+  for (const frame of weapon.clips[orientation].frames) {
+    const x0 = frame % weapon.cols * weapon.frameW;
+    for (let y = 0; y < weapon.frameH; y++) for (let x = 0; x < weapon.frameW; x++) {
+      if (x !== 0 && y !== 0 && x !== weapon.frameW - 1 && y !== weapon.frameH - 1) continue;
+      assert.equal(weaponImage.data[(y * weaponImage.width + x0 + x) * 4 + 3], 0, `broń/${orientation}: grafika dotyka krawędzi atlasu`);
+    }
+  }
+}
+console.log('WEAPON ASSET OK: 6 klatek bez przycięcia, kotwice w granicach');

@@ -6,6 +6,7 @@ import { Runner } from '../src/entities/enemies/Runner';
 import { Sniper } from '../src/entities/enemies/Sniper';
 import { Drone } from '../src/entities/enemies/Drone';
 import { TurbineBoss } from '../src/entities/boss/TurbineBoss';
+import { weaponPreview } from './weapon-visual';
 
 const shots = {
   start: { camera: 0, player: 72, feet: 208, prone: false },
@@ -25,7 +26,14 @@ async function start(): Promise<void> {
   const ctx = canvas.getContext('2d')!;
   ctx.imageSmoothingEnabled = false;
   const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('button[data-scene]'));
-  function show(key: keyof typeof shots): void {
+  const showWeapon = weaponPreview();
+  function show(key: keyof typeof shots | 'weapon'): void {
+    if (key === 'weapon') {
+      showWeapon(ctx);
+      for (const button of buttons) button.setAttribute('aria-pressed', String(button.dataset.scene === key));
+      document.querySelector('#status')!.textContent = 'Broń w dłoni: spoczynek, odrzut, celowanie i leżenie';
+      return;
+    }
     const shot = shots[key], scene = new GameScene(input);
     scene.camera.x = shot.camera;
     scene.player.x = shot.player;
@@ -53,7 +61,7 @@ async function start(): Promise<void> {
     for (const button of buttons) button.setAttribute('aria-pressed', String(button.dataset.scene === key));
     document.querySelector('#status')!.textContent = `Kamera: ${shot.camera} px · natywna rozdzielczość 384 × 216`;
   }
-  for (const button of buttons) button.addEventListener('click', () => show(button.dataset.scene as keyof typeof shots));
+  for (const button of buttons) button.addEventListener('click', () => show(button.dataset.scene as keyof typeof shots | 'weapon'));
   show('start');
 }
 start().catch((error) => { document.querySelector('#status')!.textContent = `Błąd zasobów: ${error.message}`; });

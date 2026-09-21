@@ -7,7 +7,10 @@ import { GameScene } from '../src/scenes/GameScene';
 import { Input, KEY_BINDINGS, type Action } from '../src/core/Input';
 import { CONFIG } from '../src/core/Config';
 import { Tile } from '../src/world/Level';
-import { PRONE } from '../src/entities/player/PlayerStates';
+import { PRONE, FALL } from '../src/entities/player/PlayerStates';
+import { Sheets } from '../src/assets/AssetLoader';
+import { SpriteSheet } from '../src/assets/SpriteSheet';
+import { MANIFEST } from '../src/assets/manifest.generated';
 
 // ---- mock DOM ----------------------------------------------------------
 const listeners: Record<string, ((e: unknown) => void)[]> = {};
@@ -209,6 +212,47 @@ setAction('jump', false); playerTick(ledge, 4);
 const ledgeVelocity = ledge.player.vy;
 setAction('jump', true); playerTick(ledge);
 check(ledge.player.vy > ledgeVelocity, 'po zejściu z krawędzi dostępne jest tylko jedno odbicie');
+
+// Rejestrujemy rzeczywisty punkt rysowania broni i porównujemy z pozycją błysku.
+const weaponDef = MANIFEST.sheets.makita;
+let drawnTip = { x: NaN, y: NaN };
+class WeaponProbe extends SpriteSheet {
+  override drawAnchored(_ctx: CanvasRenderingContext2D, frame: number, x: number, y: number, ax: number, ay: number, opts: { flipX?: boolean; flipY?: boolean } = {}): void {
+    const orientation = frame < 2 ? 'horizontal' : frame < 4 ? 'diagonal' : 'vertical';
+    const tip = weaponDef.muzzle[orientation];
+    drawnTip = { x: x + (tip.x - ax) * (opts.flipX ? -1 : 1), y: y + (tip.y - ay) * (opts.flipY ? -1 : 1) };
+  }
+}
+Sheets.set('makita', new WeaponProbe({} as HTMLImageElement, weaponDef));
+const weaponCases: { name: string; actions: Action[]; air?: boolean }[] = [
+  { name: 'prawo', actions: [] },
+  { name: 'lewo', actions: ['left'] },
+  { name: 'pierwszy strzał w górę', actions: ['up'] },
+  { name: 'skos w górę', actions: ['right', 'up'] },
+  { name: 'skos w dół i w lewo', actions: ['left', 'down'], air: true },
+  { name: 'pionowo w dół', actions: ['down'], air: true },
+  { name: 'leżąc', actions: ['down'] },
+];
+for (const example of weaponCases) {
+  for (const action of Object.keys(KEY_BINDINGS) as Action[]) setAction(action, false);
+  input.update();
+  const world = new GameScene(input);
+  playerTick(world, 10);
+  if (example.air) { world.player.y = 80; world.player.setState(FALL, world); }
+  for (const action of [...example.actions, 'fire'] as Action[]) setAction(action, true);
+  playerTick(world);
+  world.player.draw(ctx);
+  const p = world.player;
+  check(Math.hypot(drawnTip.x - p.muzzle.x, drawnTip.y - p.muzzle.y) < .01, `wylot pokrywa się z bitem podczas odrzutu: ${example.name}`);
+  let shotAtTip = false;
+  world.playerBullets.forEachActive((b) => {
+    shotAtTip ||= Math.hypot(b.x - (drawnTip.x + p.aim.x * 2), b.y - (drawnTip.y + p.aim.y * 2)) < .01;
+  });
+  check(shotAtTip, `pierwszy pocisk wychodzi z bitu przed odrzutem: ${example.name}`);
+  setAction('fire', false); playerTick(world);
+  world.player.draw(ctx);
+  check(Math.hypot(drawnTip.x - p.muzzle.x, drawnTip.y - p.muzzle.y) < .01, `błysk pozostaje przy bicie po strzale: ${example.name}`);
+}
 
 console.log(failures === 0 ? '\nSMOKE TEST OK' : `\nSMOKE TEST: ${failures} błędów`);
 process.exit(failures === 0 ? 0 : 1);

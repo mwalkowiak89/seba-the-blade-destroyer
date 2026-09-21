@@ -220,14 +220,21 @@ export class PlayerController extends Entity {
     type Pt = { x: number; y: number };
     const pivots = MANIFEST.sheets.seba.pivots as { stand: Pt; crouch: Pt; idle?: Pt; prone?: Pt; up?: Pt };
     const pv = this.state.name === 'prone' || this.isDead ? (pivots.prone ?? pivots.crouch)
-      : this.animName() === 'shoot_up' ? (pivots.up ?? pivots.stand)
+      : this.state.name === 'idle' && (this.isFiring || this.input.held('fire')) && this.aim.y < -0.5 ? (pivots.up ?? pivots.stand)
       : this.state.name === 'idle' && !this.isFiring && !this.input.held('fire') ? (pivots.idle ?? pivots.stand)
       : pivots.stand;
     return { x: this.cx + (pv.x / D) * this.facing, y: this.bottom + pv.y / D };
   }
 
-  private updateWeaponPose(): void {
+  /** Wspólny punkt rysowania i wylotu — uwzględnia aktualny odrzut. */
+  private weaponPoint(): { x: number; y: number } {
     const hand = this.handPoint();
+    const recoil = Math.round(this.recoil);
+    return { x: hand.x - this.aim.x * recoil, y: hand.y - this.aim.y * recoil };
+  }
+
+  private updateWeaponPose(): void {
+    const hand = this.weaponPoint();
     const o = this.orientation;
     const pv = MAKITA.pivots[o], mz = MAKITA.muzzle[o];
     const flipY = this.aim.y > 0.3;
@@ -241,6 +248,7 @@ export class PlayerController extends Entity {
       Sfx.play('shoot');
       this.firingTimer = 0.14;
       this.recoil = 2;
+      this.updateWeaponPose();
       world.fx.spawn('muzzle', origin.x, origin.y, { clip: 'flash', follow: this.weaponVisible ? () => this.muzzle : undefined });
       world.particles.emit({ x: origin.x, y: origin.y, count: 2, color: ['#ffe36b', '#ffffff'], speed: [20, 60], life: [0.05, 0.12], size: [1, 2], angle: [Math.atan2(this.aim.y, this.aim.x) - 0.4, Math.atan2(this.aim.y, this.aim.x) + 0.4] });
     }
@@ -309,10 +317,9 @@ export class PlayerController extends Entity {
     const sheet = Sheets.tryGet('makita');
     if (!sheet) return;
     const o = this.orientation;
-    const hand = this.handPoint();
+    const hand = this.weaponPoint();
     const pv = MAKITA.pivots[o];
-    const frame = sheet.frameAt(o, this.age, 'horizontal');
-    const r = Math.round(this.recoil);
-    sheet.drawAnchored(ctx, frame, hand.x - this.aim.x * r, hand.y - this.aim.y * r, pv.x, pv.y, { flipX: this.facing < 0, flipY: this.aim.y > 0.3, alpha });
+    const frame = sheet.frameAt(o, this.isFiring ? this.age : 0, 'horizontal');
+    sheet.drawAnchored(ctx, frame, hand.x, hand.y, pv.x, pv.y, { flipX: this.facing < 0, flipY: this.aim.y > 0.3, alpha });
   }
 }

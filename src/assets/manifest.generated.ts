@@ -1,6 +1,6 @@
 /* WYGENEROWANE przez tools/build-assets.mjs – nie edytuj ręcznie. */
 export const MANIFEST = {
-  "version": "mubeydie",
+  "version": "mubqhz0u",
   "sheets": {
     "seba": {
       "file": "assets/sprites/player/seba.png",
@@ -118,20 +118,20 @@ export const MANIFEST = {
           "y": -15
         },
         "stand": {
-          "x": 5,
-          "y": -27
+          "x": 10,
+          "y": -21
         },
         "up": {
-          "x": 9,
-          "y": -19
+          "x": 13,
+          "y": -23
         },
         "crouch": {
           "x": 9,
           "y": -22
         },
         "prone": {
-          "x": 24,
-          "y": -7
+          "x": 34,
+          "y": -10
         }
       }
     },
@@ -320,8 +320,8 @@ export const MANIFEST = {
     },
     "makita": {
       "file": "assets/sprites/player/makita.png",
-      "frameW": 28,
-      "frameH": 28,
+      "frameW": 40,
+      "frameH": 40,
       "cols": 6,
       "clips": {
         "horizontal": {
@@ -353,30 +353,30 @@ export const MANIFEST = {
       "anchor": "pivot",
       "pivots": {
         "horizontal": {
-          "x": 6,
-          "y": 13
+          "x": 13,
+          "y": 22
         },
         "diagonal": {
-          "x": 8,
-          "y": 19
+          "x": 16,
+          "y": 27
         },
         "vertical": {
-          "x": 13,
-          "y": 21
+          "x": 22,
+          "y": 26
         }
       },
       "muzzle": {
         "horizontal": {
-          "x": 27,
-          "y": 12
+          "x": 33,
+          "y": 16
         },
         "diagonal": {
-          "x": 22,
-          "y": 5
+          "x": 26,
+          "y": 9
         },
         "vertical": {
-          "x": 12,
-          "y": 0
+          "x": 16,
+          "y": 6
         }
       }
     },
