@@ -6,6 +6,7 @@
  * Podmiana grafiki 1:1: podmień PNG w assets/raw/... zachowując nazwy i liczbę klatek, odpal ponownie.
  */
 import fs from 'node:fs';
+import { MACHINE_PALETTE, IMPACT_PALETTE, EXPLOSION_PALETTE, turbineWing } from './combat-art.mjs';
 import { load, save, create, blit, bbox, scale, resizeNearest } from './png.mjs';
 
 /** Gęstość pikseli gry (musi zgadzać się z CONFIG.view.pixelScale). Sheety 1x są podbijane ×D. */
@@ -122,11 +123,11 @@ const SEBA_PALETTE = {
 };
 /** Blaszak – biegacz: metal, czerwony wizjer. */
 const RUNNER_PALETTE = {
-  '#ffd800': '#7d8794', '#ec7809': '#4b5563',
-  '#ffb164': '#aab3bf', '#b15c51': '#6b7482', // skóra → metal
+  '#ffd800': '#b8b8a8', '#ec7809': '#66747a',
+  '#ffb164': '#c2c6bb', '#b15c51': '#75858b', // skóra → metal
   '#442b61': '#1c2029', '#81709a': '#3a4250', '#a096d1': '#2b3038',
   '#fcfcfc': '#d9dee5', '#ff2245': '#ff2a2a',
-  [H.base]: '#3a4250', [H.hi]: '#6b7482', [H.visor]: '#101010', [H.glow]: '#ff2a2a', [H.lamp]: '#ff2a2a', [H.stripe]: '#4b5563', [H.pants]: '#aab3bf',
+  [H.base]: '#596875', [H.hi]: '#d3cdb4', [H.visor]: '#101010', [H.glow]: '#ff2a2a', [H.lamp]: '#ff2a2a', [H.stripe]: '#d6a559', [H.pants]: '#8b9a9d',
 };
 
 // ---------------------------------------------------------------------------
@@ -184,12 +185,12 @@ const RUNNER_PALETTE = {
 // ---------------------------------------------------------------------------
 {
   const drone = frames('misc/drone', 'drone', 4); const u = unionBbox(drone);
-  const p = pack(drone.map((im) => crop(im, u)), 4);
+  const p = pack(drone.map((im) => recolor(crop(im, u), MACHINE_PALETTE)), 4);
   emitSheet('drone', 'assets/sprites/enemies/drone.png', p, { patrol: { frames: [0, 1, 2, 3], fps: 10, loop: true }, charge: { frames: [0, 1, 2, 3], fps: 20, loop: true }, return: { frames: [0, 1, 2, 3], fps: 10, loop: true } },
     { anchor: 'center', anchorX: Math.round(p.frameW / 2), anchorY: 16 });
 
   const turret = frames('misc/turret', 'turret', 6); const ut = unionBbox(turret);
-  const pt = pack(turret.map((im) => crop(im, ut)), 6);
+  const pt = pack(turret.map((im) => recolor(crop(im, ut), MACHINE_PALETTE)), 6);
   emitSheet('turret', 'assets/sprites/enemies/turret.png', pt, { idle: { frames: [0], fps: 1, loop: true }, aim: { frames: [1, 2, 3, 4, 5], fps: 10, loop: false }, cooldown: { frames: [0], fps: 1, loop: true } },
     { anchor: 'bottom', anchorX: Math.round(pt.frameW / 2) });
 
@@ -198,11 +199,11 @@ const RUNNER_PALETTE = {
   emitSheet('shot', 'assets/sprites/fx/shot.png', ps, { fly: { frames: [0, 1, 2], fps: 18, loop: true } }, { anchor: 'center', anchorX: 8, anchorY: 5 });
 
   const hit = frames('misc/shot-hit', 'shot-hit', 3);
-  const ph = pack(hit, 3);
+  const ph = pack(hit.map((im) => recolor(im, IMPACT_PALETTE)), 3);
   emitSheet('shotHit', 'assets/sprites/fx/shot-hit.png', ph, { play: { frames: [0, 1, 2], fps: 24, loop: false } }, { anchor: 'center', anchorX: 7, anchorY: 5 });
 
   const expl = frames('misc/enemy-explosion', 'enemy-explosion', 6);
-  const pe = pack(expl, 6);
+  const pe = pack(expl.map((im) => recolor(im, EXPLOSION_PALETTE)), 6);
   emitSheet('explosion', 'assets/sprites/fx/explosion.png', pe, { play: { frames: [0, 1, 2, 3, 4, 5], fps: 16, loop: false } }, { anchor: 'center', anchorX: 27, anchorY: 26 });
 }
 
@@ -391,39 +392,11 @@ const RUNNER_PALETTE = {
 // Boss – skrzydło turbiny jako sprite (3 palety faz × [całe, pęknięte]) + rdzeń (2 klatki pulsu)
 // ---------------------------------------------------------------------------
 {
-  const W = 28, H = 96, WL = 28; // WL = długość wingletu (CONFIG.boss.wingletLength)
-  const K = '#050912';
-  const PAL = [
-    { l: '#c3c8d1', m: '#7d8794', d: '#3f4753' },
-    { l: '#f5c08a', m: '#d9782a', d: '#7a3b0f' },
-    { l: '#ff9a90', m: '#c8302a', d: '#5e1310' },
-  ];
-  const wing = (pal, cracked) => {
-    const im = create(W, H);
-    rect(im, 0, 0, W, H, K);
-    rect(im, 1, 1, W - 2, H - 2, pal.m);
-    hline(im, 1, 1, W - 2, pal.l); vline(im, 1, 1, H - 2, pal.l); hline(im, 1, H - 2, W - 2, pal.d); vline(im, W - 2, 1, H - 2, pal.d);
-    // płyty pancerne + nity
-    for (let k = 10; k < H - 6; k += 12) { hline(im, 2, k, W - 4, K); px(im, 4, k + 3, pal.l); px(im, W - 5, k + 3, pal.l); px(im, 5, k + 4, K); px(im, W - 4, k + 4, K); }
-    // receptory odgromowe na krawędzi natarcia (prawa krawędź; klatka odbijana dla lewej)
-    for (let k = 8; k < H - 6; k += 16) { rect(im, W - 2, k, 2, 2, '#5ec8ff'); px(im, W - 1, k, '#dff6ff'); }
-    if (!cracked) {
-      // winglet – jaśniejsza końcówka ze znacznikiem
-      rect(im, 2, H - WL, W - 4, WL - 2, pal.l); hline(im, 2, H - WL, W - 4, '#ffffff');
-      for (let k = H - WL + 3; k < H - 3; k += 6) hline(im, 3, k, W - 6, pal.m);
-      rect(im, W / 2 - 2, H - WL / 2 - 2, 4, 4, '#ffb300'); px(im, W / 2 - 1, H - WL / 2 - 1, '#ffe36b');
-    } else {
-      // pęknięcia rozchodzące się od piasty
-      for (const [dx, dy, len] of [[-1, -1, 30], [1, -1, 22], [-1, 1, 26], [1, 1, 34], [0, -1, 40], [0, 1, 38]]) {
-        let x = W / 2, y = H / 2; for (let i = 0; i < len; i++) { px(im, Math.round(x), Math.round(y), K); if (i % 3 === 0) px(im, Math.round(x) + 1, Math.round(y), '#ff2a2a'); x += dx * (0.35 + ((i * 7) % 3) * 0.2); y += dy * 0.9; }
-      }
-    }
-    // piasta
-    rect(im, W / 2 - 5, H / 2 - 5, 10, 10, K); rect(im, W / 2 - 4, H / 2 - 4, 8, 8, pal.d);
-    if (!cracked) { rect(im, W / 2 - 2, H / 2 - 2, 4, 4, pal.l); px(im, W / 2 - 1, H / 2 - 1, '#ffffff'); }
-    return im;
-  };
-  const frames = []; for (const pal of PAL) { frames.push(wing(pal, false)); frames.push(wing(pal, true)); }
+  const W = 28, H = 96;
+  const frames = [];
+  for (let phase = 0; phase < 3; phase++) {
+    frames.push(turbineWing(phase, false), turbineWing(phase, true));
+  }
   const pw = pack(frames, 6);
   emitSheet('bossWing', 'assets/sprites/boss/wing.png', pw, {
     p1: { frames: [0], fps: 1 }, p1c: { frames: [1], fps: 1 }, p2: { frames: [2], fps: 1 }, p2c: { frames: [3], fps: 1 }, p3: { frames: [4], fps: 1 }, p3c: { frames: [5], fps: 1 },

@@ -11,11 +11,13 @@ Wbudowane narzędzie ImageGen wygenerowało dwa nowe źródła; obraz referencyj
 
 Odtwarzanie: `npm run assets && npm run build:prod`. Zasoby źródłowe są w repozytorium; ponowny build nie wymaga wywołania AI.
 
-Ta zmiana podnosi jakość otoczenia i dopasowuje kolorystykę do referencji. Postać korzysta z dotychczasowej grafiki źródłowej, ale ma poprawiony eksport: maska błysku nie usuwa już skóry z twarzy i portretu, a paleta ma 32 kolory. W spoczynku broń znajduje się przy opuszczonej dłoni. Wrogowie i boss zachowują dotychczasowe sheety; nie jest to pełne odtworzenie wszystkich elementów referencji 1:1.
+Ta zmiana podnosi jakość otoczenia i dopasowuje kolorystykę do referencji. Postać korzysta z dotychczasowej grafiki źródłowej, ale ma poprawiony eksport: maska błysku nie usuwa już skóry z twarzy i portretu, a paleta ma 32 kolory. W spoczynku broń znajduje się przy opuszczonej dłoni. Nie jest to pełne odtworzenie wszystkich elementów referencji 1:1.
+
+Maszyny zachowują dotychczasowe animacje, z nową paletą kompozytu, stali i bursztynowych oznaczeń. Czerwone czujniki dronów i wizjery biegaczy odróżniają wrogów od dekoracji. Trafienia mają kremowy środek i pomarańczowe iskry; eksplozje wygasają w przygaszony dym. Boss ma nowy proceduralny atlas w `tools/combat-art.mjs`: kołnierz ze śrubami, wyoblone cieniowanie, szwy, okrągłą piastę, przetarcia i pęknięcia. Trzy fazy pokazują coraz ciemniejszy, przegrzany materiał; oznaczenie wrażliwej końcówki zaczyna się na y=68, zgodnie z dotychczasową strefą trafienia. Rozmiary klatek, kotwice, kolizje i zachowanie przeciwników pozostają zgodne z grą.
 
 Duża łopata w tle jest dekoracją; platformy grywalne nadal wynikają z tilemapy. Eksport grywalnej łopaty wyrównuje górny obrys do płaskiej krawędzi kolizji, aby Seba nie wisiał nad grafiką. Podpory są zakotwiczone stopami na podłożu. Kontenery mają przygaszoną paletę stali, przetarcia i zamki; wolnostojące rury z pierwszego planu zostały usunięte.
 
-Kontrola: `npm test` sprawdza przebieg poziomu, podwójny skok, tunele i 113 używanych klatek atlasów. `npm run preview:visual` udostępnia statyczną galerię fragmentów poziomu pod `/test/visual.html` (nie symuluje walki).
+Kontrola: `npm test` sprawdza przebieg poziomu, podwójny skok, tunele i 113 używanych klatek atlasów. `npm run preview:visual` udostępnia statyczną galerię fragmentów poziomu, przeciwników oraz trzech faz i poziomego zamachu bossa pod `/test/visual.html` (nie symuluje walki).
 
 ## Prompty użyte w ImageGen
 
