@@ -7,7 +7,7 @@
  */
 import fs from 'node:fs';
 import { buildMakita } from './weapon-art.mjs';
-import { MACHINE_PALETTE, IMPACT_PALETTE, EXPLOSION_PALETTE, turbineWing } from './combat-art.mjs';
+import { MACHINE_PALETTE, IMPACT_PALETTE, EXPLOSION_PALETTE, turbineWing, nacelleFrame, BLADE_ART_PROFILE } from './combat-art.mjs';
 import { load, save, create, blit, bbox, scale, resizeNearest } from './png.mjs';
 
 /** Gęstość pikseli gry (musi zgadzać się z CONFIG.view.pixelScale). Sheety 1x są podbijane ×D. */
@@ -369,7 +369,7 @@ const RUNNER_PALETTE = {
 // Boss – skrzydło turbiny jako sprite (3 palety faz × [całe, pęknięte]) + rdzeń (2 klatki pulsu)
 // ---------------------------------------------------------------------------
 {
-  const W = 28, H = 96;
+  const { width: W, height: H } = BLADE_ART_PROFILE;
   const frames = [];
   for (let phase = 0; phase < 3; phase++) {
     frames.push(turbineWing(phase, false), turbineWing(phase, true));
@@ -378,6 +378,7 @@ const RUNNER_PALETTE = {
   emitSheet('bossWing', 'assets/sprites/boss/wing.png', pw, {
     p1: { frames: [0], fps: 1 }, p1c: { frames: [1], fps: 1 }, p2: { frames: [2], fps: 1 }, p2c: { frames: [3], fps: 1 }, p3: { frames: [4], fps: 1 }, p3c: { frames: [5], fps: 1 },
   }, { anchor: 'center', anchorX: W / 2, anchorY: H / 2 });
+  emitSheet('nacelle', 'assets/sprites/boss/nacelle.png', pack([nacelleFrame()], 1), { fly: { frames: [0], fps: 1 } }, { anchor: 'center', anchorX: 24, anchorY: 14 });
   const core = (k) => { const im = create(16, 16); const r = k ? 6 : 5; circle(im, 8, 8, r + 2, '#7a1a1a', true); circle(im, 8, 8, r, k ? '#ff8a80' : '#ff2a2a', true); circle(im, 8, 8, 2, '#ffffff', true); return im; };
   emitSheet('bossCore', 'assets/sprites/boss/core.png', pack([core(0), core(1)], 2), { pulse: { frames: [0, 1], fps: 6, loop: true } }, { anchor: 'center', anchorX: 8, anchorY: 8 });
 }

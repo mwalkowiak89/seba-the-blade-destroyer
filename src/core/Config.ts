@@ -1,3 +1,5 @@
+import bladeProfile from '../entities/boss/blade-profile.json';
+
 /**
  * Centralna konfiguracja balansu i parametrów.
  * Wszystkie wartości "tunable" żyją tutaj – jednostki: piksele, sekundy, px/s, px/s².
@@ -145,8 +147,8 @@ export const CONFIG = {
 
   boss: {
     name: 'SKRZYDŁO TURBINY',
-    width: 28,
-    height: 96,
+    width: bladeProfile.width,
+    height: bladeProfile.height,
     hp: 900,
     contactDamage: 20,
     score: 5000,
@@ -156,11 +158,12 @@ export const CONFIG = {
     /** Pozycja hover względem lewej krawędzi areny. */
     hoverOffsetX: 384 - 56,
     hoverCenterY: 110,
-    hoverAmplitude: 52,
+    hoverAmplitude: 28,
     /** Długość wrażliwej końcówki skrzydła (winglet) – px od czubka. */
     wingletLength: 28,
     /** Rdzeń odsłonięty w fazie 3 (px). */
     coreSize: 14,
+    nacelle: { telegraph: 1.0, flightTime: 0.95, recovery: 0.4, gravity: 420, damage: 24, width: 44, height: 24 },
     phase1: {
       hoverHz: 0.35,
       attackCooldown: 1.4,

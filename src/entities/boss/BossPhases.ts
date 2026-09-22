@@ -8,6 +8,50 @@ import type { TurbineBoss } from './TurbineBoss';
 
 const B = CONFIG.boss;
 
+/** Cel ustalony przed rzutem; ciężka gondola leci po łuku i rozbija się o teren. */
+export class NacelleThrow implements AttackPattern<TurbineBoss> {
+  readonly name = 'nacelle';
+  private timer = 0;
+  private released = false;
+
+  start(boss: TurbineBoss, world: WorldContext): void {
+    this.timer = B.nacelle.telegraph; this.released = false;
+    boss.setVertical(); boss.movementLocked = true;
+    boss.holdingNacelle = true;
+    boss.nacelleTarget = {
+      x: clamp(world.player.cx, boss.arenaX + 28, boss.arenaRight - 28),
+      y: boss.floorY - B.nacelle.height / 2,
+    };
+    Sfx.play('boss_rumble', 0.65);
+  }
+
+  update(boss: TurbineBoss, dt: number, world: WorldContext): boolean {
+    if (world.player.isDead || !boss.nacelleTarget) {
+      boss.holdingNacelle = false; boss.nacelleTarget = null; boss.movementLocked = false;
+      return true;
+    }
+    this.timer -= dt;
+    if (!this.released) {
+      if (this.timer > 0) return false;
+      const origin = boss.nacelleOrigin(), target = boss.nacelleTarget, cfg = B.nacelle;
+      world.enemyBullets.spawn({
+        owner: 'enemy', kind: 'nacelle', x: origin.x, y: origin.y,
+        vx: (target.x - origin.x) / cfg.flightTime,
+        vy: (target.y - origin.y - 0.5 * cfg.gravity * cfg.flightTime ** 2) / cfg.flightTime,
+        gravity: cfg.gravity, damage: cfg.damage, radius: cfg.width / 2,
+        life: cfg.flightTime + 1, hitsTerrain: true,
+      });
+      boss.holdingNacelle = false;
+      this.released = true; this.timer = cfg.flightTime + cfg.recovery;
+      Sfx.play('charge', 0.65);
+      return false;
+    }
+    if (this.timer > 0) return false;
+    boss.nacelleTarget = null; boss.movementLocked = false;
+    return true;
+  }
+}
+
 // =====================================================================
 //  Wzorce ataków – samodzielne klocki; fazy tylko je sekwencjonują.
 // =====================================================================
@@ -240,11 +284,11 @@ export function createTurbinePhases(): BossPhase<TurbineBoss>[] {
   return [
     // Faza 1 – podmuch, wyładowania, niski zamach; wrażliwy tylko winglet.
     makePhase('Faza 1', B.phaseThresholds[0], { hoverHz: p1.hoverHz, attackCooldown: p1.attackCooldown, tint: '#95a5a6' },
-      () => [new WindGust(), new Lightning(p1.lightning), new LowSweep(), new Lightning(p1.lightning)]),
+      () => [new WindGust(), new NacelleThrow(), new Lightning(p1.lightning), new LowSweep()]),
 
     // Faza 2 – Pitch Slam z odłamkami + 2 drony serwisowe.
     makePhase('Faza 2', B.phaseThresholds[1], { hoverHz: p2.hoverHz, attackCooldown: p2.attackCooldown, tint: '#e67e22' },
-      () => [new PitchSlam(), new Lightning(p1.lightning), new WindGust(), new PitchSlam()],
+      () => [new NacelleThrow(), new PitchSlam(), new Lightning(p1.lightning), new WindGust()],
       {
         enter(boss, world) {
           for (let i = 0; i < p2.serviceDrones; i++) {
@@ -257,7 +301,7 @@ export function createTurbinePhases(): BossPhase<TurbineBoss>[] {
 
     // Faza 3 – rezonans: rdzeń odsłonięty, drgania podłoża, szarże z laserem, gęstsze wyładowania.
     makePhase('Faza 3 (ENRAGE)', B.phaseThresholds[2], { hoverHz: p3.hoverHz, attackCooldown: p3.attackCooldown, tint: '#e74c3c' },
-      () => [new HorizontalCharge(), new Lightning(p3.lightning), new HorizontalCharge(), new Lightning(p3.lightning)],
+      () => [new HorizontalCharge(), new NacelleThrow(), new Lightning(p3.lightning), new HorizontalCharge()],
       {
         enter(boss, world) {
           boss.coreExposed = true;

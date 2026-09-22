@@ -7,6 +7,7 @@ import { EnemyBase } from '../enemies/EnemyBase';
 import type { WorldContext } from '../../scenes/WorldContext';
 import { BossFSM, type AttackPattern } from './BossFSM';
 import { createTurbinePhases } from './BossPhases';
+import { BLADE_PROFILE, bladeBands, bladeEdges, bandOverlapsRect, type Rect } from './BladeShape';
 
 const B = CONFIG.boss;
 
@@ -34,6 +35,8 @@ export class TurbineBoss extends EnemyBase {
   tilt = 0;
   /** Y promienia celowniczego szarży (świat) lub null. */
   laserY: number | null = null;
+  nacelleTarget: { x: number; y: number } | null = null;
+  holdingNacelle = false;
   /** Faza 3: pęknięty korpus, odsłonięty rdzeń – jedyny wrażliwy punkt. */
   coreExposed = false;
   quakeTimer = B.phase3.quake.interval;
@@ -78,17 +81,38 @@ export class TurbineBoss extends EnemyBase {
   get vertical(): boolean { return this.w < this.h; }
 
   // ---- Geometria / strefy trafień ------------------------------------------
+  /** Współrzędne profilu po takim samym obrocie i skalowaniu jak grafika. */
+  bladePoint(x: number, y: number): { x: number; y: number } {
+    const horizontal = !this.vertical;
+    let dx = (x - BLADE_PROFILE.width / 2) * ((horizontal ? this.h : this.w) / BLADE_PROFILE.width);
+    const dy = (y - BLADE_PROFILE.height / 2) * ((horizontal ? this.w : this.h) / BLADE_PROFILE.height);
+    if (!horizontal && this.facing < 0) dx = -dx;
+    const angle = this.tilt * this.facing + (horizontal ? Math.PI / 2 : 0);
+    return { x: this.cx + this.shakeOffset + dx * Math.cos(angle) - dy * Math.sin(angle), y: this.cy + dx * Math.sin(angle) + dy * Math.cos(angle) };
+  }
+
+  override overlaps(rect: Rect): boolean {
+    return bladeBands((x, y) => this.bladePoint(x, y)).some((band) => bandOverlapsRect(band, rect));
+  }
+
+  override overlapsCircle(x: number, y: number, radius: number): boolean {
+    return this.overlaps({ x: x - radius, y: y - radius, w: radius * 2, h: radius * 2 });
+  }
+
+  nacelleOrigin(): { x: number; y: number } {
+    return { x: this.cx - 42, y: Math.max(38, this.y + 18) };
+  }
   /** Prostokąt końcówki skrzydła (winglet) – dół w pionie, lewy koniec w poziomie. */
   wingletRect(): { x: number; y: number; w: number; h: number } {
-    const L = B.wingletLength;
-    return this.vertical
-      ? { x: this.x, y: this.bottom - L, w: this.w, h: L }
-      : { x: this.x, y: this.y, w: L, h: this.h };
+    const points = bladeBands((x, y) => this.bladePoint(x, y), BLADE_PROFILE.height - B.wingletLength).flat();
+    const xs = points.map((p) => p.x), ys = points.map((p) => p.y);
+    const x = Math.min(...xs), y = Math.min(...ys);
+    return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
   }
 
   coreRect(): { x: number; y: number; w: number; h: number } {
     const s = B.coreSize;
-    return { x: this.cx - s / 2, y: this.cy - s / 2, w: s, h: s };
+    return { x: this.cx + this.shakeOffset - s / 2, y: this.cy - s / 2, w: s, h: s };
   }
 
   /** Klasyfikuje trafienie pocisku (okrąg) w strefę. */
@@ -98,15 +122,16 @@ export class TurbineBoss extends EnemyBase {
       const c = this.coreRect();
       return rectsOverlap(px - r, py - r, r * 2, r * 2, c.x, c.y, c.w, c.h) ? 'core' : 'armor';
     }
-    const wl = this.wingletRect();
-    return rectsOverlap(px - r, py - r, r * 2, r * 2, wl.x, wl.y, wl.w, wl.h) ? 'weak' : 'armor';
+    const shot = { x: px - r, y: py - r, w: r * 2, h: r * 2 };
+    return bladeBands((x, y) => this.bladePoint(x, y), BLADE_PROFILE.height - B.wingletLength)
+      .some((band) => bandOverlapsRect(band, shot)) ? 'weak' : 'armor';
   }
 
   /** Punkt na krawędzi natarcia (0..1 wzdłuż skrzydła) – receptory odgromowe. */
   leadingEdgePoint(t: number): { x: number; y: number } {
-    return this.vertical
-      ? { x: this.facing < 0 ? this.x - 1 : this.x + this.w + 1, y: this.y + 8 + (this.h - 16) * t }
-      : { x: this.x + 8 + (this.w - 16) * t, y: this.bottom + 1 };
+    const y = 8 + (BLADE_PROFILE.height - 16) * t;
+    const [left] = bladeEdges(y);
+    return this.bladePoint(left, y);
   }
 
   // ---- API dla wzorców ataków --------------------------------------------
@@ -153,6 +178,8 @@ export class TurbineBoss extends EnemyBase {
     this.shakeOffset = 0;
     this.tilt = 0;
     this.laserY = null;
+    this.holdingNacelle = false;
+    this.nacelleTarget = null;
     this.setVertical();
   }
 
@@ -281,6 +308,17 @@ export class TurbineBoss extends EnemyBase {
     const wing = Sheets.tryGet('bossWing');
     const flash = this.hitFlash > 0 || (this.telegraphing && Math.floor(this.age * 20) % 2 === 0) || this.dyingStage === 'hitstop';
     ctx.save();
+    if (this.nacelleTarget) {
+      const target = this.nacelleTarget;
+      ctx.fillStyle = Math.floor(this.age * 10) % 2 ? '#ffb96b' : '#ed684c';
+      ctx.fillRect(target.x - B.nacelle.width / 2, this.floorY - 3, B.nacelle.width, 3);
+      ctx.font = '10px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('!', target.x, this.floorY - 8);
+    }
+    if (this.holdingNacelle) {
+      const nacelle = Sheets.tryGet('nacelle'), origin = this.nacelleOrigin();
+      nacelle?.drawAnchored(ctx, 0, origin.x, origin.y, 24, 14);
+    }
     // promień celowniczy szarży (pikselowa linia)
     if (this.laserY !== null) {
       ctx.globalAlpha = 0.5 + 0.4 * Math.abs(Math.sin(this.age * 25));
@@ -295,7 +333,7 @@ export class TurbineBoss extends EnemyBase {
     }
     const clip = `p${Math.max(1, Math.min(3, this.phaseIndex + 1))}${this.coreExposed ? 'c' : ''}`;
     const frame = wing.frameAt(clip, 0, 'p1');
-    const ax = wing.def.anchorX ?? 14, ay = wing.def.anchorY ?? 48;
+    const ax = wing.def.anchorX ?? BLADE_PROFILE.width / 2, ay = wing.def.anchorY ?? BLADE_PROFILE.height / 2;
     const horizontal = this.w > this.h;
     const drawWing = (cx: number, cy: number, alpha: number) => {
       ctx.save();
@@ -303,6 +341,7 @@ export class TurbineBoss extends EnemyBase {
       if (this.tilt) ctx.rotate(this.tilt * this.facing);
       if (this.dyingStage === 'fall') ctx.rotate(this.fallRot);
       if (horizontal) ctx.rotate(Math.PI / 2); // końcówka (dół klatki) → lewa strona
+      ctx.scale((horizontal ? this.h : this.w) / BLADE_PROFILE.width, (horizontal ? this.w : this.h) / BLADE_PROFILE.height);
       wing.drawAnchored(ctx, frame, 0, 0, ax, ay, { flipX: !horizontal && this.facing < 0, flash, alpha });
       ctx.restore();
     };

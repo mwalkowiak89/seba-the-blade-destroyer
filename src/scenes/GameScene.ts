@@ -12,7 +12,7 @@ import { Parallax } from '../render/Parallax';
 import { TileRenderer } from '../render/TileRenderer';
 import { Images, Sheets } from '../assets/AssetLoader';
 import { MANIFEST } from '../assets/manifest.generated';
-import { impactSparks, type BulletKind } from '../entities/weapons/Bullet';
+import { impactSparks, bulletHitsRect, nacelleImpact, type BulletKind } from '../entities/weapons/Bullet';
 import { Level, Tile, type Marker } from '../world/Level';
 import { TEST_LEVEL } from '../world/TestLevel';
 import { BulletPool } from '../entities/weapons/Bullet';
@@ -280,8 +280,11 @@ export class GameScene implements WorldContext {
 
     // pociski wrogów → gracz
     this.enemyBullets.forEachActive((b) => {
-      if (player.overlapsCircle(b.x, b.y, b.radius)) {
-        if (player.takeDamage(b.damage, b.x, this)) b.active = false;
+      if (bulletHitsRect(b, player)) {
+        if (player.takeDamage(b.damage, b.x, this)) {
+          if (b.kind === 'nacelle') nacelleImpact(this, b);
+          b.active = false;
+        }
       }
     });
 

@@ -11,6 +11,9 @@ import { PRONE, FALL } from '../src/entities/player/PlayerStates';
 import { Sheets } from '../src/assets/AssetLoader';
 import { SpriteSheet } from '../src/assets/SpriteSheet';
 import { MANIFEST } from '../src/assets/manifest.generated';
+import { TurbineBoss } from '../src/entities/boss/TurbineBoss';
+import { NacelleThrow } from '../src/entities/boss/BossPhases';
+import { bulletHitsRect, type Bullet } from '../src/entities/weapons/Bullet';
 
 // ---- mock DOM ----------------------------------------------------------
 const listeners: Record<string, ((e: unknown) => void)[]> = {};
@@ -252,6 +255,85 @@ for (const example of weaponCases) {
   setAction('fire', false); playerTick(world);
   world.player.draw(ctx);
   check(Math.hypot(drawnTip.x - p.muzzle.x, drawnTip.y - p.muzzle.y) < .01, `błysk pozostaje przy bicie po strzale: ${example.name}`);
+}
+
+// Zwężona łopata nie może zachowywać dawnego prostokątnego hitboxa.
+const shapedBoss = new TurbineBoss(0, 208);
+shapedBoss.x = 180; shapedBoss.y = 40;
+for (const horizontal of [false, true]) for (const facing of [1, -1] as const) for (const tilt of [0, .25]) {
+  shapedBoss.setVertical();
+  if (horizontal) shapedBoss.setHorizontal(18);
+  shapedBoss.facing = facing; shapedBoss.tilt = tilt;
+  const tip = shapedBoss.bladePoint(18, 110), empty = shapedBoss.bladePoint(1, 110), body = shapedBoss.bladePoint(16, 60);
+  check(shapedBoss.hitZone(tip.x, tip.y, .2) === 'weak', `końcówka łopaty pozostaje trafialna: ${horizontal}/${facing}/${tilt}`);
+  check(shapedBoss.hitZone(empty.x, empty.y, .2) === 'none' && !shapedBoss.overlaps({ x: empty.x, y: empty.y, w: .2, h: .2 }), 'pusta przestrzeń przy zwężeniu nie trafia ani nie rani');
+  check(shapedBoss.hitZone(body.x, body.y, .2) === 'armor', 'szeroka część łopaty pozostaje pancerzem');
+}
+shapedBoss.coreExposed = true; shapedBoss.shakeOffset = 2;
+check(shapedBoss.hitZone(shapedBoss.cx + 2, shapedBoss.cy, 1) === 'core', 'rdzeń trafialny po obrocie i przesunięciu grafiki');
+
+for (const action of Object.keys(KEY_BINDINGS) as Action[]) setAction(action, false);
+input.update();
+const throwingWorld = new GameScene(input), throwBoss = new TurbineBoss(0, 208);
+throwBoss.x = 280; throwBoss.y = 48;
+const throwing = new NacelleThrow(), throwCfg = CONFIG.boss.nacelle;
+throwing.start(throwBoss, throwingWorld);
+const target = { ...throwBoss.nacelleTarget! };
+throwingWorld.player.x += 80;
+throwing.update(throwBoss, throwCfg.telegraph - .01, throwingWorld);
+let nacelles: Bullet[] = [];
+throwingWorld.enemyBullets.forEachActive((b) => nacelles.push(b));
+check(nacelles.length === 0 && throwBoss.holdingNacelle, 'nacella nie rani podczas zapowiedzi rzutu');
+check(throwBoss.nacelleTarget?.x === target.x, 'cel rzutu nie śledzi gracza po zapowiedzi');
+throwing.update(throwBoss, .02, throwingWorld);
+throwingWorld.enemyBullets.forEachActive((b) => nacelles.push(b));
+check(nacelles.length === 1 && nacelles[0].kind === 'nacelle' && !throwBoss.holdingNacelle, 'jeden rzut wypuszcza dokładnie jedną gondolę');
+const nacelle = nacelles[0];
+check(nacelle.hitsTerrain && nacelle.damage === throwCfg.damage, 'gondola ma kolizję z terenem i skonfigurowane obrażenia');
+check(bulletHitsRect(nacelle, { x: nacelle.x + 20, y: nacelle.y, w: 2, h: 2 }) && !bulletHitsRect(nacelle, { x: nacelle.x, y: nacelle.y + 16, w: 2, h: 2 }), 'gondola używa płaskiego prostokąta, nie nadmiernie dużego promienia');
+// Izolujemy balistykę od platform, aby sprawdzić ustalony punkt lądowania.
+nacelle.hitsTerrain = false;
+throwingWorld.enemyBullets.update(throwCfg.flightTime, throwingWorld);
+check(Math.hypot(nacelle.x - target.x, nacelle.y - target.y) < .01, 'łuk rzutu kończy się w zapowiedzianym punkcie');
+check(throwing.update(throwBoss, throwCfg.flightTime + throwCfg.recovery + .01, throwingWorld) && !throwBoss.movementLocked && !throwBoss.nacelleTarget, 'po rzucie znika znacznik i boss odzyskuje ruch');
+throwingWorld.enemyBullets.clear();
+throwing.start(throwBoss, throwingWorld); throwBoss.cancelAttack();
+throwing.update(throwBoss, 2, throwingWorld);
+nacelles = []; throwingWorld.enemyBullets.forEachActive((b) => nacelles.push(b));
+check(nacelles.length === 0 && !throwBoss.holdingNacelle && !throwBoss.nacelleTarget, 'przerwanie fazy anuluje przygotowany rzut');
+const impact = throwingWorld.enemyBullets.spawn({ owner: 'enemy', kind: 'nacelle', x: 80, y: 183, vx: 0, vy: 120, damage: 24, hitsTerrain: true })!;
+throwingWorld.enemyBullets.update(.12, throwingWorld);
+check(!impact.active, 'cała bryła gondoli rozbija się o podłoże, zanim środek wniknie w ziemię');
+
+// Izolowana platforma jednokierunkowa: zatrzymuje opadanie, przepuszcza lot od dołu.
+const platformWorld = Object.create(throwingWorld) as GameScene;
+Object.defineProperty(platformWorld, 'level', { value: { tileSize: 16, tileAt: (col: number, row: number) => row === 6 && col === 4 ? Tile.OneWay : Tile.Empty } });
+const fallingNacelle = throwingWorld.enemyBullets.spawn({ owner: 'enemy', kind: 'nacelle', x: 72, y: 80, vx: 0, vy: 200, damage: 24, hitsTerrain: true })!;
+throwingWorld.enemyBullets.update(.06, platformWorld);
+check(!fallingNacelle.active, 'opadająca nacella rozbija się o platformę');
+const risingNacelle = throwingWorld.enemyBullets.spawn({ owner: 'enemy', kind: 'nacelle', x: 72, y: 116, vx: 0, vy: -200, damage: 24, hitsTerrain: true })!;
+throwingWorld.enemyBullets.update(.08, platformWorld);
+check(risingNacelle.active, 'nacella przelatuje pod platformą podczas wznoszenia');
+throwingWorld.enemyBullets.clear();
+
+const damageWorld = new GameScene(input);
+playerTick(damageWorld, 10);
+const incoming = damageWorld.enemyBullets.spawn({ owner: 'enemy', kind: 'nacelle', x: damageWorld.player.cx, y: damageWorld.player.cy, vx: 0, vy: 0, damage: throwCfg.damage, hitsTerrain: false })!;
+damageWorld.update(step);
+check(damageWorld.player.health.current === CONFIG.player.maxHp - throwCfg.damage && !incoming.active, 'trafienie gondolą odbiera 24 HP i usuwa pocisk');
+damageWorld.update(step);
+check(damageWorld.player.health.current === CONFIG.player.maxHp - throwCfg.damage, 'jedna gondola nie zadaje obrażeń wielokrotnie');
+
+for (let phase = 0; phase < 3; phase++) {
+  const phaseWorld = new GameScene(input), phaseBoss = new TurbineBoss(0, 208);
+  phaseBoss.x = 280; phaseBoss.y = 48;
+  phaseBoss.fsm.forcePhase(phase, phaseBoss, phaseWorld);
+  let sawNacelle = false;
+  for (let i = 0; i < 1200 && !sawNacelle; i++) {
+    phaseBoss.runAttackCycle(step, phaseWorld);
+    phaseWorld.enemyBullets.forEachActive((b) => { if (b.kind === 'nacelle') sawNacelle = true; });
+  }
+  check(sawNacelle, `rzut nacellą jest w sekwencji fazy ${phase + 1}`);
 }
 
 console.log(failures === 0 ? '\nSMOKE TEST OK' : `\nSMOKE TEST: ${failures} błędów`);

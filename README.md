@@ -66,9 +66,9 @@ Surowe pliki leżą w `assets/raw/`, a `npm run assets` (`tools/build-assets.mjs
 - `assets/backgrounds/` – 3 warstwy parallax PNG w natywnej rozdzielczości (`tools/site-backgrounds.mjs`): zachód słońca,
   odległa przygaszona wieża i farma wiatrowa 0.05; żuraw gąsienicowy, stawiana turbina, sekcje masztów 0.3;
   łopata na kozłach (cieniowana), sekcja wieży na naczepie, płot, barierki, kontenery 0.7,
-- `assets/sprites/boss/` (skrzydło w 3 paletach × całe/pęknięte, rdzeń), `assets/sprites/fx/` (wkręt, wyładowanie, odłamek, mina),
+- `assets/sprites/boss/` (łopata 32×128 w 3 paletach × cała/pęknięta, rdzeń, nacella 48×28), `assets/sprites/fx/` (wkręt, wyładowanie, odłamek, mina),
   `assets/sprites/ui/` (ramki HUD, segmenty baterii, głośnik) – **runtime nie rysuje kształtów, tylko blituje PNG**
-  (wyjątki pikselowe: cząstki 1–2 px, linie laserów, wypełnienie paska bossa).
+  (wyjątki pikselowe: cząstki 1–2 px, linie laserów, znacznik rzutu nacellą, wypełnienie paska bossa).
 - `src/assets/manifest.generated.ts` – rozmiary klatek, klipy (nazwa → indeksy + fps), kotwice, punkty dłoni/wylotu broni.
 
 **Podmiana grafiki 1:1**: podmień PNG w `assets/raw/...` (te same nazwy i liczba klatek) i odpal `npm run assets`.
@@ -123,7 +123,10 @@ Dźwięk: `Sfx.register('shoot', 'assets/sfx/makita.wav')` — wywołania `Sfx.p
 - **Faza 3** (33–0%): pęknięcie i **rdzeń** (jedyny hitbox, ×1.5 obrażeń), okresowe **drgania podłoża** (bezpieczne są górne
   kratownice w arenie), `HorizontalCharge` z czerwonym laserem telegrafującym tor, gęstsze wyładowania.
 - **Finał**: hit-stop 1,5 s (`world.hitStop`), kaskada eksplozji, skrzydło łamie się i odpada → `boss:died` → wyjście z poziomu.
-Przejścia faz emitują `boss:phase` na `EventBus`.
+- **Rzut nacellą w każdej fazie**: 1 s przygotowania i znacznik celu ustalonego przy rozpoczęciu ataku; gondola leci po łuku, zadaje 24 HP przy trafieniu i rozbija się o teren. Platformy przepuszczają ją od spodu. Zmiana fazy anuluje przygotowywany rzut.
+
+Profil aerodynamicznej łopaty (`blade-profile.json`) jest wspólny dla grafiki i stref trafień, również w obrocie. Przejścia faz emitują `boss:phase` na `EventBus`.
+Podgląd `npm run preview:visual` → `/test/visual.html` → „Zagraj z bossem” pozwala sprawdzić walkę bez przechodzenia poziomu.
 
 ### Wydajność
 Plansza (kafle + dekoracje + platformy) jest prerenderowana raz do offscreen canvasu (`TileRenderer`), pociski, FX, cząstki

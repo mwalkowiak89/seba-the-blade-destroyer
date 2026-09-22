@@ -3,9 +3,11 @@ import type { WorldContext } from '../../scenes/WorldContext';
 import { Sheets } from '../../assets/AssetLoader';
 import { CONFIG } from '../../core/Config';
 import { Sfx } from '../../render/Audio';
+import { Tile } from '../../world/Level';
+import { rectsOverlap } from '../../core/MathUtil';
 
 export type BulletOwner = 'player' | 'enemy';
-export type BulletKind = 'default' | 'saw' | 'bolt' | 'shard' | 'mine';
+export type BulletKind = 'default' | 'saw' | 'bolt' | 'shard' | 'mine' | 'nacelle';
 
 /** Pocisk – prosta trajektoria (opcjonalnie z grawitacją dla "ładunków" drona). */
 export class Bullet {
@@ -36,6 +38,34 @@ export interface BulletSpawn {
   hitsTerrain?: boolean;
   color?: string;
   kind?: BulletKind;
+}
+
+export function nacelleBounds(b: Bullet): { x: number; y: number; w: number; h: number } {
+  const { width: w, height: h } = CONFIG.boss.nacelle;
+  return { x: b.x - w / 2, y: b.y - h / 2, w, h };
+}
+
+export function bulletHitsRect(b: Bullet, rect: { x: number; y: number; w: number; h: number }): boolean {
+  const box = b.kind === 'nacelle' ? nacelleBounds(b) : { x: b.x - b.radius, y: b.y - b.radius, w: b.radius * 2, h: b.radius * 2 };
+  return rectsOverlap(box.x, box.y, box.w, box.h, rect.x, rect.y, rect.w, rect.h);
+}
+
+export function nacelleImpact(world: WorldContext, b: Bullet): void {
+  world.fx.spawn('explosion', b.x, b.y);
+  world.camera.shake(4, .22); Sfx.play('slam', .7);
+  world.particles.emit({ x: b.x, y: b.y, count: 15, color: ['#eef0dd', '#93a9af', '#ffb972'],
+    speed: [45, 170], life: [.2, .4], gravity: 400, angle: [-Math.PI, 0], spreadX: 16 });
+}
+
+function nacelleHitsTerrain(b: Bullet, oldBottom: number, world: WorldContext): boolean {
+  const box = nacelleBounds(b), ts = world.level.tileSize;
+  for (let row = Math.floor(box.y / ts); row <= Math.floor((box.y + box.h) / ts); row++) {
+    for (let col = Math.floor(box.x / ts); col <= Math.floor((box.x + box.w) / ts); col++) {
+      const tile = world.level.tileAt(col, row);
+      if (tile === Tile.Solid || (tile === Tile.OneWay && b.vy > 0 && oldBottom <= row * ts && box.y + box.h >= row * ts)) return true;
+    }
+  }
+  return false;
 }
 
 /** Rozbryzg iskier w punkcie uderzenia w metal + animacja trafienia. */
@@ -118,6 +148,16 @@ export class BulletPool {
     this.pool.forEachActive((b) => {
       b.life -= dt;
       b.age += dt;
+      if (b.kind === 'nacelle') {
+        const oldBottom = b.y + CONFIG.boss.nacelle.height / 2;
+        b.x += b.vx * dt;
+        b.y += b.vy * dt + .5 * b.gravity * dt * dt;
+        b.vy += b.gravity * dt;
+        if (b.hitsTerrain && nacelleHitsTerrain(b, oldBottom, world)) {
+          nacelleImpact(world, b); b.active = false;
+        } else if (b.life <= 0 || !cam.isVisible(b.x - 24, b.y - 14, 48, 28, 64)) b.active = false;
+        return;
+      }
       b.vy += b.gravity * dt;
       b.x += b.vx * dt;
       b.y += b.vy * dt;
@@ -144,6 +184,12 @@ export class BulletPool {
         return;
       }
       if (b.owner === 'enemy') {
+        if (b.kind === 'nacelle') {
+          const nacelle = Sheets.tryGet('nacelle');
+          if (nacelle) nacelle.drawAnchored(ctx, 0, b.x, b.y, 24, 14, { flipX: b.vx > 0 });
+          else { const box = nacelleBounds(b); ctx.fillStyle = '#dce2d4'; ctx.fillRect(box.x, box.y, box.w, box.h); }
+          return;
+        }
         const sheet = b.kind === 'bolt' ? Sheets.tryGet('bolt') : b.kind === 'shard' ? Sheets.tryGet('shard') : b.kind === 'mine' ? Sheets.tryGet('mine') : saw;
         if (sheet) {
           const clip = b.kind === 'bolt' ? 'fly' : b.kind === 'mine' ? 'pulse' : 'spin';

@@ -1,6 +1,6 @@
 /* WYGENEROWANE przez tools/build-assets.mjs – nie edytuj ręcznie. */
 export const MANIFEST = {
-  "version": "mubqhz0u",
+  "version": "mubrd6um",
   "sheets": {
     "seba": {
       "file": "assets/sprites/player/seba.png",
@@ -442,8 +442,8 @@ export const MANIFEST = {
     },
     "bossWing": {
       "file": "assets/sprites/boss/wing.png",
-      "frameW": 28,
-      "frameH": 96,
+      "frameW": 32,
+      "frameH": 128,
       "cols": 6,
       "clips": {
         "p1": {
@@ -485,8 +485,26 @@ export const MANIFEST = {
       },
       "density": 1,
       "anchor": "center",
-      "anchorX": 14,
-      "anchorY": 48
+      "anchorX": 16,
+      "anchorY": 64
+    },
+    "nacelle": {
+      "file": "assets/sprites/boss/nacelle.png",
+      "frameW": 48,
+      "frameH": 28,
+      "cols": 1,
+      "clips": {
+        "fly": {
+          "frames": [
+            0
+          ],
+          "fps": 1
+        }
+      },
+      "density": 1,
+      "anchor": "center",
+      "anchorX": 24,
+      "anchorY": 14
     },
     "bossCore": {
       "file": "assets/sprites/boss/core.png",
