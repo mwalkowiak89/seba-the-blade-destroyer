@@ -35,6 +35,8 @@ npm run preview:visual # galeria poziomu: http://localhost:8000/test/visual.html
 **A** – skok, **B / X / RT** – ogień, **Start** – restart. Mapowanie w `GAMEPAD_BINDINGS` (`src/core/Input.ts`).
 Chrome zgłasza pad dopiero po pierwszym naciśnięciu dowolnego przycisku.
 
+**Telefon / tablet:** przyciski pojawiają się automatycznie na urządzeniach ze sterowaniem dotykowym. Można je też włączyć przyciskiem „Sterowanie dotykowe”. Lewy pad obsługuje ruch i celowanie w ośmiu kierunkach; dół to leżenie. Przytrzymaj **OGIEŃ**, dotknij **SKOK** (ponownie w powietrzu: drugie odbicie). Dół + SKOK pozwala zeskoczyć przez platformę. Ruch, ogień i skok obsługują wiele palców jednocześnie. „Jeszcze raz” pojawia się po końcu gry, a „Wycisz” steruje dźwiękiem. W pionie panel znajduje się pod planszą, w poziomie po jej bokach; uwzględnia wycięcia ekranu. Przerwanie gestu, obrót lub przejście do innej aplikacji zwalnia dotyk. `npm run test:touch` sprawdza gesty i współpracę z klawiaturą.
+
 **Podwójny skok:** jedno dodatkowe odbicie na nowe naciśnięcie klawisza (lub A na padzie),
 z odnowieniem po lądowaniu. Przytrzymanie nie wykonuje drugiego skoku. Po zejściu z krawędzi
 pozostaje jedno odbicie ratunkowe. W niskim tunelu Seba pozostaje w pozycji leżącej,

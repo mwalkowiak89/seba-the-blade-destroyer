@@ -339,7 +339,7 @@ export class GameScene implements WorldContext {
     }
     this.hud.draw(ctx, this.player, this.score, this.boss, this.time);
     this.hud.drawAudioState(ctx, AudioEngine.muted, AudioEngine.running || !AudioEngine.available || this.hintAlpha > 0);
-    if (this.hintAlpha > 0) this.hud.drawHint(ctx, this.hintAlpha, this.input.gamepadConnected);
+    if (this.hintAlpha > 0) this.hud.drawHint(ctx, this.hintAlpha, this.input.gamepadConnected, this.input.touchEnabled);
 
     if (this.debug) {
       let pb = 0, eb = 0; this.playerBullets.forEachActive(() => pb++); this.enemyBullets.forEachActive(() => eb++);
@@ -351,7 +351,7 @@ export class GameScene implements WorldContext {
       ctx.restore();
     }
 
-    const again = this.input.gamepadConnected ? 'START – jeszcze raz' : 'R – jeszcze raz';
+    const again = this.input.touchEnabled ? 'Dotknij JESZCZE RAZ' : this.input.gamepadConnected ? 'START – jeszcze raz' : 'R – jeszcze raz';
     if (this.state === 'gameover') this.hud.drawOverlay(ctx, 'GAME OVER', again, '#e74c3c');
     if (this.state === 'victory') this.hud.drawOverlay(ctx, 'ETAP UKOŃCZONY', `SCORE ${this.score}   ·   ${again}`, '#2ecc71');
   }

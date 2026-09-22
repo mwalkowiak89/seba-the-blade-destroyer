@@ -12,8 +12,9 @@
     "deploy": "bash tools/deploy.sh",
     "assets:seba": "node tools/extract-seba.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "esbuild test/smoke.ts --bundle --platform=node --target=es2020 --outfile=dist/smoke.test.cjs --log-level=error && node dist/smoke.test.cjs && node test/assets.mjs",
-    "preview:visual": "esbuild test/visual.ts --bundle --format=iife --target=es2020 --outfile=dist/visual.test.js --servedir=."
+    "test": "esbuild test/smoke.ts --bundle --platform=node --target=es2020 --outfile=dist/smoke.test.cjs --log-level=error && node dist/smoke.test.cjs && node test/assets.mjs && npm run test:touch",
+    "preview:visual": "esbuild test/visual.ts --bundle --format=iife --target=es2020 --outfile=dist/visual.test.js --servedir=.",
+    "test:touch": "esbuild test/touch.ts --bundle --platform=node --target=es2020 --outfile=dist/touch.test.cjs --log-level=error && node dist/touch.test.cjs"
   },
   "devDependencies": {
     "@types/pngjs": "^6.0.5",

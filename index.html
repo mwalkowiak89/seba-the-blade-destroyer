@@ -2,18 +2,54 @@
 <html lang="pl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Seba the Blade Destroyer — prototyp</title>
   <style>
-    html, body { margin: 0; padding: 0; background: #0b0b10; height: 100%; overflow: hidden; }
+    html, body { margin: 0; padding: 0; background: #0b0b10; height: 100%; overflow: hidden; overscroll-behavior: none; }
     body { display: flex; align-items: center; justify-content: center; font-family: monospace; color: #ccc; }
-    canvas { image-rendering: pixelated; image-rendering: crisp-edges; background: #000; outline: none; }
+    canvas { image-rendering: pixelated; image-rendering: crisp-edges; background: #000; outline: none; touch-action: none; }
+    #game-stage { position: fixed; inset: 0; display: grid; place-items: center; min-width: 0; }
+    button { font: 600 13px system-ui, sans-serif; color: #f1eadb; background: #263640; border: 1px solid #64727b; border-radius: 12px; cursor: pointer; min-height: 44px; padding: 8px 12px; touch-action: manipulation; }
+    button:focus-visible { outline: 3px solid #ffc679; outline-offset: 3px; }
+    [hidden] { display: none !important; }
+    #touch-toggle { position: fixed; z-index: 3; top: max(6px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); opacity: .85; }
+    #touch-controls { position: fixed; inset: 0; pointer-events: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+    #touch-controls button, #touch-pad { pointer-events: auto; }
+    #touch-pad { position: absolute; width: 144px; height: 144px; left: max(12px, env(safe-area-inset-left)); bottom: max(16px, env(safe-area-inset-bottom)); border: 2px solid #687d89; border-radius: 50%; background: radial-gradient(circle, #344955, #18232c); touch-action: none; box-sizing: border-box; }
+    #touch-pad span { position: absolute; color: #c0ced1; font: 22px system-ui; }
+    #touch-pad .up { top: 5px; left: 60px; } #touch-pad .down { bottom: 5px; left: 60px; }
+    #touch-pad .left { left: 10px; top: 54px; } #touch-pad .right { right: 10px; top: 54px; }
+    #touch-thumb { left: 49px; top: 49px; width: 42px; height: 42px; border-radius: 50%; background: #a7bec4; box-shadow: 0 3px 0 #526c78; pointer-events: none; }
+    .touch-actions { position: absolute; right: max(12px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); display: flex; align-items: flex-end; gap: 10px; }
+    .touch-actions button { width: 68px; height: 68px; padding: 0; border-radius: 50%; touch-action: none; border-width: 2px; box-shadow: 0 4px 0 #070c12; }
+    #touch-fire { background: #a85432; border-color: #f2b579; margin-bottom: 48px; }
+    #touch-jump { background: #226b73; border-color: #89c8ce; }
+    #touch-controls .pressed { background: #dbb56e; border-color: #ffe6b6; color: #101b22; }
+    .touch-toolbar { position: absolute; top: max(6px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); display: flex; flex-wrap: wrap; max-width: calc(100vw - 160px); gap: 6px; }
+    #touch-restart { background: #226b73; }
+    .touch-hint { position: absolute; bottom: max(174px, calc(env(safe-area-inset-bottom) + 158px)); width: 100%; text-align: center; font: 12px system-ui; color: #a7b8bf; }
+    body.touch-mode #help { display: none; }
+    body.touch-mode #game-stage { top: max(56px, calc(env(safe-area-inset-top) + 50px)); bottom: max(208px, calc(env(safe-area-inset-bottom) + 192px)); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); }
+    @media (orientation: landscape) {
+      body.touch-mode #game-stage { top: max(52px, calc(env(safe-area-inset-top) + 48px)); bottom: max(8px, env(safe-area-inset-bottom)); left: max(168px, calc(env(safe-area-inset-left) + 156px)); right: max(168px, calc(env(safe-area-inset-right) + 156px)); }
+      .touch-hint { display: none; }
+    }
+    @media (max-height: 360px) and (orientation: landscape) { .touch-hint { display: none; } }
     #help { position: fixed; left: 8px; bottom: 6px; font-size: 12px; opacity: .6; }
   </style>
 </head>
 <body>
-  <canvas id="game" tabindex="0"></canvas>
+  <main id="game-stage"><canvas id="game" tabindex="0" aria-label="Seba the Blade Destroyer — gra"></canvas></main>
+  <button id="touch-toggle" aria-controls="touch-controls" aria-expanded="false">Sterowanie dotykowe</button>
+  <section id="touch-controls" aria-label="Sterowanie dotykowe" hidden>
+    <div class="touch-toolbar"><button id="touch-mute" aria-pressed="false">Wycisz</button><button id="touch-restart" hidden>Jeszcze raz</button></div>
+    <p class="touch-hint">Pad: ruch i celowanie · Dół: leżenie<br>Skok ×2: podwójny skok · Dół + Skok: zeskok</p>
+    <div id="touch-pad" role="group" aria-label="Pad kierunkowy: ruch, celowanie i leżenie">
+      <span class="up" aria-hidden="true">▲</span><span class="down" aria-hidden="true">▼</span><span class="left" aria-hidden="true">◀</span><span class="right" aria-hidden="true">▶</span><span id="touch-thumb" aria-hidden="true"></span>
+    </div>
+    <div class="touch-actions"><button id="touch-jump" data-touch-action="jump">SKOK</button><button id="touch-fire" data-touch-action="fire">OGIEŃ</button></div>
+  </section>
   <div id="help">Strzałki/WASD: ruch · Z / K / Spacja: skok, ponownie w powietrzu: drugi skok · X / J: ogień · Dół+Skok: zeskok · R: restart · M: wycisz · Pad: D-pad/gałka, A: podwójny skok, B/X/RT: ogień</div>
-  <script src="dist/game.js?v=58002100eddf"></script>
+  <script src="dist/game.js?v=7bb13fa172eb"></script>
 </body>
 </html>

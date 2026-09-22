@@ -336,5 +336,20 @@ for (let phase = 0; phase < 3; phase++) {
   check(sawNacelle, `rzut nacellą jest w sekwencji fazy ${phase + 1}`);
 }
 
+// Sterowanie dotykowe przechodzi przez ten sam kontroler gracza co klawiatura.
+const mobileInput = new Input(window as any), mobileScene = new GameScene(mobileInput);
+const mobileTick = (n = 1) => { for (let i = 0; i < n; i++) { mobileInput.update(); mobileScene.update(step); } };
+mobileTick(20);
+const mobileStart = mobileScene.player.x;
+mobileInput.setTouchActions(1, ['right']); mobileInput.setTouchActions(2, ['fire']);
+mobileInput.setTouchActions(3, ['jump']); mobileInput.setTouchActions(3, []);
+mobileTick(10);
+let mobileShots = 0; mobileScene.playerBullets.forEachActive(() => mobileShots++);
+check(mobileScene.player.x > mobileStart && !mobileScene.player.onGround && mobileShots > 0, 'dotyk jednocześnie porusza Sebą, skacze i strzela w prawdziwej scenie');
+mobileInput.setTouchActions(4, ['jump']); mobileInput.setTouchActions(4, []); mobileTick();
+check(mobileScene.player.vy < -200, 'drugie dotknięcie skoku odbija Sebę w powietrzu');
+mobileInput.clearTouch(); mobileTick();
+check(!mobileInput.held('right') && !mobileInput.held('fire'), 'zwolnienie panelu kończy ruch i ogień');
+
 console.log(failures === 0 ? '\nSMOKE TEST OK' : `\nSMOKE TEST: ${failures} błędów`);
 process.exit(failures === 0 ? 0 : 1);
