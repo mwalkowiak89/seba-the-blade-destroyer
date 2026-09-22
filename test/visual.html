@@ -14,9 +14,10 @@
   p { color:#bbb6af; }
 </style>
 <h1>Seba — przegląd grafiki</h1>
-<p>Statyczne kadry rysowane przez silnik gry. <a href="index.html">Przejdź do gry</a></p>
+<p>Podgląd grafiki i próba walki z bossem. <a href="index.html">Przejdź do gry</a></p>
 <nav aria-label="Fragment poziomu">
   <button data-scene="start" aria-pressed="true">Początek</button>
+  <button data-scene="weapon" aria-pressed="false">Broń</button>
   <button data-scene="blade" aria-pressed="false">Łopata i podpory</button>
   <button data-scene="tunnel" aria-pressed="false">Tunel</button>
   <button data-scene="arena" aria-pressed="false">Arena</button>
@@ -25,8 +26,11 @@
   <button data-scene="boss2" aria-pressed="false">Boss: faza 2</button>
   <button data-scene="boss3" aria-pressed="false">Boss: rdzeń</button>
   <button data-scene="bossSweep" aria-pressed="false">Boss: zamach</button>
+  <button data-scene="bossThrow" aria-pressed="false">Rzut: przygotowanie</button>
+  <button data-scene="bossFlight" aria-pressed="false">Nacella w locie</button>
+  <button data-scene="bossPlay" aria-pressed="false">Zagraj z bossem</button>
 </nav>
-<canvas width="384" height="216" aria-label="Podgląd poziomu"></canvas>
+<canvas width="384" height="216" tabindex="0" aria-label="Podgląd poziomu"></canvas>
 <p id="status" role="status">Ładowanie…</p>
 <h2>Klatki postaci</h2>
 <img src="assets/sprites/player/seba.png" alt="Atlas animacji Seby">
@@ -35,5 +39,6 @@
 <img src="assets/sprites/enemies/drone.png" alt="Animacje drona">
 <img src="assets/sprites/enemies/turret.png" alt="Animacje wieżyczki">
 <img src="assets/sprites/boss/wing.png" alt="Trzy fazy pancerza bossa, całe i pęknięte">
+<img src="assets/sprites/boss/nacelle.png" alt="Gondola turbiny rzucana przez bossa">
 <script src="dist/visual.test.js"></script>
 </html>

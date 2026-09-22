@@ -4,6 +4,7 @@ import { GameScene } from '../scenes/GameScene';
 import { loadAllAssets } from '../assets/AssetLoader';
 import { HUD } from '../ui/HUD';
 import { AudioEngine } from '../audio/AudioEngine';
+import { TouchControls } from '../ui/TouchControls';
 
 /**
  * Pętla gry: stały krok symulacji (60 Hz) + render co klatkę, całkowite skalowanie canvasu.
@@ -11,6 +12,7 @@ import { AudioEngine } from '../audio/AudioEngine';
 export class Game {
   private ctx: CanvasRenderingContext2D;
   private input: Input;
+  private touch: TouchControls;
   private scene: GameScene | null = null;
   private accumulator = 0;
   private lastTime = 0;
@@ -27,6 +29,7 @@ export class Game {
     this.ctx.imageSmoothingEnabled = false;
     this.input = new Input(window);
     AudioEngine.hookUnlock();
+    this.touch = new TouchControls(this.input, () => this.fitToWindow());
     window.addEventListener('resize', () => this.fitToWindow());
     this.fitToWindow();
     canvas.focus();
@@ -34,7 +37,9 @@ export class Game {
 
   private fitToWindow(): void {
     const cw = CONFIG.view.width * CONFIG.view.pixelScale, ch = CONFIG.view.height * CONFIG.view.pixelScale;
-    const scale = Math.max(1, Math.floor(Math.min(window.innerWidth / cw, window.innerHeight / ch)));
+    const area = document.getElementById('game-stage')!;
+    const fit = Math.min(area.clientWidth / cw, area.clientHeight / ch);
+    const scale = this.input.touchEnabled || fit < 1 ? fit : Math.floor(fit);
     this.canvas.style.width = `${cw * scale}px`;
     this.canvas.style.height = `${ch * scale}px`;
   }
@@ -78,6 +83,7 @@ export class Game {
     }
     if (steps === CONFIG.view.maxStepsPerFrame) this.accumulator = 0;
 
+    this.touch.update(this.scene.state !== 'playing');
     this.scene.draw(this.ctx, this.fps);
     requestAnimationFrame((t) => this.frame(t));
   }

@@ -179,7 +179,11 @@ const nearest = (pal, s) => { let bi = 0, bd = Infinity; for (let c = 0; c < pal
 
 // --- główny przebieg ------------------------------------------------------------
 const rowBlobs = Object.fromEntries(Object.entries(ROWS).map(([k, r]) => [k, blobs(r)]));
-for (const [row, list] of Object.entries(rowBlobs)) if (RIFLE_ROWS.has(row)) for (const b of list) eraseRifle(b);
+for (const [row, list] of Object.entries(rowBlobs)) if (RIFLE_ROWS.has(row)) for (const b of list) {
+  eraseRifle(b);
+  // Wycięcie starej lufy odłącza resztki błysku od ciała; usuń je dopiero teraz.
+  removeSpecks({ x: b.x0, y: b.y0, w: b.x1 - b.x0 + 1, h: b.y1 - b.y0 + 1 }, 260);
+}
 const idleH = Math.max(...rowBlobs.idle.map((b) => b.y1 - b.y0 + 1));
 const K = idleH / TARGET_HEIGHT;
 console.log('klatki per wiersz:', Object.fromEntries(Object.entries(rowBlobs).map(([k, v]) => [k, v.length])), '| skala 1/' + K.toFixed(2));
@@ -252,7 +256,7 @@ const meta = {
   file: OUT_SHEET, frameW: FW, frameH: FH, cols, clips,
   anchor: 'bottom', anchorX: Math.floor(FW / 2), density: DENSITY,
   // dłoń (względem środek-stopy): stojąc ~60% wysokości, w klęku niżej – korekta ręczna po podglądzie
-  pivots: { idle: { x: 5, y: -15 }, stand: { x: 5, y: -27 }, up: { x: 9, y: -19 }, crouch: { x: 9, y: -22 }, prone: { x: 24, y: -7 } },
+  pivots: { idle: { x: 5, y: -15 }, stand: { x: 10, y: -21 }, up: { x: 13, y: -23 }, crouch: { x: 9, y: -22 }, prone: { x: 34, y: -10 } },
 };
 fs.writeFileSync(OUT_JSON, JSON.stringify(meta, null, 2));
 console.log(`OK: ${list.length} klatek ${FW}x${FH}, paleta ${palette.length}`);

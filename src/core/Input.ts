@@ -38,6 +38,9 @@ export class Input {
   private pressedThisFrame = new Set<string>();
   private prevActions = new Set<Action>();
   private curActions = new Set<Action>();
+  private touchSources = new Map<number, Set<Action>>();
+  private touchPressed = new Map<number, Set<Action>>();
+  touchEnabled = false;
   /** Czy w tym kroku którakolwiek akcja pochodzi z pada (do podpowiedzi w UI). */
   gamepadActive = false;
   gamepadConnected = false;
@@ -50,9 +53,30 @@ export class Input {
       this.down.add(ev.code);
     });
     target.addEventListener('keyup', (e) => this.down.delete((e as KeyboardEvent).code));
-    window.addEventListener('blur', () => this.down.clear());
+    window.addEventListener('blur', () => this.releaseAll());
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.releaseAll();
+    });
     window.addEventListener('gamepadconnected', () => { this.gamepadConnected = true; });
     window.addEventListener('gamepaddisconnected', () => { this.gamepadConnected = this.firstGamepad() !== null; });
+  }
+
+  /** Każdy palec jest osobnym źródłem; puszczenie jednego nie zwalnia pozostałych. */
+  setTouchActions(pointerId: number, actions: Action[]): void {
+    const previous = this.touchSources.get(pointerId);
+    const pressed = this.touchPressed.get(pointerId) ?? new Set<Action>();
+    for (const action of actions) if (!previous?.has(action)) pressed.add(action);
+    if (pressed.size) this.touchPressed.set(pointerId, pressed);
+    if (actions.length) this.touchSources.set(pointerId, new Set(actions));
+    else this.touchSources.delete(pointerId);
+  }
+
+  clearTouch(): void { this.touchSources.clear(); this.touchPressed.clear(); }
+  cancelTouch(pointerId: number): void { this.touchSources.delete(pointerId); this.touchPressed.delete(pointerId); }
+
+  private releaseAll(): void {
+    this.down.clear(); this.pressedThisFrame.clear(); this.clearTouch();
+    this.prevActions.clear(); this.curActions.clear();
   }
 
   private isBound(code: string): boolean {
@@ -95,6 +119,9 @@ export class Input {
     }
     this.pressedThisFrame.clear();
     this.readGamepad(this.curActions);
+    for (const actions of this.touchSources.values()) for (const action of actions) this.curActions.add(action);
+    for (const actions of this.touchPressed.values()) for (const action of actions) this.curActions.add(action);
+    this.touchPressed.clear();
   }
 
   held(action: Action): boolean { return this.curActions.has(action); }

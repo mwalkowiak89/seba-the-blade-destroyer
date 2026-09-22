@@ -107,14 +107,14 @@ export class HUD {
     ctx.restore();
   }
 
-  drawHint(ctx: CanvasRenderingContext2D, alpha: number, gamepad = false): void {
+  drawHint(ctx: CanvasRenderingContext2D, alpha: number, gamepad = false, touch = false): void {
     const W = CONFIG.view.width * D, H = CONFIG.view.height * D;
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = FONT(16);
-    this.label(ctx, gamepad
+    this.label(ctx, touch ? 'PAD: RUCH / CEL   SKOK x2   OGIEN: PRZYTRZYMAJ' : gamepad
       ? 'D-PAD: RUCH   A, A: 2x SKOK   B/X/RT: OGIEŃ'
       : 'STRZAŁKI: RUCH   Z, Z: 2x SKOK   X: OGIEŃ   DÓŁ: LEŻENIE', W / 2, H - 12, '#ffffff');
     ctx.restore();

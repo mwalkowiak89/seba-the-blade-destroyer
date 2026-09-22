@@ -1,6 +1,6 @@
 /* WYGENEROWANE przez tools/build-assets.mjs – nie edytuj ręcznie. */
 export const MANIFEST = {
-  "version": "mubeydie",
+  "version": "mubrd6um",
   "sheets": {
     "seba": {
       "file": "assets/sprites/player/seba.png",
@@ -118,20 +118,20 @@ export const MANIFEST = {
           "y": -15
         },
         "stand": {
-          "x": 5,
-          "y": -27
+          "x": 10,
+          "y": -21
         },
         "up": {
-          "x": 9,
-          "y": -19
+          "x": 13,
+          "y": -23
         },
         "crouch": {
           "x": 9,
           "y": -22
         },
         "prone": {
-          "x": 24,
-          "y": -7
+          "x": 34,
+          "y": -10
         }
       }
     },
@@ -320,8 +320,8 @@ export const MANIFEST = {
     },
     "makita": {
       "file": "assets/sprites/player/makita.png",
-      "frameW": 28,
-      "frameH": 28,
+      "frameW": 40,
+      "frameH": 40,
       "cols": 6,
       "clips": {
         "horizontal": {
@@ -353,30 +353,30 @@ export const MANIFEST = {
       "anchor": "pivot",
       "pivots": {
         "horizontal": {
-          "x": 6,
-          "y": 13
+          "x": 13,
+          "y": 22
         },
         "diagonal": {
-          "x": 8,
-          "y": 19
+          "x": 16,
+          "y": 27
         },
         "vertical": {
-          "x": 13,
-          "y": 21
+          "x": 22,
+          "y": 26
         }
       },
       "muzzle": {
         "horizontal": {
-          "x": 27,
-          "y": 12
+          "x": 33,
+          "y": 16
         },
         "diagonal": {
-          "x": 22,
-          "y": 5
+          "x": 26,
+          "y": 9
         },
         "vertical": {
-          "x": 12,
-          "y": 0
+          "x": 16,
+          "y": 6
         }
       }
     },
@@ -442,8 +442,8 @@ export const MANIFEST = {
     },
     "bossWing": {
       "file": "assets/sprites/boss/wing.png",
-      "frameW": 28,
-      "frameH": 96,
+      "frameW": 32,
+      "frameH": 128,
       "cols": 6,
       "clips": {
         "p1": {
@@ -485,8 +485,26 @@ export const MANIFEST = {
       },
       "density": 1,
       "anchor": "center",
-      "anchorX": 14,
-      "anchorY": 48
+      "anchorX": 16,
+      "anchorY": 64
+    },
+    "nacelle": {
+      "file": "assets/sprites/boss/nacelle.png",
+      "frameW": 48,
+      "frameH": 28,
+      "cols": 1,
+      "clips": {
+        "fly": {
+          "frames": [
+            0
+          ],
+          "fps": 1
+        }
+      },
+      "density": 1,
+      "anchor": "center",
+      "anchorX": 24,
+      "anchorY": 14
     },
     "bossCore": {
       "file": "assets/sprites/boss/core.png",

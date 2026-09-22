@@ -12,7 +12,7 @@ import { Parallax } from '../render/Parallax';
 import { TileRenderer } from '../render/TileRenderer';
 import { Images, Sheets } from '../assets/AssetLoader';
 import { MANIFEST } from '../assets/manifest.generated';
-import { impactSparks, type BulletKind } from '../entities/weapons/Bullet';
+import { impactSparks, bulletHitsRect, nacelleImpact, type BulletKind } from '../entities/weapons/Bullet';
 import { Level, Tile, type Marker } from '../world/Level';
 import { TEST_LEVEL } from '../world/TestLevel';
 import { BulletPool } from '../entities/weapons/Bullet';
@@ -280,8 +280,11 @@ export class GameScene implements WorldContext {
 
     // pociski wrogów → gracz
     this.enemyBullets.forEachActive((b) => {
-      if (player.overlapsCircle(b.x, b.y, b.radius)) {
-        if (player.takeDamage(b.damage, b.x, this)) b.active = false;
+      if (bulletHitsRect(b, player)) {
+        if (player.takeDamage(b.damage, b.x, this)) {
+          if (b.kind === 'nacelle') nacelleImpact(this, b);
+          b.active = false;
+        }
       }
     });
 
@@ -336,7 +339,7 @@ export class GameScene implements WorldContext {
     }
     this.hud.draw(ctx, this.player, this.score, this.boss, this.time);
     this.hud.drawAudioState(ctx, AudioEngine.muted, AudioEngine.running || !AudioEngine.available || this.hintAlpha > 0);
-    if (this.hintAlpha > 0) this.hud.drawHint(ctx, this.hintAlpha, this.input.gamepadConnected);
+    if (this.hintAlpha > 0) this.hud.drawHint(ctx, this.hintAlpha, this.input.gamepadConnected, this.input.touchEnabled);
 
     if (this.debug) {
       let pb = 0, eb = 0; this.playerBullets.forEachActive(() => pb++); this.enemyBullets.forEachActive(() => eb++);
@@ -348,7 +351,7 @@ export class GameScene implements WorldContext {
       ctx.restore();
     }
 
-    const again = this.input.gamepadConnected ? 'START – jeszcze raz' : 'R – jeszcze raz';
+    const again = this.input.touchEnabled ? 'Dotknij JESZCZE RAZ' : this.input.gamepadConnected ? 'START – jeszcze raz' : 'R – jeszcze raz';
     if (this.state === 'gameover') this.hud.drawOverlay(ctx, 'GAME OVER', again, '#e74c3c');
     if (this.state === 'victory') this.hud.drawOverlay(ctx, 'ETAP UKOŃCZONY', `SCORE ${this.score}   ·   ${again}`, '#2ecc71');
   }

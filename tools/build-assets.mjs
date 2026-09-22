@@ -6,12 +6,13 @@
  * Podmiana grafiki 1:1: podmień PNG w assets/raw/... zachowując nazwy i liczbę klatek, odpal ponownie.
  */
 import fs from 'node:fs';
-import { MACHINE_PALETTE, IMPACT_PALETTE, EXPLOSION_PALETTE, turbineWing } from './combat-art.mjs';
+import { buildMakita } from './weapon-art.mjs';
+import { MACHINE_PALETTE, IMPACT_PALETTE, EXPLOSION_PALETTE, turbineWing, nacelleFrame, BLADE_ART_PROFILE } from './combat-art.mjs';
 import { load, save, create, blit, bbox, scale, resizeNearest } from './png.mjs';
 
 /** Gęstość pikseli gry (musi zgadzać się z CONFIG.view.pixelScale). Sheety 1x są podbijane ×D. */
 const D = 1;
-import { px, rect, hline, vline, line, circle, recolor, flipX, rotate45, rotate90ccw, hex } from './pixel.mjs';
+import { px, rect, hline, vline, line, circle, recolor, flipX, hex } from './pixel.mjs';
 import { drawSky, drawSiteMid, drawSiteNear, drawSkyBlades, SKY_HORIZON } from './site-backgrounds.mjs';
 
 const RAW = 'assets/raw/warped-city';
@@ -211,37 +212,13 @@ const RUNNER_PALETTE = {
 // Makita DIY – wkrętarka akumulatorowa (bez tarczy): 3 orientacje × 2 klatki obrotu bitu
 // ---------------------------------------------------------------------------
 {
-  const F = 28; // rozmiar klatki
-  function drawMakita(frame) {
-    const im = create(F, F);
-    const oy = 11; // oś lufy w wierszu 13
-    // korpus (teal Makity) z wentylacją
-    rect(im, 4, oy - 1, 12, 6, '#1ba39c'); rect(im, 4, oy - 1, 12, 1, '#4ed6cc'); rect(im, 4, oy + 4, 12, 1, '#0d6b66');
-    rect(im, 3, oy, 1, 4, '#0d6b66'); for (let x = 6; x < 12; x += 2) px(im, x, oy + 1, '#0d6b66');
-    // bateria z tyłu + uchwyt ze spustem
-    rect(im, 1, oy, 3, 5, '#2b2f3a'); px(im, 1, oy, '#5a6170');
-    rect(im, 6, oy + 5, 3, 6, '#2b2f3a'); rect(im, 6, oy + 10, 4, 2, '#1c1f27'); px(im, 7, oy + 6, '#5a6170');
-    px(im, 10, oy + 5, '#ffb300');
-    // uchwyt wiertarski (chuck) – stożek
-    rect(im, 16, oy, 4, 4, '#8a8f99'); rect(im, 16, oy, 4, 1, '#c3c8d1'); rect(im, 20, oy + 1, 2, 2, '#6b7280');
-    // bit/wkrętak – obracający się (naprzemienne rowki)
-    rect(im, 22, oy + 1, 5, 2, '#b8bec8'); px(im, 22 + (frame ? 1 : 0), oy + 1, '#e5e9ef'); px(im, 24 + (frame ? 1 : 0), oy + 2, '#6b7280'); px(im, 26, oy + 1, '#ffffff');
-    return im;
-  }
-  const h0 = drawMakita(0), h1 = drawMakita(1);
-  const pivot = { x: 6, y: 13 }; // dłoń na uchwycie
-  // pion: obrót o 90° CCW → lufa w górę; pivot (x,y) → (y, F-1-x)
-  const v0 = rotate90ccw(h0), v1 = rotate90ccw(h1);
-  const vPivot = { x: pivot.y, y: F - 1 - pivot.x };
-  // skos: obrót o 45° wokół pivota, pivot umieszczony w (8, 19)
-  const dPivot = { x: 8, y: 19 };
-  const d0 = rotate45(h0, F, F, pivot.x, pivot.y, dPivot.x, dPivot.y), d1 = rotate45(h1, F, F, pivot.x, pivot.y, dPivot.x, dPivot.y);
-  const p = pack([h0, h1, d0, d1, v0, v1], 6);
+  const weapon = buildMakita();
+  const p = pack(weapon.frames, 6);
   emitSheet('makita', 'assets/sprites/player/makita.png', p, {
     horizontal: { frames: [0, 1], fps: 30, loop: true },
     diagonal: { frames: [2, 3], fps: 30, loop: true },
     vertical: { frames: [4, 5], fps: 30, loop: true },
-  }, { anchor: 'pivot', pivots: { horizontal: pivot, diagonal: dPivot, vertical: vPivot }, muzzle: { horizontal: { x: 27, y: 12 }, diagonal: { x: 22, y: 5 }, vertical: { x: 12, y: 0 } } });
+  }, { anchor: 'pivot', pivots: weapon.pivots, muzzle: weapon.muzzle });
 }
 
 // ---------------------------------------------------------------------------
@@ -392,7 +369,7 @@ const RUNNER_PALETTE = {
 // Boss – skrzydło turbiny jako sprite (3 palety faz × [całe, pęknięte]) + rdzeń (2 klatki pulsu)
 // ---------------------------------------------------------------------------
 {
-  const W = 28, H = 96;
+  const { width: W, height: H } = BLADE_ART_PROFILE;
   const frames = [];
   for (let phase = 0; phase < 3; phase++) {
     frames.push(turbineWing(phase, false), turbineWing(phase, true));
@@ -401,6 +378,7 @@ const RUNNER_PALETTE = {
   emitSheet('bossWing', 'assets/sprites/boss/wing.png', pw, {
     p1: { frames: [0], fps: 1 }, p1c: { frames: [1], fps: 1 }, p2: { frames: [2], fps: 1 }, p2c: { frames: [3], fps: 1 }, p3: { frames: [4], fps: 1 }, p3c: { frames: [5], fps: 1 },
   }, { anchor: 'center', anchorX: W / 2, anchorY: H / 2 });
+  emitSheet('nacelle', 'assets/sprites/boss/nacelle.png', pack([nacelleFrame()], 1), { fly: { frames: [0], fps: 1 } }, { anchor: 'center', anchorX: 24, anchorY: 14 });
   const core = (k) => { const im = create(16, 16); const r = k ? 6 : 5; circle(im, 8, 8, r + 2, '#7a1a1a', true); circle(im, 8, 8, r, k ? '#ff8a80' : '#ff2a2a', true); circle(im, 8, 8, 2, '#ffffff', true); return im; };
   emitSheet('bossCore', 'assets/sprites/boss/core.png', pack([core(0), core(1)], 2), { pulse: { frames: [0, 1], fps: 6, loop: true } }, { anchor: 'center', anchorX: 8, anchorY: 8 });
 }
